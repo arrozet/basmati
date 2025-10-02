@@ -231,6 +231,8 @@ __marimo__/
 # Visual Paradigm backup files
 *.vpp.bak_*
 *.vpd.bak_*
+*.bak_*
+*.vbak
 
 # Visual Paradigm data files (usually generated)
 *.vpd
