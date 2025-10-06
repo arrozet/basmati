@@ -1,6 +1,6 @@
 ---
 config:
-  layout: fixed
+  layout: elk
 ---
 flowchart TD
  subgraph Cliente["Cliente"]
@@ -55,13 +55,13 @@ flowchart TD
     WebApp -- Redirige a<br><b>I_OAuthLogin</b> --> IdentityProvider
     Microservicios["Microservicios"]
      WebApp:::component
+     APIGateway:::apigateway
      CalendarMgmtService:::microservice
      EventMgmtService:::microservice
      SearchService:::microservice
      UserService:::microservice
      NotificationService:::microservice
      IntegrationService:::microservice
-     APIGateway:::apigateway
      Persistence:::component
      FileStorage:::component
      IdentityProvider:::externalapi
