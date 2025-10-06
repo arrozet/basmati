@@ -1,0 +1,76 @@
+---
+config:
+  layout: fixed
+---
+flowchart TD
+ subgraph Cliente["Cliente"]
+        WebApp["<b>&lt;&lt;Componente UI&gt;&gt;<br>WebApp</b>"]
+  end
+ subgraph subGraph1["Microservicios Internos"]
+        CalendarMgmtService["<b>CalendarManagementService</b><br>(RF1-RF4)"]
+        EventMgmtService["<b>EventManagementService</b><br>(RF5-RF8, RF14)"]
+        SearchService["<b>SearchService</b><br>(RF9-RF11)"]
+        UserService["<b>UserService</b><br>(RF13, RF16)"]
+        NotificationService["<b>NotificationService</b><br>(RF15, RF16)"]
+        IntegrationService["<b>IntegrationService</b><br>(RF17, RF18)"]
+  end
+ subgraph subGraph2["Backend Basmati"]
+        APIGateway["<b>&lt;&lt;API Gateway&gt;&gt;</b><br><i>(FastAPI)</i>"]
+        subGraph1
+  end
+ subgraph Infraestructura["Infraestructura"]
+        Persistence["<b>&lt;&lt;Componente&gt;&gt;<br>Persistence</b><br>(RNF1)"]
+        FileStorage["<b>&lt;&lt;Componente&gt;&gt;<br>FileStorage</b><br>(RNF2)"]
+  end
+ subgraph subGraph4["APIs Externas"]
+        IdentityProvider["<b>&lt;&lt;API Externa&gt;&gt;<br>Identity Provider</b><br>(Google, Facebook via OAuth 2.0)"]
+        TranslateAPI["<b>&lt;&lt;API Externa&gt;&gt;<br>Translation API</b>"]
+        ExternalCalendarAPI["<b>&lt;&lt;API Externa&gt;&gt;<br>External Calendar API</b><br>(RF17)"]
+        EmailAPI["<b>&lt;&lt;API Externa&gt;&gt;<br>Email Service API</b><br>(e.g., SendGrid)"]
+        MapsAPI["<b>&lt;&lt;API Externa&gt;&gt;<br>Maps API</b><br>(Google Maps)"]
+  end
+ subgraph subGraph5["Infraestructura y APIs Externas"]
+        Infraestructura
+        subGraph4
+  end
+    WebApp -- Consume<br><b>I_PublicAPI</b> --> APIGateway
+    APIGateway -- <b>I_CalendarMgmt</b> --> CalendarMgmtService
+    APIGateway -- <b>I_EventMgmt</b> --> EventMgmtService
+    APIGateway -- <b>I_Search</b> --> SearchService
+    APIGateway -- <b>I_User</b> --> UserService
+    APIGateway -- <b>I_Integration</b> --> IntegrationService
+    EventMgmtService -- Dispara notificación<br><b>I_NotificationTrigger</b> --> NotificationService
+    CalendarMgmtService -- Consulta permisos<br><b>I_UserAccess</b> --> UserService
+    EventMgmtService -- Consulta permisos<br><b>I_UserAccess</b> --> UserService
+    CalendarMgmtService -- <b>I_DataAccess</b> --> Persistence
+    EventMgmtService -- <b>I_DataAccess</b> --> Persistence
+    SearchService -- <b>I_DataAccess</b> --> Persistence
+    UserService -- <b>I_DataAccess</b> --> Persistence
+    EventMgmtService -- Gestiona archivos<br><b>I_FileStorage</b> --> FileStorage
+    NotificationService -- Envía email<br><b>I_EmailDelivery</b> --> EmailAPI
+    IntegrationService -- Consume<br><b>I_ExternalCalendar</b> --> ExternalCalendarAPI
+    EventMgmtService -- Solicita traducción<br><b>I_TextTranslation</b> --> TranslateAPI
+    EventMgmtService -- Enriquece con mapas<br><b>I_MapsService</b> --> MapsAPI
+    UserService -- Valida token<br><b>I_TokenValidation</b> --> IdentityProvider
+    WebApp -- Redirige a<br><b>I_OAuthLogin</b> --> IdentityProvider
+    Microservicios["Microservicios"]
+     WebApp:::component
+     CalendarMgmtService:::microservice
+     EventMgmtService:::microservice
+     SearchService:::microservice
+     UserService:::microservice
+     NotificationService:::microservice
+     IntegrationService:::microservice
+     APIGateway:::apigateway
+     Persistence:::component
+     FileStorage:::component
+     IdentityProvider:::externalapi
+     TranslateAPI:::externalapi
+     ExternalCalendarAPI:::externalapi
+     EmailAPI:::externalapi
+     MapsAPI:::externalapi
+    classDef microservice fill:#D5E8D4,stroke:#82B366
+    classDef apigateway fill:#DAE8FC,stroke:#6C8EBF
+    classDef externalapi fill:#F8CECC,stroke:#B85450
+    classDef component fill:#f9f9f9,stroke:#333,stroke-width:2px
+    style Microservicios Internos fill:#fff,stroke:#ddd
