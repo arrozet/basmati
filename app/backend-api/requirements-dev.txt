@@ -1,0 +1,8 @@
+# Development dependencies (minimal for Docker)
+-r requirements.txt
+
+# Testing (needed in container for CI/CD and running tests)
+pytest==7.4.3
+pytest-asyncio==0.21.1
+pytest-cov==4.1.0
+httpx==0.26.0
