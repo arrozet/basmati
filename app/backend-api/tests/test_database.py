@@ -2,8 +2,8 @@ import pytest
 import pytest_asyncio
 from httpx import AsyncClient
 from main import app
-from database import Database
-from config import settings
+from core.database import Database
+from core.config import settings
 import logging
 
 logger = logging.getLogger(__name__)
@@ -98,16 +98,17 @@ async def test_root_endpoint():
 
 
 @pytest.mark.asyncio
-async def test_test_db_endpoint(setup_database):
-    """Test database test endpoint"""
+async def test_api_v1_users_endpoint(setup_database):
+    """Test users API endpoint"""
     async with AsyncClient(app=app, base_url="http://test") as client:
-        response = await client.get("/api/test-db")
-        assert response.status_code == 200, "Test DB endpoint should return 200"
+        response = await client.get("/api/v1/users/")
+        assert response.status_code == 200, "Users endpoint should return 200"
         data = response.json()
-        assert data["status"] == "success", "Status should be success"
-        assert "collections" in data, "Response should include collections"
-        assert data["database"] == settings.mongodb_db_name, "Database name should match"
-        logger.info("✅ Test DB endpoint test passed")
+        assert "users" in data, "Response should include users list"
+        assert "total" in data, "Response should include total count"
+        assert "page" in data, "Response should include page number"
+        assert "page_size" in data, "Response should include page_size"
+        logger.info("✅ API v1 users endpoint test passed")
 
 
 @pytest.mark.asyncio
@@ -129,3 +130,53 @@ async def test_database_stats(setup_database):
     assert "storageSize" in stats, "Stats should include storage size"
     logger.info(f"✅ Database stats: {stats.get('collections')} collections, "
                 f"{stats.get('dataSize')} bytes data")
+
+
+@pytest.mark.asyncio
+async def test_users_crud_api(setup_database):
+    """Test complete CRUD operations for users API"""
+    async with AsyncClient(app=app, base_url="http://test") as client:
+        # 1. CREATE - Create a test user
+        logger.info("Testing CREATE user...")
+        new_user = {
+            "name": "Test User",
+            "email": "test_crud@example.com",
+            "pwd": "test1234"
+        }
+        response = await client.post("/api/v1/users/", json=new_user)
+        assert response.status_code == 201, f"Create should return 201, got {response.status_code}"
+        created_user = response.json()
+        assert created_user["name"] == new_user["name"]
+        assert created_user["email"] == new_user["email"]
+        assert "_id" in created_user, "Response should include user ID"
+        user_id = created_user["_id"]
+        logger.info(f"✅ User created with ID: {user_id}")
+        
+        # 2. READ - Get the created user
+        logger.info("Testing READ user by ID...")
+        response = await client.get(f"/api/v1/users/{user_id}")
+        assert response.status_code == 200, "Get user should return 200"
+        user = response.json()
+        assert user["_id"] == user_id
+        assert user["email"] == new_user["email"]
+        logger.info("✅ User retrieved successfully")
+        
+        # 3. UPDATE - Update the user
+        logger.info("Testing UPDATE user...")
+        update_data = {"name": "Updated Test User"}
+        response = await client.put(f"/api/v1/users/{user_id}", json=update_data)
+        assert response.status_code == 200, "Update should return 200"
+        updated_user = response.json()
+        assert updated_user["name"] == "Updated Test User"
+        logger.info("✅ User updated successfully")
+        
+        # 4. DELETE - Delete the user
+        logger.info("Testing DELETE user...")
+        response = await client.delete(f"/api/v1/users/{user_id}")
+        assert response.status_code == 200, "Delete should return 200"
+        logger.info("✅ User deleted successfully")
+        
+        # 5. Verify deletion
+        response = await client.get(f"/api/v1/users/{user_id}")
+        assert response.status_code == 404, "Deleted user should return 404"
+        logger.info("✅ Complete CRUD cycle test passed")

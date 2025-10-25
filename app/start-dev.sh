@@ -3,6 +3,7 @@
 # =============================================================================
 # Script de despliegue para DESARROLLO
 # Levanta el entorno de desarrollo con hot-reload
+# Uso: ./start-dev.sh [--no-cache|-nc]
 # =============================================================================
 
 set -e
@@ -36,8 +37,16 @@ if [ ! -f ".env" ]; then
     read -p "Presiona Enter cuando hayas configurado .env..."
 fi
 
+# Verificar si se pasó el parámetro --no-cache
+NO_CACHE=""
+if [ "$1" == "--no-cache" ] || [ "$1" == "-nc" ]; then
+    NO_CACHE="--no-cache"
+    echo -e "${YELLOW} Modo sin caché activado${NC}"
+    echo ""
+fi
+
 echo -e "${BLUE} Construyendo imagen de desarrollo...${NC}"
-docker-compose -f docker-compose.dev.yml build
+docker-compose -f docker-compose.dev.yml build $NO_CACHE
 
 echo ""
 echo -e "${BLUE} Levantando contenedores...${NC}"
@@ -54,6 +63,7 @@ echo ""
 echo -e "${BLUE}📋 Comandos útiles:${NC}"
 echo -e "   • Ver logs: ${YELLOW}docker-compose -f docker-compose.dev.yml logs -f${NC}"
 echo -e "   • Detener: ${YELLOW}docker-compose -f docker-compose.dev.yml down${NC}"
+echo -e "   • Reiniciar sin caché: ${YELLOW}./start-dev.sh --no-cache${NC}"
 echo -e "   • Ejecutar tests: ${YELLOW}docker-compose -f docker-compose.dev.yml exec backend-api pytest tests/ -v${NC}"
 echo -e "   • Shell: ${YELLOW}docker-compose -f docker-compose.dev.yml exec backend-api bash${NC}"
 echo ""

@@ -26,8 +26,18 @@ if not exist ".env" (
     pause
 )
 
+REM Verificar si se pasó el parámetro --no-cache
+set NO_CACHE=
+if "%1"=="--no-cache" set NO_CACHE=--no-cache
+if "%1"=="-nc" set NO_CACHE=--no-cache
+
+if defined NO_CACHE (
+    echo  Modo sin caché activado
+    echo.
+)
+
 echo Construyendo imagen de desarrollo...
-docker-compose -f docker-compose.dev.yml build
+docker-compose -f docker-compose.dev.yml build %NO_CACHE%
 
 echo.
 echo Levantando contenedores...
@@ -44,6 +54,7 @@ echo.
 echo Comandos útiles:
 echo    • Ver logs: docker-compose -f docker-compose.dev.yml logs -f
 echo    • Detener: docker-compose -f docker-compose.dev.yml down
+echo    • Reiniciar sin caché: start-dev.bat --no-cache
 echo    • Ejecutar tests: docker-compose -f docker-compose.dev.yml exec backend-api pytest tests/ -v
 echo    • Shell: docker-compose -f docker-compose.dev.yml exec backend-api bash
 echo.
