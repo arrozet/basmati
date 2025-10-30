@@ -1,0 +1,42 @@
+erDiagram
+    direction TB
+    calendars {
+        ObjectId _id PK "Clave primaria"  
+        string title  "Título del calendario"  
+        string creator_external_id  "ID del creador (ej: ID de Google)"  
+        string creator_display_name  "Nombre del creador"  
+        array_string keywords  "Palabras clave para búsqueda"  
+        string color  "Color en formato HEX para la UI"  
+        string icon  "URL o identificador del icono"  
+        ObjectId parent_calendar_id FK "Para calendarios anidados (auto-referencia)"  
+    }
+
+    events {
+        ObjectId _id PK "Clave primaria"  
+        ObjectId calendar_id FK "Referencia a calendars._id"  
+        string creator_external_id  "ID del creador del evento"  
+        string title  "Título del evento"  
+        string description  "Descripción detallada"  
+        datetime start_time  "Fecha y hora de inicio"  
+        datetime end_time  "Fecha y hora de fin"  
+        object location "{address (string), latitude (number), longitude (number), place_name (string)} | Ubicación embebida"  
+        array_object attachments "{_id (ObjectId), filename (string), url (string), size (number), mime_type (string), uploaded_at (datetime)} | Archivos adjuntos embebidos"  
+        array_object comments "{_id (ObjectId), author_external_id (string), author_display_name (string), text (string), created_at (datetime)} | Comentarios embebidos"  
+    }
+
+    notifications {
+        ObjectId _id PK "Clave primaria"  
+        string recipient_external_id  "ID del usuario que recibe la notificación"  
+        string type  "Tipo de notificación (ej: NEW_COMMENT)"  
+        string title  "Título de la notificación"  
+        string message  "Mensaje a mostrar"  
+        boolean is_read  "Para marcar si ha sido leída"  
+        ObjectId related_event_id FK "Referencia al evento relacionado"  
+        ObjectId related_calendar_id FK "Referencia al calendario relacionado"  
+        datetime created_at  "Fecha de creación"  
+        datetime expires_at  "Fecha de expiración"  
+    }
+
+    calendars||--o{events:"contiene"
+    calendars||--o{calendars:"es_padre_de"
+    events||--o{notifications:"genera"
