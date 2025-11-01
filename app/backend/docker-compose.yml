@@ -1,0 +1,144 @@
+services:
+  # API Gateway
+  api-gateway:
+    build:
+      context: ./api-gateway
+      dockerfile: Dockerfile
+    container_name: basmati-api-gateway
+    ports:
+      - "8000:8000"
+    environment:
+      - SERVICE_PORT=8000
+      - USER_SERVICE_URL=http://user-service:8001
+      - CALENDAR_SERVICE_URL=http://calendar-service:8002
+      - EVENT_SERVICE_URL=http://event-service:8003
+      - NOTIFICATION_SERVICE_URL=http://notification-service:8004
+      - SEARCH_SERVICE_URL=http://search-service:8005
+      - INTEGRATION_SERVICE_URL=http://integration-service:8006
+    depends_on:
+      - user-service
+      - calendar-service
+      - event-service
+      - notification-service
+      - search-service
+      - integration-service
+    networks:
+      - basmati-network
+
+  # User Service
+  user-service:
+    build:
+      context: ./user_service
+      dockerfile: Dockerfile
+    container_name: basmati-user-service
+    ports:
+      - "8001:8001"
+    environment:
+      - MONGO_URI=${MONGO_URI}
+      - SERVICE_PORT=8001
+      - DATABASE_NAME=basmati
+    networks:
+      - basmati-network
+
+  # Calendar Service
+  calendar-service:
+    build:
+      context: ./calendar_service
+      dockerfile: Dockerfile
+    container_name: basmati-calendar-service
+    ports:
+      - "8002:8002"
+    environment:
+      - MONGO_URI=${MONGO_URI}
+      - SERVICE_PORT=8002
+      - DATABASE_NAME=basmati
+      - USER_SERVICE_URL=http://user-service:8001
+    depends_on:
+      - user-service
+    networks:
+      - basmati-network
+
+  # Event Service
+  event-service:
+    build:
+      context: ./event_service
+      dockerfile: Dockerfile
+    container_name: basmati-event-service
+    ports:
+      - "8003:8003"
+    environment:
+      - MONGO_URI=${MONGO_URI}
+      - SERVICE_PORT=8003
+      - DATABASE_NAME=basmati
+      - NOTIFICATION_SERVICE_URL=http://notification-service:8004
+      - CALENDAR_SERVICE_URL=http://calendar-service:8002
+    depends_on:
+      - calendar-service
+      - notification-service
+    networks:
+      - basmati-network
+
+  # Notification Service
+  notification-service:
+    build:
+      context: ./notification_service
+      dockerfile: Dockerfile
+    container_name: basmati-notification-service
+    ports:
+      - "8004:8004"
+    environment:
+      - MONGO_URI=${MONGO_URI}
+      - SERVICE_PORT=8004
+      - DATABASE_NAME=basmati
+      - USER_SERVICE_URL=http://user-service:8001
+      - EMAIL_SERVICE_API_KEY=${EMAIL_SERVICE_API_KEY:-}
+    depends_on:
+      - user-service
+    networks:
+      - basmati-network
+
+  # Search Service
+  search-service:
+    build:
+      context: ./search_service
+      dockerfile: Dockerfile
+    container_name: basmati-search-service
+    ports:
+      - "8005:8005"
+    environment:
+      - MONGO_URI=${MONGO_URI}
+      - SERVICE_PORT=8005
+      - DATABASE_NAME=basmati
+      - CALENDAR_SERVICE_URL=http://calendar-service:8002
+      - EVENT_SERVICE_URL=http://event-service:8003
+    depends_on:
+      - calendar-service
+      - event-service
+    networks:
+      - basmati-network
+
+  # Integration Service
+  integration-service:
+    build:
+      context: ./integration_service
+      dockerfile: Dockerfile
+    container_name: basmati-integration-service
+    ports:
+      - "8006:8006"
+    environment:
+      - MONGO_URI=${MONGO_URI}
+      - SERVICE_PORT=8006
+      - DATABASE_NAME=basmati
+      - CALENDAR_SERVICE_URL=http://calendar-service:8002
+      - EVENT_SERVICE_URL=http://event-service:8003
+      - GOOGLE_CALENDAR_API_KEY=${GOOGLE_CALENDAR_API_KEY:-}
+      - TEAMUP_API_KEY=${TEAMUP_API_KEY:-}
+    depends_on:
+      - calendar-service
+      - event-service
+    networks:
+      - basmati-network
+
+networks:
+  basmati-network:
+    driver: bridge
