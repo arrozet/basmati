@@ -1,10 +1,19 @@
-from pydantic import BaseModel
-from typing import Optional
+"""
+Schemas comunes para el Notification Service.
 
-class ResponseMessage(BaseModel):
-    message: str
-    detail: Optional[str] = None
+Reutiliza los schemas centralizados de shared.schemas.common
+"""
+from shared.schemas.common import (
+    ResponseMessage,
+    ErrorResponse,
+    PaginationParams,
+    TimestampedModel
+)
 
-class ErrorResponse(BaseModel):
-    error: str
-    detail: str
+# Reexportar los schemas centralizados
+__all__ = [
+    "ResponseMessage",
+    "ErrorResponse",
+    "PaginationParams",
+    "TimestampedModel"
+]

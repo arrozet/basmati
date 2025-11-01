@@ -1,13 +1,15 @@
-"""Configuración del servicio de usuarios"""
-from pydantic_settings import BaseSettings
+"""
+Configuración específica del servicio de usuarios.
 
-class Settings(BaseSettings):
-    """Configuración de la aplicación"""
-    mongo_uri: str
+Hereda la configuración centralizada de shared.config.Settings
+y permite sobrescribir valores específicos para este microservicio.
+"""
+from shared.config import Settings
+
+class UserServiceSettings(Settings):
+    """Configuración específica del User Service"""
     service_port: int = 8001
-    database_name: str = "basmati"
-    
-    class Config:
-        env_file = ".env"
+    service_name: str = "user-service"
 
-settings = Settings()
+# Instancia de configuración para este servicio
+settings = UserServiceSettings()

@@ -1,17 +1,20 @@
 """Configuración del API Gateway"""
-from pydantic_settings import BaseSettings
+from shared.config import Settings
 
-class Settings(BaseSettings):
-    """Configuración de la aplicación"""
+class APIGatewaySettings(Settings):
+    """Configuración específica del API Gateway"""
     service_port: int = 8000
-    user_service_url: str = "http://user-service:8001"
-    calendar_service_url: str = "http://calendar-service:8002"
-    event_service_url: str = "http://event-service:8003"
-    notification_service_url: str = "http://notification-service:8004"
-    search_service_url: str = "http://search-service:8005"
-    integration_service_url: str = "http://integration-service:8006"
-    
-    class Config:
-        env_file = ".env"
+    service_name: str = "api-gateway"
 
-settings = Settings()
+# Instancia de configuración para este servicio
+settings = APIGatewaySettings()
+
+# Diccionario de servicios para usar en main.py
+SERVICES = {
+    "users": settings.user_service_url,
+    "calendars": settings.calendar_service_url,
+    "events": settings.event_service_url,
+    "notifications": settings.notification_service_url,
+    "search": settings.search_service_url,
+    "integrations": settings.integration_service_url,
+}

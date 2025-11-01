@@ -5,24 +5,13 @@ Punto de entrada centralizado para todos los servicios de backend.
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.responses import JSONResponse
 import httpx
-import os
-from typing import Optional
+from core.config import SERVICES
 
 app = FastAPI(
     title="Basmati API Gateway",
     description="Punto de entrada centralizado para todos los servicios de Basmati",
     version="1.0.0"
 )
-
-# Configuración de servicios backend
-SERVICES = {
-    "users": os.getenv("USER_SERVICE_URL", "http://user-service:8001"),
-    "calendars": os.getenv("CALENDAR_SERVICE_URL", "http://calendar-service:8002"),
-    "events": os.getenv("EVENT_SERVICE_URL", "http://event-service:8003"),
-    "notifications": os.getenv("NOTIFICATION_SERVICE_URL", "http://notification-service:8004"),
-    "search": os.getenv("SEARCH_SERVICE_URL", "http://search-service:8005"),
-    "integrations": os.getenv("INTEGRATION_SERVICE_URL", "http://integration-service:8006"),
-}
 
 @app.get("/health")
 async def health_check():

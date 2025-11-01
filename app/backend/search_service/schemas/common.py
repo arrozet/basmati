@@ -1,5 +1,5 @@
 """
-Schemas comunes para el Calendar Service.
+Schemas comunes para el Search Service.
 
 Reutiliza los schemas centralizados de shared.schemas.common
 """

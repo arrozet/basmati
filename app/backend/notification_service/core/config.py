@@ -1,15 +1,17 @@
-"""Configuración del servicio de notificaciones"""
-from pydantic_settings import BaseSettings
+"""
+Configuración específica del servicio de notificaciones.
 
-class Settings(BaseSettings):
-    """Configuración de la aplicación"""
-    mongo_uri: str
+Hereda la configuración centralizada de shared.config.Settings
+y permite sobrescribir valores específicos para este microservicio.
+"""
+from shared.config import Settings
+from typing import Optional
+
+class NotificationServiceSettings(Settings):
+    """Configuración específica del Notification Service"""
     service_port: int = 8004
-    database_name: str = "basmati"
-    user_service_url: str = "http://user-service:8001"
-    email_service_api_key: str = ""
-    
-    class Config:
-        env_file = ".env"
+    service_name: str = "notification-service"
+    email_service_api_key: Optional[str] = None
 
-settings = Settings()
+# Instancia de configuración para este servicio
+settings = NotificationServiceSettings()
