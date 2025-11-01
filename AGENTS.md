@@ -35,14 +35,19 @@ Basmati is a web-based calendar and event management application similar to Team
 ```python
 {
     "_id": ObjectId,
-    "email": str,  # unique
-    "name": str,
+    "external_id": str,  # unique - OAuth provider ID (Google ID, Facebook ID, etc.)
+    "provider": str,  # "google" or "facebook"
+    "email": str,
+    "display_name": str,
+    "avatar_url": str | None,
     "notification_preferences": {
-        "email_enabled": bool,
-        "in_app_enabled": bool
+        "in_app": bool,
+        "email": bool,
+        "email_address": str | None  # alternative email for notifications
     },
+    "followed_calendar_ids": list[ObjectId],
     "created_at": datetime,
-    "updated_at": datetime
+    "last_login": datetime | None
 }
 ```
 
@@ -51,12 +56,18 @@ Basmati is a web-based calendar and event management application similar to Team
 {
     "_id": ObjectId,
     "title": str,
-    "description": str,
-    "organizer_id": ObjectId,  # reference to users
+    "creator_external_id": str,  # reference to users.external_id
+    "creator_display_name": str,  # denormalized for performance
     "keywords": list[str],
+    "color": str,  # HEX format (#RRGGBB)
+    "icon": str | None,
     "parent_calendar_id": ObjectId | None,  # for hierarchical calendars
+    "path": list[ObjectId],  # array of ancestor IDs for efficient hierarchy queries
+    "description": str | None,
+    "visibility": str,  # "public", "private", or "unlisted"
     "created_at": datetime,
-    "updated_at": datetime
+    "updated_at": datetime,
+    "subscriber_count": int  # denormalized counter
 }
 ```
 
@@ -65,17 +76,45 @@ Basmati is a web-based calendar and event management application similar to Team
 {
     "_id": ObjectId,
     "calendar_id": ObjectId,  # reference to calendars
+    "calendar_title": str,  # denormalized for views without joins
+    "creator_external_id": str,  # reference to users.external_id
     "title": str,
-    "description": str,
+    "description": str | None,
     "start_time": datetime,
-    "duration_minutes": int,
-    "location": str | None,
-    "attachment_urls": list[str],  # URLs to Google Cloud Storage
+    "end_time": datetime,
+    "location": {  # structured location data
+        "address": str,
+        "latitude": float,  # -90 to 90
+        "longitude": float,  # -180 to 180
+        "place_name": str | None,
+        "map_provider": str  # "google_maps" or "openstreetmap"
+    } | None,
+    "attachments": list[{
+        "_id": ObjectId,
+        "filename": str,
+        "url": str,  # URL to Google Cloud Storage
+        "size": int,  # bytes
+        "mime_type": str,
+        "uploaded_at": datetime,
+        "uploaded_by": str,  # external_id
+        "is_image": bool,
+        "thumbnail_url": str | None
+    }],
     "comments": list[{
-        "user_id": ObjectId,
+        "_id": ObjectId,
+        "author_external_id": str,
+        "author_display_name": str,
         "text": str,
         "created_at": datetime
     }],
+    "visibility": str,  # "public", "private", or "inherited"
+    "recurrence": {  # for recurring events
+        "pattern": str,  # "daily", "weekly", "monthly", "yearly"
+        "interval": int,  # every N units
+        "days_of_week": list[int] | None,  # 0=Sunday, 6=Saturday
+        "end_date": datetime | None,
+        "exceptions": list[datetime]  # dates to skip
+    } | None,
     "created_at": datetime,
     "updated_at": datetime
 }
@@ -85,13 +124,15 @@ Basmati is a web-based calendar and event management application similar to Team
 ```python
 {
     "_id": ObjectId,
-    "user_id": ObjectId,
-    "event_id": ObjectId,
-    "notification_type": str,  # "comment", "event_update", etc.
+    "recipient_external_id": str,  # reference to users.external_id
+    "type": str,  # "NEW_COMMENT", "EVENT_UPDATE", "CALENDAR_INVITE", "EVENT_REMINDER"
+    "title": str,
     "message": str,
-    "read": bool,
-    "sent_via_email": bool,
-    "created_at": datetime
+    "is_read": bool,
+    "related_event_id": ObjectId | None,
+    "related_calendar_id": ObjectId | None,
+    "created_at": datetime,
+    "expires_at": datetime | None  # for automatic cleanup with TTL index
 }
 ```
 
@@ -135,12 +176,13 @@ Basmati is a web-based calendar and event management application similar to Team
 - Basic user profile queries
 
 **Required Endpoints**:
-- `POST /users` - Create user
+- `POST /users` - Create user (with OAuth external_id and provider)
 - `GET /users/{user_id}` - Get user by ID
 - `PUT /users/{user_id}` - Update user
 - `DELETE /users/{user_id}` - Delete user
 - `GET /users/search?email={email}` - Search by email (parametrized query 1)
-- `GET /users/search?name={name}` - Search by partial name (parametrized query 2)
+- `GET /users/search?display_name={name}` - Search by partial display name (parametrized query 2)
+- `GET /users/search?external_id={id}&provider={provider}` - Search by OAuth credentials
 
 **Environment Variables**:
 - `MONGO_URI`
@@ -158,12 +200,13 @@ Basmati is a web-based calendar and event management application similar to Team
 **Required Endpoints**:
 - `POST /calendars` - Create calendar
 - `GET /calendars/{calendar_id}` - Get calendar by ID
-- `PUT /calendars/{calendar_id}` - Update calendar (only by organizer)
-- `DELETE /calendars/{calendar_id}` - Delete calendar (only by organizer)
-- `GET /calendars/search?organizer_id={user_id}` - Get calendars by organizer (parametrized query 1)
+- `PUT /calendars/{calendar_id}` - Update calendar (only by creator)
+- `DELETE /calendars/{calendar_id}` - Delete calendar (only by creator)
+- `GET /calendars/search?creator_external_id={external_id}` - Get calendars by creator (parametrized query 1)
 - `GET /calendars/search?keywords={keyword}` - Search by keywords (parametrized query 2)
+- `GET /calendars/search?visibility={visibility}` - Filter by visibility (public/private/unlisted)
 - `GET /calendars/{calendar_id}/children` - Get child calendars (relationship query 1)
-- `GET /calendars/{calendar_id}/hierarchy` - Get full calendar hierarchy (relationship query 2)
+- `GET /calendars/{calendar_id}/hierarchy` - Get full calendar hierarchy using path array (relationship query 2)
 
 **Environment Variables**:
 - `MONGO_URI`
@@ -208,10 +251,11 @@ Basmati is a web-based calendar and event management application similar to Team
 
 **Required Endpoints**:
 - `POST /notifications` - Create notification (called by EventService)
-- `GET /notifications/user/{user_id}` - Get user notifications
+- `GET /notifications/user/{external_id}` - Get user notifications by external_id
 - `PUT /notifications/{notification_id}/read` - Mark as read
-- `GET /notifications/search?user_id={user_id}&read=false` - Get unread notifications (parametrized query 1)
-- `GET /notifications/search?event_id={event_id}` - Get notifications for specific event (parametrized query 2)
+- `GET /notifications/search?recipient_external_id={external_id}&is_read=false` - Get unread notifications (parametrized query 1)
+- `GET /notifications/search?related_event_id={event_id}` - Get notifications for specific event (parametrized query 2)
+- `GET /notifications/search?type={type}` - Filter by notification type
 
 **Environment Variables**:
 - `MONGO_URI`
@@ -232,8 +276,9 @@ Basmati is a web-based calendar and event management application similar to Team
 - `GET /search/calendars?q={query}` - Full-text search calendars (parametrized query 1)
 - `GET /search/events?q={query}` - Full-text search events (parametrized query 2)
 - `GET /search/combined?q={query}` - Search both calendars and events
-- `GET /search/calendars/by_organizer?organizer_name={name}` - Find calendars by organizer name (relationship query 1)
+- `GET /search/calendars/by_creator?creator_name={name}` - Find calendars by creator name (relationship query 1)
 - `GET /search/events/by_calendar_title?title={title}` - Find events by calendar title (relationship query 2)
+- `GET /search/events/by_location?query={location}` - Search events by location
 
 **Environment Variables**:
 - `MONGO_URI`
@@ -253,7 +298,7 @@ Basmati is a web-based calendar and event management application similar to Team
 **Required Endpoints**:
 - `POST /integrations/google/import` - Import from Google Calendar
 - `POST /integrations/teamup/import` - Import from Teamup
-- `GET /integrations/sources?user_id={user_id}` - Get user's integrated sources (parametrized query 1)
+- `GET /integrations/sources?external_id={external_id}` - Get user's integrated sources (parametrized query 1)
 - `GET /integrations/sync_status?source_id={source_id}` - Get sync status (parametrized query 2)
 
 **Environment Variables**:
@@ -356,8 +401,11 @@ async def create_calendar(calendar: CalendarCreate):
         {
             "title": "Calendario Académico 2025",
             "description": "Calendario del curso universitario",
-            "organizer_id": "507f1f77bcf86cd799439011",
-            "keywords": ["universidad", "curso", "2025"]
+            "creator_external_id": "google_123456789",
+            "creator_display_name": "Juan Pérez",
+            "keywords": ["universidad", "curso", "2025"],
+            "color": "#4285F4",
+            "visibility": "public"
         }
         ```
         
@@ -367,9 +415,14 @@ async def create_calendar(calendar: CalendarCreate):
             "id": "507f191e810c19729de860ea",
             "title": "Calendario Académico 2025",
             "description": "Calendario del curso universitario",
-            "organizer_id": "507f1f77bcf86cd799439011",
+            "creator_external_id": "google_123456789",
+            "creator_display_name": "Juan Pérez",
             "keywords": ["universidad", "curso", "2025"],
-            "created_at": "2025-01-15T10:30:00Z"
+            "color": "#4285F4",
+            "visibility": "public",
+            "subscriber_count": 0,
+            "created_at": "2025-01-15T10:30:00Z",
+            "updated_at": "2025-01-15T10:30:00Z"
         }
         ```
     """
@@ -540,9 +593,47 @@ This implementation must satisfy:
 
 ---
 
+## Database Setup Instructions
+
+The MongoDB database uses JSON Schema validation for data integrity. To set up the database:
+
+1. **Connect to MongoDB Atlas** using mongosh:
+   ```bash
+   mongosh "your-mongodb-atlas-connection-string"
+   ```
+
+2. **Run the setup script**:
+   ```bash
+   mongosh "your-connection-string" --file app/database/setup_basmati_db.js
+   ```
+
+3. **Or for a simpler version without sample data**:
+   ```bash
+   mongosh "your-connection-string" --file app/database/setup_basmati_simple.js
+   ```
+
+### Important Database Features
+
+- **Schema Validation**: MongoDB validates all documents against JSON schemas
+- **Indexes**: Optimized indexes for common queries (text search, geolocation, etc.)
+- **TTL Index**: Automatic deletion of expired notifications
+- **Denormalization**: Some fields are denormalized (creator_display_name, calendar_title) for performance
+- **Path Array**: Calendars use a `path` array for efficient hierarchical queries
+
+### Temporarily Disabling Validation (for development)
+
+If you need to temporarily disable schema validation during development:
+```bash
+mongosh "your-connection-string" --file app/database/remove_validation.js
+```
+
+---
+
 ## Notes
 
+- OAuth authentication schema is implemented (external_id + provider fields)
 - No authentication/authorization implementation required yet (next practice)
 - No frontend development (separate practice)
 - Focus on clean REST API design and microservice communication
 - All Spanish comments should explain business logic, not translate code
+- Database uses denormalization patterns for read performance optimization
