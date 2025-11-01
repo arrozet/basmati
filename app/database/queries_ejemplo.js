@@ -12,7 +12,8 @@
 //
 // ============================================================================
 
-use basmati;
+// Seleccionar/crear base de datos
+const db = db.getSiblingDB("basmati");
 
 // ============================================================================
 // 1. OPERACIONES SOBRE USERS

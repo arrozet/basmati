@@ -11,7 +11,7 @@
 // ============================================================================
 
 // Seleccionar/crear base de datos
-use basmati;
+const db = db.getSiblingDB("basmati");
 
 print("🚀 Iniciando configuración de base de datos Basmati...\n");
 

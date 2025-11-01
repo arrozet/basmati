@@ -8,7 +8,8 @@
 // Uso: mongosh "connection-string" --file setup_basmati_simple.js
 // ============================================================================
 
-use basmati;
+// Seleccionar/crear base de datos
+const db = db.getSiblingDB("basmati");
 
 // ============================================================================
 // CREAR COLECCIONES CON VALIDADORES
