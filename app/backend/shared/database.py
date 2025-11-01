@@ -4,8 +4,8 @@ Gestión centralizada de conexión a MongoDB.
 Proporciona una conexión reutilizable a la base de datos MongoDB Atlas
 para todos los microservicios. Utiliza motor (async driver para MongoDB).
 """
+from typing import Optional, Any
 from motor.motor_asyncio import AsyncIOMotorClient
-from typing import Optional
 from shared.config import settings
 
 class Database:
@@ -15,7 +15,7 @@ class Database:
     Se instancia una sola vez por microservicio y se reutiliza en todas las requests.
     Proporciona métodos para conectar y desconectar de la base de datos.
     """
-    client: Optional[AsyncIOMotorClient] = None
+    client: Any = None
     db: Optional[object] = None
     
     def __init__(self):

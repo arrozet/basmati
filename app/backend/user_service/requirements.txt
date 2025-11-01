@@ -6,3 +6,4 @@ pydantic-settings==2.1.0
 motor==3.3.2
 email-validator==2.1.0
 httpx==0.26.0
+-e ../shared

@@ -1,42 +1,65 @@
 """Lógica de negocio para usuarios"""
 from datetime import datetime
 from typing import Optional, List
-from bson import ObjectId
-from motor.motor_asyncio import AsyncIOMotorDatabase
-from models.user import UserModel, NotificationPreferences
 from schemas.user import UserCreate, UserUpdate, UserResponse
+from repositories.user_repository import UserRepository
+
 
 class UserService:
-    """Servicio para manejar operaciones de usuarios"""
+    """
+    Servicio para manejar la lógica de negocio de usuarios.
     
-    def __init__(self, db: AsyncIOMotorDatabase):
+    Delega acceso a BD al UserRepository.
+    """
+    
+    def __init__(self, user_repository: UserRepository):
         """
         Inicializa el servicio de usuarios.
         
         Args:
-            db: Instancia de la base de datos MongoDB
+            user_repository: Repository para usuarios
         """
-        self.collection = db["users"]
+        self.user_repository = user_repository
     
     async def create_user(self, user_data: UserCreate) -> UserResponse:
         """
         Crea un nuevo usuario con OAuth.
+        
+        Lógica:
+        - Verifica que no exista un usuario con las mismas credenciales OAuth
+        - Crea el usuario con fecha de creación
         
         Args:
             user_data: Datos del usuario a crear (incluye external_id y provider)
             
         Returns:
             UserResponse: Usuario creado
+            
+        Raises:
+            ValueError: Si ya existe un usuario con esas credenciales OAuth
         """
+        # Lógica de negocio: Verificar que no exista
+        existing = await self.user_repository.find_by_oauth(user_data.external_id, user_data.provider)
+        if existing:
+            raise ValueError(f"El usuario con external_id '{user_data.external_id}' ya existe para el proveedor '{user_data.provider}'")
+        
+        # Preparar datos
         user_dict = user_data.model_dump()
         user_dict["created_at"] = datetime.utcnow()
         user_dict["last_login"] = datetime.utcnow()
         user_dict["followed_calendar_ids"] = []
         
-        result = await self.collection.insert_one(user_dict)
-        user_dict["_id"] = result.inserted_id
+        # Delegar a repository (valida contra UserModel)
+        try:
+            user_id = await self.user_repository.create(user_dict)
+        except ValueError as e:
+            raise ValueError(f"Error al crear usuario: {str(e)}")
+        user_doc = await self.user_repository.find_by_id(user_id)
         
-        return self._document_to_response(user_dict)
+        if not user_doc:
+            raise ValueError("Error al crear el usuario")
+        
+        return self._document_to_response(user_doc)
     
     async def get_user(self, user_id: str) -> Optional[UserResponse]:
         """
@@ -48,7 +71,7 @@ class UserService:
         Returns:
             UserResponse: Usuario encontrado o None
         """
-        user = await self.collection.find_one({"_id": ObjectId(user_id)})
+        user = await self.user_repository.find_by_id(user_id)
         if user:
             return self._document_to_response(user)
         return None
@@ -62,23 +85,17 @@ class UserService:
             user_data: Datos a actualizar
             
         Returns:
-            UserResponse: Usuario actualizado o None
+            UserResponse: Usuario actualizado o None si no existe
         """
         update_dict = user_data.model_dump(exclude_unset=True)
         if not update_dict:
             return await self.get_user(user_id)
         
-        # Convertir followed_calendar_ids a ObjectId si está presente
-        if "followed_calendar_ids" in update_dict:
-            update_dict["followed_calendar_ids"] = [
-                ObjectId(cal_id) for cal_id in update_dict["followed_calendar_ids"]
-            ]
-        
-        result = await self.collection.find_one_and_update(
-            {"_id": ObjectId(user_id)},
-            {"$set": update_dict},
-            return_document=True
-        )
+        # Delegar a repository (valida contra UserModel)
+        try:
+            result = await self.user_repository.update(user_id, update_dict)
+        except ValueError as e:
+            raise ValueError(f"Error al actualizar usuario: {str(e)}")
         
         if result:
             return self._document_to_response(result)
@@ -94,8 +111,7 @@ class UserService:
         Returns:
             bool: True si se eliminó, False si no existía
         """
-        result = await self.collection.delete_one({"_id": ObjectId(user_id)})
-        return result.deleted_count > 0
+        return await self.user_repository.delete(user_id)
     
     async def search_by_email(self, email: str) -> Optional[UserResponse]:
         """
@@ -107,7 +123,7 @@ class UserService:
         Returns:
             UserResponse: Usuario encontrado o None
         """
-        user = await self.collection.find_one({"email": email})
+        user = await self.user_repository.find_by_email(email)
         if user:
             return self._document_to_response(user)
         return None
@@ -122,8 +138,7 @@ class UserService:
         Returns:
             List[UserResponse]: Lista de usuarios encontrados
         """
-        cursor = self.collection.find({"display_name": {"$regex": name, "$options": "i"}})
-        users = await cursor.to_list(length=100)
+        users = await self.user_repository.find_by_display_name(name)
         return [self._document_to_response(user) for user in users]
     
     async def search_by_oauth(self, external_id: str, provider: str) -> Optional[UserResponse]:
@@ -137,10 +152,7 @@ class UserService:
         Returns:
             UserResponse: Usuario encontrado o None
         """
-        user = await self.collection.find_one({
-            "external_id": external_id,
-            "provider": provider
-        })
+        user = await self.user_repository.find_by_oauth(external_id, provider)
         if user:
             return self._document_to_response(user)
         return None
@@ -155,11 +167,7 @@ class UserService:
         Returns:
             bool: True si se actualizó correctamente
         """
-        result = await self.collection.update_one(
-            {"_id": ObjectId(user_id)},
-            {"$set": {"last_login": datetime.utcnow()}}
-        )
-        return result.modified_count > 0
+        return await self.user_repository.update_last_login(user_id)
     
     def _document_to_response(self, document: dict) -> UserResponse:
         """

@@ -4,15 +4,15 @@ from typing import List
 from schemas.user import UserCreate, UserUpdate, UserResponse
 from schemas.common import ResponseMessage
 from services.user_service import UserService
-from core.database import get_database
+from core.database import get_user_repository
 
 router = APIRouter()
 
-# Dependency: Inyección de dependencias para UserService
+# Dependency: Inyección de dependencias para UserService y UserDAO
 # 
 # ¿Por qué usamos Depends()?
 # - Permite que FastAPI maneje automáticamente la creación y destrucción de recursos
-# - Cada request obtiene su propia instancia de UserService (aislamiento de datos)
+# - Cada request obtiene su propia instancia de UserDAO y UserService (aislamiento de datos)
 # - Facilita testing: podemos mockear la dependencia fácilmente
 # - Evita repetir código: no escribimos db = get_database() en cada endpoint
 # - Proporciona ciclo de vida claro: FastAPI controla cuándo se crea y destruye
@@ -20,28 +20,28 @@ router = APIRouter()
 # ¿Qué es Depends()?
 # - Es una función de FastAPI que implementa el patrón de "Dependency Injection" (inyección de dependencias)
 # - Tells FastAPI: "necesito que ejecutes esta función y me pases su resultado como parámetro"
-# - En este caso: ejecuta get_database(), pasa la BD a get_user_service(), 
-#   y el resultado se inyecta como 'service' en los endpoints
+# - En este caso: ejecuta get_database(), pasa la BD a get_user_dao(),
+#   y el resultado se inyecta como 'user_dao' en los endpoints
 #
 # Flujo de una request:
-# 1. Request llega -> FastAPI ve "service: UserService = Depends(get_user_service)"
-# 2. Ejecuta get_user_service() que necesita get_database()
+# 1. Request llega -> FastAPI ve "user_dao: UserDAO = Depends(get_user_dao)"
+# 2. Ejecuta get_user_dao() que necesita get_database()
 # 3. Ejecuta get_database() primero (dependencia anidada)
-# 4. Pasa el resultado a get_user_service()
+# 4. Pasa el resultado a get_user_dao()
 # 5. Inyecta el resultado final en el endpoint
 # 6. Al terminar la request, limpia los recursos
 
-async def get_user_service(db = Depends(get_database)) -> UserService:
+async def get_user_service(user_repository = Depends(get_user_repository)) -> UserService:
     """
-    Proporciona una instancia de UserService con la conexión a BD.
+    Proporciona una instancia de UserService con el Repository.
     
     Args:
-        db: Conexión a la base de datos (inyectada por FastAPI)
+        user_repository: Repository de usuarios (inyectado por FastAPI)
         
     Returns:
         UserService: Instancia del servicio de usuarios
     """
-    return UserService(db)
+    return UserService(user_repository)
 
 @router.post("", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
 async def create_user(user: UserCreate, service: UserService = Depends(get_user_service)):
@@ -54,84 +54,17 @@ async def create_user(user: UserCreate, service: UserService = Depends(get_user_
         
     Returns:
         UserResponse: El usuario creado con su ID
+        
+    Raises:
+        HTTPException 400: Si ya existe un usuario con esas credenciales OAuth
     """
-    # Verificar si el external_id ya existe para ese provider
-    existing = await service.search_by_oauth(user.external_id, user.provider)
-    if existing:
+    try:
+        return await service.create_user(user)
+    except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="El usuario ya está registrado con este proveedor OAuth"
+            detail=str(e)
         )
-    
-    return await service.create_user(user)
-
-# ⚠️ IMPORTANTE: Las rutas con /search/ deben ir ANTES que /{user_id}
-# Porque FastAPI evalúa las rutas en orden y "google_123456789" coincidiría con /{user_id}
-# antes de llegar a /search/by-oauth
-
-@router.get("/search/by-email", response_model=UserResponse)
-async def search_by_email(email: str = Query(..., description="Email del usuario"), service: UserService = Depends(get_user_service)):
-    """
-    Busca un usuario por email (parametrized query 1).
-    
-    Args:
-        email: Email del usuario
-        service: Servicio de usuarios (inyectado por FastAPI)
-        
-    Returns:
-        UserResponse: Usuario encontrado
-    """
-    user = await service.search_by_email(email)
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Usuario no encontrado"
-        )
-    
-    return user
-
-@router.get("/search/by-display-name", response_model=List[UserResponse])
-async def search_by_display_name(display_name: str = Query(..., description="Nombre o parte del nombre"), service: UserService = Depends(get_user_service)):
-    """
-    Busca usuarios por display_name parcial (parametrized query 2).
-    
-    Args:
-        display_name: Nombre o parte del nombre
-        service: Servicio de usuarios (inyectado por FastAPI)
-        
-    Returns:
-        List[UserResponse]: Lista de usuarios encontrados
-    """
-    users = await service.search_by_display_name(display_name)
-    return users
-
-@router.get("/search/by-oauth", response_model=UserResponse)
-async def search_by_oauth(
-    external_id: str = Query(..., description="ID del proveedor OAuth"),
-    provider: str = Query(..., description="Proveedor OAuth (google/facebook)"),
-    service: UserService = Depends(get_user_service)
-):
-    """
-    Busca un usuario por sus credenciales OAuth.
-    
-    Args:
-        external_id: ID del proveedor OAuth
-        provider: Proveedor OAuth ("google" o "facebook")
-        service: Servicio de usuarios (inyectado por FastAPI)
-        
-    Returns:
-        UserResponse: Usuario encontrado
-    """
-    user = await service.search_by_oauth(external_id, provider)
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Usuario no encontrado"
-        )
-    
-    return user
-
-# RUTAS CRUD POR ID (van DESPUÉS de /search/ para evitar conflictos)
 
 @router.get("/{user_id}", response_model=UserResponse)
 async def get_user(user_id: str, service: UserService = Depends(get_user_service)):
@@ -196,3 +129,65 @@ async def delete_user(user_id: str, service: UserService = Depends(get_user_serv
         )
     
     return ResponseMessage(message="Usuario eliminado exitosamente")
+
+@router.get("/search/by-email", response_model=UserResponse)
+async def search_by_email(email: str = Query(..., description="Email del usuario"), service: UserService = Depends(get_user_service)):
+    """
+    Busca un usuario por email (parametrized query 1).
+    
+    Args:
+        email: Email del usuario
+        service: Servicio de usuarios (inyectado por FastAPI)
+        
+    Returns:
+        UserResponse: Usuario encontrado
+    """
+    user = await service.search_by_email(email)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Usuario no encontrado"
+        )
+    
+    return user
+
+@router.get("/search/by-display-name", response_model=List[UserResponse])
+async def search_by_display_name(display_name: str = Query(..., description="Nombre o parte del nombre"), service: UserService = Depends(get_user_service)):
+    """
+    Busca usuarios por display_name parcial (parametrized query 2).
+    
+    Args:
+        display_name: Nombre o parte del nombre
+        service: Servicio de usuarios (inyectado por FastAPI)
+        
+    Returns:
+        List[UserResponse]: Lista de usuarios encontrados
+    """
+    users = await service.search_by_display_name(display_name)
+    return users
+
+@router.get("/search/by-oauth", response_model=UserResponse)
+async def search_by_oauth(
+    external_id: str = Query(..., description="ID del proveedor OAuth"),
+    provider: str = Query(..., description="Proveedor OAuth (google/facebook)"),
+    service: UserService = Depends(get_user_service)
+):
+    """
+    Busca un usuario por sus credenciales OAuth.
+    
+    Args:
+        external_id: ID del proveedor OAuth
+        provider: Proveedor OAuth ("google" o "facebook")
+        service: Servicio de usuarios (inyectado por FastAPI)
+        
+    Returns:
+        UserResponse: Usuario encontrado
+    """
+    user = await service.search_by_oauth(external_id, provider)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Usuario no encontrado"
+        )
+    
+    return user

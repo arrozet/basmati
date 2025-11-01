@@ -1,7 +1,7 @@
 """Schemas para operaciones de usuario"""
 from datetime import datetime
-from pydantic import BaseModel, EmailStr
-from typing import Optional
+from pydantic import BaseModel, EmailStr, ConfigDict
+from typing import Optional, Literal
 
 class NotificationPreferencesSchema(BaseModel):
     """Preferencias de notificación"""
@@ -12,7 +12,7 @@ class NotificationPreferencesSchema(BaseModel):
 class UserBase(BaseModel):
     """Schema base de usuario"""
     external_id: str  # OAuth provider ID
-    provider: str  # "google" or "facebook"
+    provider: Literal["google", "facebook"]  # Solo "google" o "facebook"
     email: EmailStr
     display_name: str
     avatar_url: Optional[str] = None
@@ -21,8 +21,8 @@ class UserBase(BaseModel):
 class UserCreate(UserBase):
     """Schema para crear un usuario con OAuth"""
     
-    class Config:
-        schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "external_id": "google_123456789",
                 "provider": "google",
@@ -36,6 +36,7 @@ class UserCreate(UserBase):
                 }
             }
         }
+    )
 
 class UserUpdate(BaseModel):
     """Schema para actualizar un usuario"""
@@ -52,5 +53,4 @@ class UserResponse(UserBase):
     created_at: datetime
     last_login: Optional[datetime] = None
     
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
