@@ -4,6 +4,7 @@ Gestión de conexión a MongoDB para el User Service.
 Reutiliza la lógica centralizada de shared.database pero
 permite sobrescrituras específicas del servicio si es necesario.
 """
+from fastapi import Depends
 from shared.database import (
     connect_to_mongo,
     close_mongo_connection,
@@ -13,7 +14,7 @@ from shared.database import (
 from repositories.user_repository import UserRepository
 
 # Función de inyección de dependencias para UserRepository
-def get_user_repository(database = get_database()) -> UserRepository:
+def get_user_repository(database = Depends(get_database)) -> UserRepository:
     """
     Proporciona una instancia de UserRepository.
     
