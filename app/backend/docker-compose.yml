@@ -2,8 +2,8 @@ services:
   # API Gateway
   api-gateway:
     build:
-      context: ./api-gateway
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: api-gateway/Dockerfile
     container_name: basmati-api-gateway
     ports:
       - "8000:8000"
@@ -28,8 +28,8 @@ services:
   # User Service
   user-service:
     build:
-      context: ./user_service
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: user_service/Dockerfile
     container_name: basmati-user-service
     ports:
       - "8001:8001"
@@ -43,8 +43,8 @@ services:
   # Calendar Service
   calendar-service:
     build:
-      context: ./calendar_service
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: calendar_service/Dockerfile
     container_name: basmati-calendar-service
     ports:
       - "8002:8002"
@@ -61,8 +61,8 @@ services:
   # Event Service
   event-service:
     build:
-      context: ./event_service
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: event_service/Dockerfile
     container_name: basmati-event-service
     ports:
       - "8003:8003"
@@ -81,8 +81,8 @@ services:
   # Notification Service
   notification-service:
     build:
-      context: ./notification_service
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: notification_service/Dockerfile
     container_name: basmati-notification-service
     ports:
       - "8004:8004"
@@ -100,8 +100,8 @@ services:
   # Search Service
   search-service:
     build:
-      context: ./search_service
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: search_service/Dockerfile
     container_name: basmati-search-service
     ports:
       - "8005:8005"
@@ -120,8 +120,8 @@ services:
   # Integration Service
   integration-service:
     build:
-      context: ./integration_service
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: integration_service/Dockerfile
     container_name: basmati-integration-service
     ports:
       - "8006:8006"
