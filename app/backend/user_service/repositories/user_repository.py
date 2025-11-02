@@ -1,6 +1,6 @@
 """Repository para usuarios - Acceso a BD"""
-from datetime import datetime
-from typing import Optional, List, Any
+from datetime import datetime, timezone
+from typing import Any
 from bson import ObjectId
 from models.user import UserModel
 
@@ -12,7 +12,7 @@ class UserRepository:
     Solo se encarga de comunicarse con MongoDB.
     La lógica de negocio está en UserService.
     """
-    
+
     def __init__(self, db: Any):
         """
         Inicializa el repository de usuarios.
@@ -20,7 +20,7 @@ class UserRepository:
         Args:
             db: Instancia de la base de datos MongoDB (AsyncIOMotorDatabase)
         """
-        self.collection = db["users"]
+        self.collection = db["users"] # Es para buscar solo una vez la colección users de la db
     
     # ==================== CRUD ====================
     
@@ -37,19 +37,22 @@ class UserRepository:
             str: ID del usuario creado (como string)
             
         Raises:
-            ValueError: Si los datos no cumplen con la estructura de UserModel
+            ValueError: Si hay error al crear el usuario en BD
         """
-        # Validar contra UserModel para garantizar estructura correcta
+        # Validar estructura desempaquetando en UserModel (compara JSON con UserModel)
         try:
-            user_model = UserModel(**user_dict)
-            validated_dict = user_model.model_dump(exclude={"id"}, exclude_none=False)
+            UserModel(**user_dict)
         except Exception as e:
             raise ValueError(f"Datos de usuario inválidos: {str(e)}")
         
-        result = await self.collection.insert_one(validated_dict)
-        return str(result.inserted_id)
+        # Si pasa validación, insertar directamente
+        try:
+            result = await self.collection.insert_one(user_dict)
+            return str(result.inserted_id)
+        except Exception as e:
+            raise ValueError(f"Error al insertar usuario en BD: {str(e)}")
     
-    async def find_by_id(self, user_id: str) -> Optional[dict]:
+    async def find_by_id(self, user_id: str) -> dict | None:
         """
         Busca un usuario por su ID de MongoDB.
         
@@ -65,7 +68,7 @@ class UserRepository:
         except Exception:
             return None
     
-    async def update(self, user_id: str, update_dict: dict) -> Optional[dict]:
+    async def update(self, user_id: str, update_dict: dict) -> dict | None:
         """
         Actualiza un usuario existente.
         
@@ -81,23 +84,22 @@ class UserRepository:
         Raises:
             ValueError: Si los datos a actualizar son inválidos
         """
+        # Si no hay campos para actualizar, devuelve el usuario actual
         if not update_dict:
             return await self.find_by_id(user_id)
         
         # Validar campos actualizables contra UserModel
         try:
-            # Obtener el usuario actual para validar la estructura completa
+            # Obtener el usuario actual
             current_user = await self.find_by_id(user_id)
             if not current_user:
                 return None
             
             # Fusionar datos actuales con actualizaciones
             updated_user = {**current_user, **update_dict}
-            # Excluir _id de la validación
-            user_data_to_validate = {k: v for k, v in updated_user.items() if k != "_id"}
             
-            # Validar estructura completa
-            UserModel(**user_data_to_validate)
+            # Validar estructura completa (Pydantic maneja el alias "_id" → "id" automáticamente)
+            UserModel(**updated_user)
         except Exception as e:
             raise ValueError(f"Datos de actualización inválidos: {str(e)}")
         
@@ -129,7 +131,7 @@ class UserRepository:
     
     # ==================== BÚSQUEDAS ====================
     
-    async def find_by_email(self, email: str) -> Optional[dict]:
+    async def find_by_email(self, email: str) -> dict | None:
         """
         Busca un usuario por email (parametrized query 1).
         
@@ -142,7 +144,7 @@ class UserRepository:
         user = await self.collection.find_one({"email": email})
         return user
     
-    async def find_by_display_name(self, name: str) -> List[dict]:
+    async def find_by_display_name(self, name: str) -> list[dict]:
         """
         Busca usuarios por display_name parcial (parametrized query 2).
         
@@ -150,13 +152,14 @@ class UserRepository:
             name: Nombre o parte del nombre
             
         Returns:
-            List[dict]: Lista de usuarios encontrados
+            list[dict]: Lista de usuarios encontrados
         """
+        # Buscar por display_name parcial (regex) y case insensitive (options i)
         cursor = self.collection.find({"display_name": {"$regex": name, "$options": "i"}})
-        users = await cursor.to_list(length=100)
+        users = await cursor.to_list(length=100) # coges como máximo 100 resultados
         return users
     
-    async def find_by_oauth(self, external_id: str, provider: str) -> Optional[dict]:
+    async def find_by_oauth(self, external_id: str, provider: str) -> dict | None:
         """
         Busca un usuario por sus credenciales OAuth.
         
@@ -188,7 +191,7 @@ class UserRepository:
         try:
             result = await self.collection.update_one(
                 {"_id": ObjectId(user_id)},
-                {"$set": {"last_login": datetime.utcnow()}}
+                {"$set": {"last_login": datetime.now(timezone.utc)}}
             )
             return result.modified_count > 0
         except Exception:
@@ -233,51 +236,3 @@ class UserRepository:
             return result.modified_count > 0
         except Exception:
             return False
-    
-    # ==================== VERIFICACIONES ====================
-    
-    async def exists_by_id(self, user_id: str) -> bool:
-        """
-        Verifica si existe un usuario con el ID dado.
-        
-        Args:
-            user_id: ID del usuario
-            
-        Returns:
-            bool: True si existe, False en caso contrario
-        """
-        try:
-            result = await self.collection.find_one({"_id": ObjectId(user_id)})
-            return result is not None
-        except Exception:
-            return False
-    
-    async def exists_by_email(self, email: str) -> bool:
-        """
-        Verifica si existe un usuario con el email dado.
-        
-        Args:
-            email: Email del usuario
-            
-        Returns:
-            bool: True si existe, False en caso contrario
-        """
-        result = await self.collection.find_one({"email": email})
-        return result is not None
-    
-    async def exists_by_oauth(self, external_id: str, provider: str) -> bool:
-        """
-        Verifica si existe un usuario con las credenciales OAuth dadas.
-        
-        Args:
-            external_id: ID del proveedor OAuth
-            provider: Proveedor OAuth
-            
-        Returns:
-            bool: True si existe, False en caso contrario
-        """
-        result = await self.collection.find_one({
-            "external_id": external_id,
-            "provider": provider
-        })
-        return result is not None

@@ -1,9 +1,7 @@
 """Lógica de negocio para usuarios"""
-from datetime import datetime
-from typing import Optional, List
+from datetime import datetime, timezone
 from schemas.user import UserCreate, UserUpdate, UserResponse
 from repositories.user_repository import UserRepository
-
 
 class UserService:
     """
@@ -38,30 +36,28 @@ class UserService:
         Raises:
             ValueError: Si ya existe un usuario con esas credenciales OAuth
         """
-        # Lógica de negocio: Verificar que no exista
+        # Verificar que no exista
         existing = await self.user_repository.find_by_oauth(user_data.external_id, user_data.provider)
         if existing:
             raise ValueError(f"El usuario con external_id '{user_data.external_id}' ya existe para el proveedor '{user_data.provider}'")
         
         # Preparar datos
         user_dict = user_data.model_dump()
-        user_dict["created_at"] = datetime.utcnow()
-        user_dict["last_login"] = datetime.utcnow()
+        user_dict["created_at"] = datetime.now(timezone.utc)
+        user_dict["last_login"] = datetime.now(timezone.utc)
         user_dict["followed_calendar_ids"] = []
         
         # Delegar a repository (valida contra UserModel)
         try:
             user_id = await self.user_repository.create(user_dict)
+            user_doc = await self.user_repository.find_by_id(user_id)
+            if not user_doc:
+                raise ValueError("No se pudo recuperar el usuario creado")
+            return self._document_to_response(user_doc)
         except ValueError as e:
             raise ValueError(f"Error al crear usuario: {str(e)}")
-        user_doc = await self.user_repository.find_by_id(user_id)
-        
-        if not user_doc:
-            raise ValueError("Error al crear el usuario")
-        
-        return self._document_to_response(user_doc)
     
-    async def get_user(self, user_id: str) -> Optional[UserResponse]:
+    async def get_user(self, user_id: str) -> UserResponse | None:
         """
         Obtiene un usuario por su ID de MongoDB.
         
@@ -76,7 +72,7 @@ class UserService:
             return self._document_to_response(user)
         return None
     
-    async def update_user(self, user_id: str, user_data: UserUpdate) -> Optional[UserResponse]:
+    async def update_user(self, user_id: str, user_data: UserUpdate) -> UserResponse | None:
         """
         Actualiza un usuario existente.
         
@@ -113,7 +109,7 @@ class UserService:
         """
         return await self.user_repository.delete(user_id)
     
-    async def search_by_email(self, email: str) -> Optional[UserResponse]:
+    async def search_by_email(self, email: str) -> UserResponse | None:
         """
         Busca un usuario por email (parametrized query 1).
         
@@ -128,7 +124,7 @@ class UserService:
             return self._document_to_response(user)
         return None
     
-    async def search_by_display_name(self, name: str) -> List[UserResponse]:
+    async def search_by_display_name(self, name: str) -> list[UserResponse]:
         """
         Busca usuarios por display_name parcial (parametrized query 2).
         
@@ -136,12 +132,12 @@ class UserService:
             name: Nombre o parte del nombre
             
         Returns:
-            List[UserResponse]: Lista de usuarios encontrados
+            list[UserResponse]: Lista de usuarios encontrados
         """
         users = await self.user_repository.find_by_display_name(name)
         return [self._document_to_response(user) for user in users]
     
-    async def search_by_oauth(self, external_id: str, provider: str) -> Optional[UserResponse]:
+    async def search_by_oauth(self, external_id: str, provider: str) -> UserResponse | None:
         """
         Busca un usuario por sus credenciales OAuth.
         

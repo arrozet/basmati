@@ -4,7 +4,7 @@ Gestión centralizada de conexión a MongoDB.
 Proporciona una conexión reutilizable a la base de datos MongoDB Atlas
 para todos los microservicios. Utiliza motor (async driver para MongoDB).
 """
-from typing import Optional, Any
+from typing import Any
 from motor.motor_asyncio import AsyncIOMotorClient
 from shared.config import settings
 
@@ -15,8 +15,8 @@ class Database:
     Se instancia una sola vez por microservicio y se reutiliza en todas las requests.
     Proporciona métodos para conectar y desconectar de la base de datos.
     """
-    client: Any = None
-    db: Optional[object] = None
+    client: Any = None # Esto en realidad es un AsyncIOMotorClient, pero Pydantic no lo reconoce bien
+    db: object | None = None
     
     def __init__(self):
         """Inicializa la instancia de base de datos"""
