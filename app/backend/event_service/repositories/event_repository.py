@@ -216,3 +216,73 @@ class EventRepository:
             return await cursor.to_list(length=200)
         except Exception:
             return []
+
+    async def search_by_text(self, query: str) -> list[dict]:
+        """Búsqueda full-text en eventos.
+
+        Busca en los campos: title, description, location.address y location.place_name.
+        Utiliza expresiones regulares para búsqueda case-insensitive.
+
+        Args:
+            query: Término de búsqueda
+
+        Returns:
+            list[dict]: Lista de eventos encontrados
+        """
+        search_filter = {
+            "$or": [
+                {"title": {"$regex": query, "$options": "i"}},
+                {"description": {"$regex": query, "$options": "i"}},
+                {"location.address": {"$regex": query, "$options": "i"}},
+                {"location.place_name": {"$regex": query, "$options": "i"}}
+            ]
+        }
+        try:
+            cursor = self.collection.find(search_filter)
+            return await cursor.to_list(length=100)
+        except Exception:
+            return []
+
+    async def search_by_calendar_title(self, calendar_title: str) -> list[dict]:
+        """Busca eventos por título del calendario.
+
+        Utiliza el campo denormalizado calendar_title para búsqueda eficiente
+        sin necesidad de join con la colección calendars.
+
+        Args:
+            calendar_title: Título o parte del título del calendario
+
+        Returns:
+            list[dict]: Eventos del calendario con ese título
+        """
+        search_filter = {
+            "calendar_title": {"$regex": calendar_title, "$options": "i"}
+        }
+        try:
+            cursor = self.collection.find(search_filter)
+            return await cursor.to_list(length=100)
+        except Exception:
+            return []
+
+    async def search_by_location(self, location_query: str) -> list[dict]:
+        """Busca eventos por ubicación.
+
+        Busca en los campos address y place_name del subdocumento location.
+
+        Args:
+            location_query: Término de búsqueda para la ubicación
+
+        Returns:
+            list[dict]: Eventos en esa ubicación
+        """
+        search_filter = {
+            "$or": [
+                {"location.address": {"$regex": location_query, "$options": "i"}},
+                {"location.place_name": {"$regex": location_query, "$options": "i"}}
+            ]
+        }
+        try:
+            cursor = self.collection.find(search_filter)
+            return await cursor.to_list(length=100)
+        except Exception:
+            return []
