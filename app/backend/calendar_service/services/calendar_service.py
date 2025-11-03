@@ -152,16 +152,44 @@ class CalendarService:
     async def search_by_visibility(self, visibility: str) -> list[CalendarResponse]:
         """
         Busca calendarios por visibilidad.
-        
+
         Args:
             visibility: Visibilidad del calendario ("public", "private", "unlisted")
-            
+
         Returns:
             list[CalendarResponse]: Lista de calendarios encontrados
         """
         calendars = await self.calendar_repository.find_by_visibility(visibility)
         return [self._document_to_response(calendar) for calendar in calendars]
-    
+
+    async def search_by_text(self, query: str) -> list[CalendarResponse]:
+        """
+        Búsqueda full-text en calendarios.
+
+        Busca en los campos: title, description y keywords del calendario.
+
+        Args:
+            query: Término de búsqueda
+
+        Returns:
+            list[CalendarResponse]: Lista de calendarios encontrados
+        """
+        calendars = await self.calendar_repository.search_by_text(query)
+        return [self._document_to_response(calendar) for calendar in calendars]
+
+    async def search_by_creator_name(self, creator_name: str) -> list[CalendarResponse]:
+        """
+        Busca calendarios por nombre del creador.
+
+        Args:
+            creator_name: Nombre o parte del nombre del creador
+
+        Returns:
+            list[CalendarResponse]: Calendarios creados por usuarios con ese nombre
+        """
+        calendars = await self.calendar_repository.search_by_creator_name(creator_name)
+        return [self._document_to_response(calendar) for calendar in calendars]
+
     async def get_children(self, calendar_id: str) -> list[CalendarResponse]:
         """
         Obtiene los calendarios hijos directos (relationship query 1).

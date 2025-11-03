@@ -169,17 +169,61 @@ class CalendarRepository:
     async def find_by_visibility(self, visibility: str) -> list[dict]:
         """
         Busca calendarios por visibilidad.
-        
+
         Args:
             visibility: Visibilidad del calendario ("public", "private", "unlisted")
-            
+
         Returns:
             list[dict]: Lista de calendarios encontrados
         """
         cursor = self.collection.find({"visibility": visibility})
         calendars = await cursor.to_list(length=100)
         return calendars
-    
+
+    async def search_by_text(self, query: str) -> list[dict]:
+        """
+        Búsqueda full-text en calendarios.
+
+        Busca en los campos: title, description y keywords del calendario.
+        Utiliza expresiones regulares para búsqueda case-insensitive.
+
+        Args:
+            query: Término de búsqueda
+
+        Returns:
+            list[dict]: Lista de calendarios encontrados
+        """
+        search_filter = {
+            "$or": [
+                {"title": {"$regex": query, "$options": "i"}},
+                {"description": {"$regex": query, "$options": "i"}},
+                {"keywords": {"$regex": query, "$options": "i"}}
+            ]
+        }
+        cursor = self.collection.find(search_filter)
+        calendars = await cursor.to_list(length=100)
+        return calendars
+
+    async def search_by_creator_name(self, creator_name: str) -> list[dict]:
+        """
+        Busca calendarios por nombre del creador.
+
+        Utiliza el campo denormalizado creator_display_name para búsqueda
+        eficiente sin necesidad de join con la colección users.
+
+        Args:
+            creator_name: Nombre o parte del nombre del creador
+
+        Returns:
+            list[dict]: Calendarios creados por usuarios con ese nombre
+        """
+        search_filter = {
+            "creator_display_name": {"$regex": creator_name, "$options": "i"}
+        }
+        cursor = self.collection.find(search_filter)
+        calendars = await cursor.to_list(length=100)
+        return calendars
+
     # ==================== BÚSQUEDAS DE RELACIONES ====================
     
     async def find_children(self, calendar_id: str) -> list[dict]:
