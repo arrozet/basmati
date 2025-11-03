@@ -13,6 +13,10 @@ class IntegrationServiceSettings(Settings):
     service_name: str = "integration-service"
     google_calendar_api_key: Optional[str] = None
     teamup_api_key: Optional[str] = None
+    
+    # URLs de otros servicios (necesarios para este servicio)
+    CALENDAR_SERVICE_URL: str = "http://calendar-service:8002"
+    EVENT_SERVICE_URL: str = "http://event-service:8003"
 
 # Instancia de configuración para este servicio
 settings = IntegrationServiceSettings()

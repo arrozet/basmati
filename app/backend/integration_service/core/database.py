@@ -10,11 +10,24 @@ from shared.database import (
     get_database,
     db
 )
+from repositories.integration_repository import IntegrationRepository
 
 # Reexportar las funciones centralizadas
 __all__ = [
     "connect_to_mongo",
     "close_mongo_connection", 
     "get_database",
-    "db"
+    "db",
+    "get_integration_repository"
 ]
+
+# Dependency para FastAPI
+async def get_integration_repository() -> IntegrationRepository:
+    """
+    Proporciona una instancia de IntegrationRepository.
+    
+    Returns:
+        IntegrationRepository: Repository de fuentes de integración
+    """
+    database = get_database()
+    return IntegrationRepository(database)
