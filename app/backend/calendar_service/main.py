@@ -1,17 +1,42 @@
 """
 CalendarService - Servicio de gestión de calendarios.
 Puerto: 8002
-TODO: Implementar por compañeros
 """
+from contextlib import asynccontextmanager
 from fastapi import FastAPI
+from api.v1.router import api_router
+from core.config import settings
+from core.database import connect_to_mongo, close_mongo_connection
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """
+    Gestor del ciclo de vida de la aplicación.
+    
+    Startup: Conecta a MongoDB
+    Shutdown: Desconecta de MongoDB
+    """
+    # Startup
+    await connect_to_mongo()
+    yield
+    # Shutdown
+    await close_mongo_connection()
 
 app = FastAPI(
     title="Basmati Calendar Service",
     description="Servicio de gestión de calendarios y jerarquías",
-    version="1.0.0"
+    version="1.0.0",
+    lifespan=lifespan
 )
+
+app.include_router(api_router, prefix="/v1")
 
 @app.get("/health")
 async def health_check():
-    """Verifica el estado del servicio de calendarios"""
-    return {"status": "healthy", "service": "calendar-service"}
+    """
+    Verifica el estado del servicio de calendarios.
+    
+    Returns:
+        dict: Estado del servicio
+    """
+    return {"status": "healthy", "service": "calendar-service", "port": settings.service_port}
