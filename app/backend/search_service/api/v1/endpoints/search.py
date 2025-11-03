@@ -2,27 +2,27 @@
 Endpoints de búsqueda avanzada.
 
 Proporciona endpoints para realizar búsquedas en calendarios y eventos
-sin necesidad de conocer la estructura interna de las colecciones.
+delegando las consultas a Calendar Service y Event Service mediante HTTP.
 """
 from fastapi import APIRouter, Query, Depends
 from schemas.search import CalendarSearchResult, EventSearchResult, CombinedSearchResult
 from services.search_service import SearchService
-from core.database import get_database
+from core.config import settings
 
 router = APIRouter()
 
 
-async def get_search_service(database = Depends(get_database)) -> SearchService:
+def get_search_service() -> SearchService:
     """
     Proporciona una instancia de SearchService.
-    
-    Args:
-        database: Instancia de base de datos (inyectada por FastAPI)
-        
+
     Returns:
-        SearchService: Servicio de búsqueda
+        SearchService: Servicio de búsqueda configurado con URLs de otros servicios
     """
-    return SearchService(database)
+    return SearchService(
+        calendar_service_url=settings.calendar_service_url,
+        event_service_url=settings.event_service_url
+    )
 
 
 @router.get(
