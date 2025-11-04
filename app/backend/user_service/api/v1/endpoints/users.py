@@ -46,15 +46,20 @@ async def get_user_service(user_repository = Depends(get_user_repository)) -> Us
 @router.post("", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
 async def create_user(user: UserCreate, service: UserService = Depends(get_user_service)):
     """
-    Crea un nuevo usuario en el sistema con OAuth.
-    
+    Crea un nuevo usuario en el sistema mediante **autenticación OAuth**.
+
+    **Validación automática:**
+    - Verifica que no exista un usuario con el mismo `external_id` + `provider`
+    - Asigna automáticamente `created_at` y `last_login`
+    - Inicializa array vacío de `followed_calendar_ids`
+
     Args:
-        user: Datos del usuario a crear (incluye external_id y provider)
+        user: Datos del usuario a crear (incluye **external_id** y **provider**)
         service: Servicio de usuarios (inyectado por FastAPI)
-        
+
     Returns:
-        UserResponse: El usuario creado con su ID
-        
+        UserResponse: El usuario creado con su **ID de MongoDB**
+
     Raises:
         HTTPException 400: Si ya existe un usuario con esas credenciales OAuth
     """
@@ -69,14 +74,23 @@ async def create_user(user: UserCreate, service: UserService = Depends(get_user_
 @router.get("/{user_id}", response_model=UserResponse)
 async def get_user(user_id: str, service: UserService = Depends(get_user_service)):
     """
-    Obtiene un usuario por su ID.
-    
+    Obtiene un usuario por su **ID de MongoDB**.
+
+    **Información devuelta:**
+    - **Perfil**: email, display_name, avatar_url
+    - **OAuth**: external_id, provider
+    - **Preferencias**: notification_preferences
+    - **Actividad**: followed_calendar_ids, created_at, last_login
+
     Args:
-        user_id: ID del usuario
+        user_id: ID del usuario (MongoDB ObjectId como string)
         service: Servicio de usuarios (inyectado por FastAPI)
-        
+
     Returns:
-        UserResponse: Usuario encontrado
+        UserResponse: Usuario encontrado con toda su información
+
+    Raises:
+        HTTPException 404: Si el usuario no existe
     """
     user = await service.get_user(user_id)
     if not user:
@@ -90,15 +104,26 @@ async def get_user(user_id: str, service: UserService = Depends(get_user_service
 @router.put("/{user_id}", response_model=UserResponse)
 async def update_user(user_id: str, user: UserUpdate, service: UserService = Depends(get_user_service)):
     """
-    Actualiza un usuario existente.
-    
+    Actualiza un usuario existente (**actualización parcial**).
+
+    **Campos actualizables:**
+    - **email**, **display_name**, **avatar_url**: Información del perfil
+    - **notification_preferences**: Preferencias de notificaciones
+    - **followed_calendar_ids**: Calendarios que sigue
+
+    **Nota:** Los campos `external_id` y `provider` (credenciales OAuth) **NO** se pueden modificar.
+
     Args:
         user_id: ID del usuario
-        user: Datos a actualizar
+        user: Datos a actualizar (solo los campos que cambiarán)
         service: Servicio de usuarios (inyectado por FastAPI)
-        
+
     Returns:
-        UserResponse: Usuario actualizado
+        UserResponse: Usuario actualizado con los cambios aplicados
+
+    Raises:
+        HTTPException 400: Si hay error de validación
+        HTTPException 404: Si el usuario no existe
     """
     updated_user = await service.update_user(user_id, user)
     if not updated_user:
@@ -112,14 +137,23 @@ async def update_user(user_id: str, user: UserUpdate, service: UserService = Dep
 @router.delete("/{user_id}", response_model=ResponseMessage)
 async def delete_user(user_id: str, service: UserService = Depends(get_user_service)):
     """
-    Elimina un usuario del sistema.
-    
+    Elimina un usuario del sistema de forma **permanente**.
+
+    **⚠️ Advertencia:**
+    - La eliminación es **irreversible**
+    - Los calendarios creados por el usuario **NO** se eliminan
+    - Los comentarios del usuario permanecen (quedan huérfanos)
+    - Se recomienda implementar "soft delete" en producción
+
     Args:
-        user_id: ID del usuario
+        user_id: ID del usuario a eliminar
         service: Servicio de usuarios (inyectado por FastAPI)
-        
+
     Returns:
-        ResponseMessage: Mensaje de confirmación
+        ResponseMessage: Mensaje de confirmación de eliminación
+
+    Raises:
+        HTTPException 404: Si el usuario no existe
     """
     deleted = await service.delete_user(user_id)
     if not deleted:
@@ -133,14 +167,19 @@ async def delete_user(user_id: str, service: UserService = Depends(get_user_serv
 @router.get("/search/by-email", response_model=UserResponse)
 async def search_by_email(email: str = Query(..., description="Email del usuario"), service: UserService = Depends(get_user_service)):
     """
-    Busca un usuario por email (parametrized query 1).
-    
+    Busca un usuario por su **email** (coincidencia exacta).
+
+    **Caso de uso:** Login, verificación de existencia, recuperación de cuenta.
+
     Args:
-        email: Email del usuario
+        email: Email del usuario (búsqueda exacta, case-sensitive)
         service: Servicio de usuarios (inyectado por FastAPI)
-        
+
     Returns:
-        UserResponse: Usuario encontrado
+        UserResponse: Usuario con ese email
+
+    Raises:
+        HTTPException 404: Si no existe usuario con ese email
     """
     user = await service.search_by_email(email)
     if not user:
@@ -154,14 +193,18 @@ async def search_by_email(email: str = Query(..., description="Email del usuario
 @router.get("/search/by-display-name", response_model=List[UserResponse])
 async def search_by_display_name(display_name: str = Query(..., description="Nombre o parte del nombre"), service: UserService = Depends(get_user_service)):
     """
-    Busca usuarios por display_name parcial (parametrized query 2).
-    
+    Busca usuarios por **nombre visible** (coincidencia parcial, case-insensitive).
+
+    Utiliza regex para búsqueda parcial: `"Juan"` encuentra `"Juan Pérez"`, `"María Juan"`, etc.
+
+    **Caso de uso:** Autocompletar, búsqueda de usuarios, menciones.
+
     Args:
-        display_name: Nombre o parte del nombre
+        display_name: Nombre o parte del nombre del usuario
         service: Servicio de usuarios (inyectado por FastAPI)
-        
+
     Returns:
-        List[UserResponse]: Lista de usuarios encontrados
+        List[UserResponse]: Lista de usuarios que coinciden (puede estar vacía)
     """
     users = await service.search_by_display_name(display_name)
     return users
@@ -173,15 +216,22 @@ async def search_by_oauth(
     service: UserService = Depends(get_user_service)
 ):
     """
-    Busca un usuario por sus credenciales OAuth.
-    
+    Busca un usuario por sus **credenciales OAuth** (external_id + provider).
+
+    **Combinación única:** La combinación `external_id` + `provider` identifica de forma única al usuario.
+
+    **Caso de uso:** Login OAuth, vinculación de cuentas.
+
     Args:
-        external_id: ID del proveedor OAuth
+        external_id: ID único del proveedor OAuth (ej: "123456789")
         provider: Proveedor OAuth ("google" o "facebook")
         service: Servicio de usuarios (inyectado por FastAPI)
-        
+
     Returns:
-        UserResponse: Usuario encontrado
+        UserResponse: Usuario con esas credenciales OAuth
+
+    Raises:
+        HTTPException 404: Si no existe usuario con esas credenciales
     """
     user = await service.search_by_oauth(external_id, provider)
     if not user:
