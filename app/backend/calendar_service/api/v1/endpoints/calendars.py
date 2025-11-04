@@ -183,15 +183,37 @@ async def search_by_visibility(
     return calendars
 
 
-@router.get("/search/by-text", response_model=List[CalendarResponse])
+@router.get(
+    "/search/by-text",
+    response_model=List[CalendarResponse],
+    summary="Búsqueda full-text en calendarios",
+    description="""
+Realiza una búsqueda full-text en calendarios.
+
+Busca en los siguientes campos:
+- **title**: Título del calendario
+- **description**: Descripción del calendario
+- **keywords**: Palabras clave asociadas
+
+La búsqueda es case-insensitive y utiliza expresiones regulares.
+
+**Ejemplo de uso:**
+- `query=universidad` → encuentra "Universidad de Sevilla", "Eventos Universidad", etc.
+- `query=deportes` → encuentra calendarios con keywords ["deportes", "fitness"]
+- `query=tecnología` → encuentra calendarios sobre tecnología
+"""
+)
 async def search_by_text(
-    query: str = Query(..., description="Término de búsqueda"),
+    query: str = Query(
+        ...,
+        description="Término de búsqueda",
+        example="universidad",
+        min_length=1
+    ),
     service: CalendarService = Depends(get_calendar_service)
 ):
     """
-    Búsqueda full-text en calendarios.
-
-    Busca en los campos: title, description y keywords del calendario.
+    Busca calendarios por texto.
 
     Args:
         query: Término de búsqueda
@@ -204,9 +226,31 @@ async def search_by_text(
     return calendars
 
 
-@router.get("/search/by-creator-name", response_model=List[CalendarResponse])
+@router.get(
+    "/search/by-creator-name",
+    response_model=List[CalendarResponse],
+    summary="Buscar calendarios por nombre del creador",
+    description="""
+Busca calendarios utilizando el nombre del creador.
+
+Utiliza el campo denormalizado **creator_display_name** para realizar
+búsquedas eficientes sin necesidad de join con la colección de usuarios.
+
+La búsqueda es parcial y case-insensitive.
+
+**Ejemplo de uso:**
+- `creator_name=Juan` → encuentra calendarios de "Juan Pérez", "María Juan", etc.
+- `creator_name=García` → encuentra calendarios de usuarios con apellido García
+- `creator_name=Ana` → encuentra calendarios creados por "Ana López", "Juana Ana", etc.
+"""
+)
 async def search_by_creator_name(
-    creator_name: str = Query(..., description="Nombre del creador"),
+    creator_name: str = Query(
+        ...,
+        description="Nombre o parte del nombre del creador",
+        example="Juan",
+        min_length=1
+    ),
     service: CalendarService = Depends(get_calendar_service)
 ):
     """
