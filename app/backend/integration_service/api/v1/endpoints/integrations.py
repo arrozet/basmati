@@ -19,16 +19,44 @@ def get_integration_service() -> IntegrationService:
     )
 
 
-@router.post("/google/import", response_model=ImportResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/google/import",
+    response_model=ImportResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Importar desde Google Calendar",
+    description="""
+Importa calendarios desde **Google Calendar** creándolos directamente en Basmati.
+
+**Proceso:**
+1. Se conecta a Google Calendar API usando el token OAuth
+2. Obtiene información de los calendarios especificados
+3. Crea calendarios equivalentes en Basmati vía **Calendar Service**
+
+**Campos requeridos:**
+- **user_external_id**: ID del usuario en Basmati
+- **user_display_name**: Nombre del usuario
+- **access_token**: Token OAuth de Google
+- **calendar_ids**: Lista de IDs de calendarios de Google a importar
+
+**Respuesta:**
+- **imported_calendars**: Lista con IDs de Basmati creados
+- **failed_imports**: Lista de calendarios que fallaron
+"""
+)
 async def import_from_google_calendar(import_request: GoogleCalendarImportRequest):
     """
-    Importa calendarios desde Google Calendar creándolos directamente en Basmati.
-    
+    Importa calendarios desde **Google Calendar** creándolos directamente en Basmati.
+
+    **Llamada a servicio externo:** Hace peticiones HTTP a Calendar Service para crear los calendarios.
+
     Args:
-        import_request: Datos de importación (token, calendar_ids)
-        
+        import_request: Datos de importación (token OAuth, calendar_ids de Google)
+
     Returns:
-        ImportResponse: Resultado con IDs de calendarios creados
+        ImportResponse: Resultado con IDs de calendarios creados y fallos
+
+    Raises:
+        HTTPException 500: Si hay error al importar desde Google Calendar
     """
     try:
         service = get_integration_service()
@@ -40,16 +68,44 @@ async def import_from_google_calendar(import_request: GoogleCalendarImportReques
         )
 
 
-@router.post("/teamup/import", response_model=ImportResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/teamup/import",
+    response_model=ImportResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Importar desde Teamup",
+    description="""
+Importa calendarios desde **Teamup** creándolos directamente en Basmati.
+
+**Proceso:**
+1. Se conecta a Teamup API usando la API key
+2. Obtiene información de los calendarios especificados
+3. Crea calendarios equivalentes en Basmati vía **Calendar Service**
+
+**Campos requeridos:**
+- **user_external_id**: ID del usuario en Basmati
+- **user_display_name**: Nombre del usuario
+- **api_key**: API key de Teamup
+- **calendar_keys**: Lista de calendar keys de Teamup a importar
+
+**Respuesta:**
+- **imported_calendars**: Lista con IDs de Basmati creados
+- **failed_imports**: Lista de calendarios que fallaron
+"""
+)
 async def import_from_teamup(import_request: TeamupImportRequest):
     """
-    Importa calendarios desde Teamup creándolos directamente en Basmati.
-    
+    Importa calendarios desde **Teamup** creándolos directamente en Basmati.
+
+    **Llamada a servicio externo:** Hace peticiones HTTP a Calendar Service para crear los calendarios.
+
     Args:
-        import_request: Datos de importación (api_key, calendar_keys)
-        
+        import_request: Datos de importación (API key, calendar_keys de Teamup)
+
     Returns:
-        ImportResponse: Resultado con IDs de calendarios creados
+        ImportResponse: Resultado con IDs de calendarios creados y fallos
+
+    Raises:
+        HTTPException 500: Si hay error al importar desde Teamup
     """
     try:
         service = get_integration_service()
