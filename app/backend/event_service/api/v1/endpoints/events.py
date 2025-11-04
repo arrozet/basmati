@@ -193,31 +193,126 @@ async def get_commented_events_by_user(
 	return await service.get_commented_events_by_user(user_external_id)
 
 
-@router.get("/search/by-text", response_model=list[EventResponse])
+@router.get(
+	"/search/by-text",
+	response_model=list[EventResponse],
+	summary="Búsqueda full-text en eventos",
+	description="""
+Realiza una búsqueda full-text en eventos.
+
+Busca en los siguientes campos:
+- **title**: Título del evento
+- **description**: Descripción del evento
+- **location.address**: Dirección completa del evento
+- **location.place_name**: Nombre del lugar
+
+La búsqueda es case-insensitive y utiliza expresiones regulares.
+
+**Ejemplo de uso:**
+- `query=conferencia` → encuentra "Conferencia de IA", "Conferencia Anual", etc.
+- `query=sevilla` → encuentra eventos en Sevilla o relacionados con la ciudad
+- `query=tecnología` → encuentra eventos sobre tecnología en título o descripción
+"""
+)
 async def search_by_text(
-	query: str = Query(..., description="Término de búsqueda"),
+	query: str = Query(
+		...,
+		description="Término de búsqueda",
+		example="conferencia",
+		min_length=1
+	),
 	service: EventService = Depends(get_event_service),
 ):
-	"""Búsqueda full-text en eventos.
+	"""
+	Busca eventos por texto.
 
-	Busca en los campos: title, description, location.address y location.place_name.
+	Args:
+		query: Término de búsqueda
+		service: Servicio de eventos (inyectado por FastAPI)
+
+	Returns:
+		list[EventResponse]: Lista de eventos encontrados
 	"""
 	return await service.search_by_text(query)
 
 
-@router.get("/search/by-calendar-title", response_model=list[EventResponse])
+@router.get(
+	"/search/by-calendar-title",
+	response_model=list[EventResponse],
+	summary="Buscar eventos por título de calendario",
+	description="""
+Busca eventos utilizando el título del calendario al que pertenecen.
+
+Utiliza el campo denormalizado **calendar_title** para realizar
+búsquedas eficientes sin necesidad de join con la colección de calendarios.
+
+La búsqueda es parcial y case-insensitive.
+
+**Ejemplo de uso:**
+- `calendar_title=Universidad` → encuentra eventos de calendarios "Universidad de Sevilla", "Universidad Complutense", etc.
+- `calendar_title=Deportes` → encuentra eventos de calendarios deportivos
+- `calendar_title=Conferencias` → encuentra eventos de calendarios de conferencias
+"""
+)
 async def search_by_calendar_title(
-	calendar_title: str = Query(..., description="Título del calendario"),
+	calendar_title: str = Query(
+		...,
+		description="Título o parte del título del calendario",
+		example="Universidad",
+		min_length=1
+	),
 	service: EventService = Depends(get_event_service),
 ):
-	"""Busca eventos por título del calendario (usando campo denormalizado)"""
+	"""
+	Busca eventos por título del calendario.
+
+	Args:
+		calendar_title: Título del calendario a buscar
+		service: Servicio de eventos (inyectado por FastAPI)
+
+	Returns:
+		list[EventResponse]: Eventos del calendario con ese título
+	"""
 	return await service.search_by_calendar_title(calendar_title)
 
 
-@router.get("/search/by-location", response_model=list[EventResponse])
+@router.get(
+	"/search/by-location",
+	response_model=list[EventResponse],
+	summary="Buscar eventos por ubicación",
+	description="""
+Busca eventos por su ubicación geográfica.
+
+Busca en los siguientes campos del subdocumento **location**:
+- **location.address**: Dirección completa del evento
+- **location.place_name**: Nombre del lugar o edificio
+
+La búsqueda es case-insensitive y utiliza expresiones regulares.
+Útil para encontrar eventos en una ciudad, edificio o lugar específico.
+
+**Ejemplo de uso:**
+- `location_query=Sevilla` → encuentra eventos en "Calle Real, Sevilla", "Universidad de Sevilla", etc.
+- `location_query=Aula Magna` → encuentra eventos en el Aula Magna
+- `location_query=Campus` → encuentra eventos en cualquier campus universitario
+"""
+)
 async def search_by_location(
-	location_query: str = Query(..., description="Término de búsqueda para ubicación"),
+	location_query: str = Query(
+		...,
+		description="Término de búsqueda para la ubicación",
+		example="Sevilla",
+		min_length=1
+	),
 	service: EventService = Depends(get_event_service),
 ):
-	"""Busca eventos por ubicación (address o place_name)"""
+	"""
+	Busca eventos por ubicación.
+
+	Args:
+		location_query: Término de búsqueda para la ubicación
+		service: Servicio de eventos (inyectado por FastAPI)
+
+	Returns:
+		list[EventResponse]: Eventos en esa ubicación
+	"""
 	return await service.search_by_location(location_query)
