@@ -43,7 +43,36 @@ async def get_user_service(user_repository = Depends(get_user_repository)) -> Us
     """
     return UserService(user_repository)
 
-@router.post("", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "",
+    response_model=UserResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Crear un nuevo usuario",
+    description="""
+Crea un nuevo usuario en el sistema mediante **autenticación OAuth**.
+
+**Campos requeridos:**
+- **external_id**: ID único del proveedor OAuth
+- **provider**: Proveedor OAuth ("google" o "facebook")
+- **email**: Correo electrónico
+- **display_name**: Nombre visible del usuario
+
+**Validación automática:**
+- Verifica que no exista usuario con el mismo `external_id` + `provider`
+- Asigna automáticamente `created_at` y `last_login`
+- Inicializa array vacío de `followed_calendar_ids`
+
+**Ejemplo:**
+```json
+{
+  "external_id": "123456789",
+  "provider": "google",
+  "email": "juan@example.com",
+  "display_name": "Juan Pérez"
+}
+```
+"""
+)
 async def create_user(user: UserCreate, service: UserService = Depends(get_user_service)):
     """
     Crea un nuevo usuario en el sistema mediante **autenticación OAuth**.
@@ -71,7 +100,20 @@ async def create_user(user: UserCreate, service: UserService = Depends(get_user_
             detail=str(e)
         )
 
-@router.get("/{user_id}", response_model=UserResponse)
+@router.get(
+    "/{user_id}",
+    response_model=UserResponse,
+    summary="Obtener un usuario por ID",
+    description="""
+Obtiene un usuario específico por su **ID de MongoDB**.
+
+**Información devuelta:**
+- **Perfil**: email, display_name, avatar_url
+- **OAuth**: external_id, provider
+- **Preferencias**: notification_preferences
+- **Actividad**: followed_calendar_ids, created_at, last_login
+"""
+)
 async def get_user(user_id: str, service: UserService = Depends(get_user_service)):
     """
     Obtiene un usuario por su **ID de MongoDB**.
@@ -101,7 +143,21 @@ async def get_user(user_id: str, service: UserService = Depends(get_user_service
     
     return user
 
-@router.put("/{user_id}", response_model=UserResponse)
+@router.put(
+    "/{user_id}",
+    response_model=UserResponse,
+    summary="Actualizar un usuario",
+    description="""
+Actualiza un usuario existente (**actualización parcial**).
+
+**Campos actualizables:**
+- **email**, **display_name**, **avatar_url**
+- **notification_preferences**
+- **followed_calendar_ids**
+
+**Nota:** Los campos `external_id` y `provider` (credenciales OAuth) **NO** se pueden modificar.
+"""
+)
 async def update_user(user_id: str, user: UserUpdate, service: UserService = Depends(get_user_service)):
     """
     Actualiza un usuario existente (**actualización parcial**).
@@ -134,7 +190,20 @@ async def update_user(user_id: str, user: UserUpdate, service: UserService = Dep
     
     return updated_user
 
-@router.delete("/{user_id}", response_model=ResponseMessage)
+@router.delete(
+    "/{user_id}",
+    response_model=ResponseMessage,
+    summary="Eliminar un usuario",
+    description="""
+Elimina un usuario del sistema de forma **permanente**.
+
+**⚠️ Advertencia:**
+- La eliminación es **irreversible**
+- Los calendarios creados por el usuario **NO** se eliminan
+- Los comentarios del usuario permanecen (quedan huérfanos)
+- Se recomienda implementar "soft delete" en producción
+"""
+)
 async def delete_user(user_id: str, service: UserService = Depends(get_user_service)):
     """
     Elimina un usuario del sistema de forma **permanente**.
@@ -164,7 +233,16 @@ async def delete_user(user_id: str, service: UserService = Depends(get_user_serv
     
     return ResponseMessage(message="Usuario eliminado exitosamente")
 
-@router.get("/search/by-email", response_model=UserResponse)
+@router.get(
+    "/search/by-email",
+    response_model=UserResponse,
+    summary="Buscar usuario por email",
+    description="""
+Busca un usuario por su **email** (coincidencia exacta).
+
+**Caso de uso:** Login, verificación de existencia, recuperación de cuenta.
+"""
+)
 async def search_by_email(email: str = Query(..., description="Email del usuario"), service: UserService = Depends(get_user_service)):
     """
     Busca un usuario por su **email** (coincidencia exacta).
@@ -190,7 +268,18 @@ async def search_by_email(email: str = Query(..., description="Email del usuario
     
     return user
 
-@router.get("/search/by-display-name", response_model=List[UserResponse])
+@router.get(
+    "/search/by-display-name",
+    response_model=List[UserResponse],
+    summary="Buscar usuarios por nombre",
+    description="""
+Busca usuarios por **nombre visible** (coincidencia parcial, case-insensitive).
+
+Utiliza regex: `"Juan"` encuentra `"Juan Pérez"`, `"María Juan"`, etc.
+
+**Caso de uso:** Autocompletar, búsqueda de usuarios, menciones.
+"""
+)
 async def search_by_display_name(display_name: str = Query(..., description="Nombre o parte del nombre"), service: UserService = Depends(get_user_service)):
     """
     Busca usuarios por **nombre visible** (coincidencia parcial, case-insensitive).
@@ -209,7 +298,18 @@ async def search_by_display_name(display_name: str = Query(..., description="Nom
     users = await service.search_by_display_name(display_name)
     return users
 
-@router.get("/search/by-oauth", response_model=UserResponse)
+@router.get(
+    "/search/by-oauth",
+    response_model=UserResponse,
+    summary="Buscar usuario por credenciales OAuth",
+    description="""
+Busca un usuario por sus **credenciales OAuth** (external_id + provider).
+
+**Combinación única:** `external_id` + `provider` identifica de forma única al usuario.
+
+**Caso de uso:** Login OAuth, vinculación de cuentas.
+"""
+)
 async def search_by_oauth(
     external_id: str = Query(..., description="ID del proveedor OAuth"),
     provider: str = Query(..., description="Proveedor OAuth (google/facebook)"),
