@@ -82,11 +82,6 @@ async def notifications_route(path: str, request: Request):
     """Proxifica peticiones al servicio de notificaciones"""
     return await proxy_request("notifications", f"v1/{path}", request)
 
-@app.api_route("/v1/search/{path:path}", methods=["GET"])
-async def search_route(path: str, request: Request):
-    """Proxifica peticiones al servicio de búsqueda"""
-    return await proxy_request("search", f"v1/{path}", request)
-
 @app.api_route("/v1/integrations/{path:path}", methods=["GET", "POST", "PUT", "DELETE"])
 async def integrations_route(path: str, request: Request):
     """Proxifica peticiones al servicio de integraciones"""
