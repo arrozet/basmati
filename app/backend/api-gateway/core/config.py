@@ -15,6 +15,5 @@ SERVICES = {
     "calendars": settings.calendar_service_url,
     "events": settings.event_service_url,
     "notifications": settings.notification_service_url,
-    "search": settings.search_service_url,
     "integrations": settings.integration_service_url,
 }
