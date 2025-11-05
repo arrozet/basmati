@@ -13,14 +13,12 @@ services:
       - CALENDAR_SERVICE_URL=http://calendar-service:8002
       - EVENT_SERVICE_URL=http://event-service:8003
       - NOTIFICATION_SERVICE_URL=http://notification-service:8004
-      - SEARCH_SERVICE_URL=http://search-service:8005
       - INTEGRATION_SERVICE_URL=http://integration-service:8006
     depends_on:
       - user-service
       - calendar-service
       - event-service
       - notification-service
-      - search-service
       - integration-service
     networks:
       - basmati-network
@@ -94,26 +92,6 @@ services:
       - EMAIL_SERVICE_API_KEY=${EMAIL_SERVICE_API_KEY:-}
     depends_on:
       - user-service
-    networks:
-      - basmati-network
-
-  # Search Service
-  search-service:
-    build:
-      context: .
-      dockerfile: search_service/Dockerfile
-    container_name: basmati-search-service
-    ports:
-      - "8005:8005"
-    environment:
-      - MONGO_URI=${MONGO_URI}
-      - SERVICE_PORT=8005
-      - DATABASE_NAME=basmati
-      - CALENDAR_SERVICE_URL=http://calendar-service:8002
-      - EVENT_SERVICE_URL=http://event-service:8003
-    depends_on:
-      - calendar-service
-      - event-service
     networks:
       - basmati-network
 
