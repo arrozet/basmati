@@ -201,6 +201,44 @@ class EventService:
         events = await self.event_repository.find_commented_events_by_user(user_external_id)
         return [self._document_to_response(event) for event in events]
 
+    async def search_by_text(self, query: str) -> list[EventResponse]:
+        """Búsqueda full-text en eventos.
+
+        Busca en los campos: title, description, location.address y location.place_name.
+
+        Args:
+            query: Término de búsqueda
+
+        Returns:
+            list[EventResponse]: Lista de eventos encontrados
+        """
+        events = await self.event_repository.search_by_text(query)
+        return [self._document_to_response(event) for event in events]
+
+    async def search_by_calendar_title(self, calendar_title: str) -> list[EventResponse]:
+        """Busca eventos por título del calendario.
+
+        Args:
+            calendar_title: Título o parte del título del calendario
+
+        Returns:
+            list[EventResponse]: Eventos del calendario con ese título
+        """
+        events = await self.event_repository.search_by_calendar_title(calendar_title)
+        return [self._document_to_response(event) for event in events]
+
+    async def search_by_location(self, location_query: str) -> list[EventResponse]:
+        """Busca eventos por ubicación.
+
+        Args:
+            location_query: Término de búsqueda para la ubicación
+
+        Returns:
+            list[EventResponse]: Eventos en esa ubicación
+        """
+        events = await self.event_repository.search_by_location(location_query)
+        return [self._document_to_response(event) for event in events]
+
     async def _notify_new_comment(self, event_doc: dict, comment_doc: dict) -> None:
         """Envía notificación al creador del evento tras un nuevo comentario."""
         creator_id = event_doc.get("creator_external_id")

@@ -191,3 +191,33 @@ async def get_commented_events_by_user(
 ):
 	"""Obtiene eventos en los que un usuario comentó"""
 	return await service.get_commented_events_by_user(user_external_id)
+
+
+@router.get("/search/by-text", response_model=list[EventResponse])
+async def search_by_text(
+	query: str = Query(..., description="Término de búsqueda"),
+	service: EventService = Depends(get_event_service),
+):
+	"""Búsqueda full-text en eventos.
+
+	Busca en los campos: title, description, location.address y location.place_name.
+	"""
+	return await service.search_by_text(query)
+
+
+@router.get("/search/by-calendar-title", response_model=list[EventResponse])
+async def search_by_calendar_title(
+	calendar_title: str = Query(..., description="Título del calendario"),
+	service: EventService = Depends(get_event_service),
+):
+	"""Busca eventos por título del calendario (usando campo denormalizado)"""
+	return await service.search_by_calendar_title(calendar_title)
+
+
+@router.get("/search/by-location", response_model=list[EventResponse])
+async def search_by_location(
+	location_query: str = Query(..., description="Término de búsqueda para ubicación"),
+	service: EventService = Depends(get_event_service),
+):
+	"""Busca eventos por ubicación (address o place_name)"""
+	return await service.search_by_location(location_query)

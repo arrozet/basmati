@@ -171,15 +171,55 @@ async def search_by_visibility(
 ):
     """
     Busca calendarios por visibilidad.
-    
+
     Args:
         visibility: Visibilidad del calendario
         service: Servicio de calendarios (inyectado por FastAPI)
-        
+
     Returns:
         List[CalendarResponse]: Lista de calendarios encontrados
     """
     calendars = await service.search_by_visibility(visibility)
+    return calendars
+
+
+@router.get("/search/by-text", response_model=List[CalendarResponse])
+async def search_by_text(
+    query: str = Query(..., description="Término de búsqueda"),
+    service: CalendarService = Depends(get_calendar_service)
+):
+    """
+    Búsqueda full-text en calendarios.
+
+    Busca en los campos: title, description y keywords del calendario.
+
+    Args:
+        query: Término de búsqueda
+        service: Servicio de calendarios (inyectado por FastAPI)
+
+    Returns:
+        List[CalendarResponse]: Lista de calendarios encontrados
+    """
+    calendars = await service.search_by_text(query)
+    return calendars
+
+
+@router.get("/search/by-creator-name", response_model=List[CalendarResponse])
+async def search_by_creator_name(
+    creator_name: str = Query(..., description="Nombre del creador"),
+    service: CalendarService = Depends(get_calendar_service)
+):
+    """
+    Busca calendarios por nombre del creador.
+
+    Args:
+        creator_name: Nombre o parte del nombre del creador
+        service: Servicio de calendarios (inyectado por FastAPI)
+
+    Returns:
+        List[CalendarResponse]: Calendarios creados por usuarios con ese nombre
+    """
+    calendars = await service.search_by_creator_name(creator_name)
     return calendars
 
 
