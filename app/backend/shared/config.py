@@ -23,7 +23,6 @@ class Settings(BaseSettings):
     calendar_service_url: str = "http://calendar-service:8002"
     event_service_url: str = "http://event-service:8003"
     notification_service_url: str = "http://notification-service:8004"
-    search_service_url: str = "http://search-service:8005"
     integration_service_url: str = "http://integration-service:8006"
     
     class Config:
