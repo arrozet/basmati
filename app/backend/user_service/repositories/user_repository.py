@@ -131,6 +131,21 @@ class UserRepository:
     
     # ==================== BÚSQUEDAS ====================
     
+    async def find_all(self, skip: int = 0, limit: int = 100) -> list[dict]:
+        """
+        Lista todos los usuarios con paginación.
+        
+        Args:
+            skip: Número de registros a saltar
+            limit: Límite de registros a retornar
+            
+        Returns:
+            list[dict]: Lista de usuarios
+        """
+        cursor = self.collection.find().skip(skip).limit(limit)
+        users = await cursor.to_list(length=limit)
+        return users
+    
     async def find_by_email(self, email: str) -> dict | None:
         """
         Busca un usuario por email (parametrized query 1).
