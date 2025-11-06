@@ -72,6 +72,15 @@ async def aggregate_openapi_specs() -> Dict[str, Any]:
             logger.warning(f"Skipping service {service_name} - no OpenAPI spec available")
             continue
 
+        # Combinar schemas de componentes primero
+        service_schema_mapping = {}
+        if "components" in service_spec and "schemas" in service_spec["components"]:
+            for schema_name, schema_def in service_spec["components"]["schemas"].items():
+                # Prefijar schemas con el nombre del servicio para evitar colisiones
+                prefixed_schema_name = f"{service_name.capitalize()}{schema_name}"
+                combined_spec["components"]["schemas"][prefixed_schema_name] = schema_def
+                service_schema_mapping[schema_name] = prefixed_schema_name
+
         # Combinar paths del servicio
         if "paths" in service_spec:
             for path, path_item in service_spec["paths"].items():
@@ -80,17 +89,9 @@ async def aggregate_openapi_specs() -> Dict[str, Any]:
                 gateway_path = path.replace("/v1/", f"/v1/{service_name}/", 1)
 
                 # Copiar las operaciones del path
+                # Los path_item incluyen: get, post, put, delete, etc.
+                # Cada operación tiene: summary, description, requestBody, responses, etc.
                 combined_spec["paths"][gateway_path] = path_item
-
-        # Combinar schemas de componentes
-        if "components" in service_spec and "schemas" in service_spec["components"]:
-            for schema_name, schema_def in service_spec["components"]["schemas"].items():
-                # Prefijar schemas con el nombre del servicio para evitar colisiones
-                prefixed_schema_name = f"{service_name.capitalize()}{schema_name}"
-                combined_spec["components"]["schemas"][prefixed_schema_name] = schema_def
-
-                # Actualizar referencias en los paths de este servicio
-                # Esto es una simplificación; en producción se necesitaría un parser más robusto
 
     # Añadir endpoint de health del gateway
     combined_spec["paths"]["/health"] = {
