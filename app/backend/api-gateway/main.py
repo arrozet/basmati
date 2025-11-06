@@ -2,17 +2,76 @@
 API Gateway principal para Basmati.
 Punto de entrada centralizado para todos los servicios de backend.
 """
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.responses import JSONResponse
 import httpx
 from core.config import SERVICES
 from core.openapi_aggregator import aggregate_openapi_specs
 
+# Variable para cachear el schema OpenAPI customizado
+_custom_openapi_schema = None
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """
+    Gestor del ciclo de vida de la aplicación.
+
+    Startup: Carga el schema OpenAPI agregado de todos los servicios
+    Shutdown: Limpieza si fuera necesaria
+    """
+    global _custom_openapi_schema
+
+    # Startup: Cargar schema OpenAPI de todos los servicios
+    print("🔄 Cargando especificaciones OpenAPI de los servicios backend...")
+    try:
+        _custom_openapi_schema = await aggregate_openapi_specs(force_refresh=True)
+        num_paths = len(_custom_openapi_schema.get('paths', {}))
+        num_schemas = len(_custom_openapi_schema.get('components', {}).get('schemas', {}))
+        print(f"✅ Schema OpenAPI cargado: {num_paths} rutas, {num_schemas} schemas")
+
+        # Contar request bodies
+        request_bodies_count = 0
+        for path, path_item in _custom_openapi_schema.get('paths', {}).items():
+            for method, operation in path_item.items():
+                if isinstance(operation, dict) and 'requestBody' in operation:
+                    request_bodies_count += 1
+
+        print(f"   📝 {request_bodies_count} operaciones con requestBody")
+    except Exception as e:
+        print(f"⚠️  Error cargando OpenAPI specs: {e}")
+        # Continuar sin el schema customizado
+        _custom_openapi_schema = None
+
+    yield
+
+    # Shutdown
+    _custom_openapi_schema = None
+
 app = FastAPI(
     title="Basmati API Gateway",
     description="Punto de entrada centralizado para todos los servicios de Basmati",
-    version="1.0.0"
+    version="1.0.0",
+    lifespan=lifespan
 )
+
+def custom_openapi():
+    """
+    Sobrescribe la generación de OpenAPI para usar nuestro schema agregado.
+
+    Esto hace que la documentación de FastAPI (/docs) muestre todos los
+    endpoints de los servicios backend con sus request bodies y schemas.
+    """
+    global _custom_openapi_schema
+
+    if _custom_openapi_schema is not None:
+        return _custom_openapi_schema
+
+    # Fallback al schema por defecto si aún no se ha cargado
+    return app.openapi_schema or {}
+
+# Sobrescribir el método openapi de FastAPI
+app.openapi = custom_openapi
 
 @app.get("/health")
 async def health_check():
@@ -27,11 +86,18 @@ async def health_check():
 @app.get("/openapi.json", include_in_schema=False)
 async def get_openapi():
     """
-    Endpoint personalizado para servir la especificación OpenAPI combinada.
+    Endpoint explícito para servir la especificación OpenAPI combinada.
 
     Returns:
         dict: Especificación OpenAPI agregada de todos los servicios
     """
+    global _custom_openapi_schema
+
+    # Usar el schema cacheado si está disponible
+    if _custom_openapi_schema is not None:
+        return _custom_openapi_schema
+
+    # Si no está cacheado, generarlo (útil para testing)
     return await aggregate_openapi_specs()
 
 async def proxy_request(service_name: str, path: str, request: Request):
@@ -78,7 +144,7 @@ async def proxy_request(service_name: str, path: str, request: Request):
         raise HTTPException(status_code=500, detail=str(e))
 
 # Ruta dinámica genérica para todos los servicios
-@app.api_route("/v1/{service_name}/{path:path}", methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS", "HEAD"])
+@app.api_route("/v1/{service_name}/{path:path}", methods=["GET", "POST", "PUT", "DELETE"])
 async def dynamic_service_route(service_name: str, path: str, request: Request):
     """
     Proxy dinámico para todos los servicios backend.

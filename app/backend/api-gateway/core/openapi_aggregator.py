@@ -37,17 +37,20 @@ async def fetch_service_openapi(service_name: str, service_url: str) -> Optional
         return None
 
 
-async def aggregate_openapi_specs() -> Dict[str, Any]:
+async def aggregate_openapi_specs(force_refresh: bool = False) -> Dict[str, Any]:
     """
     Combina las especificaciones OpenAPI de todos los servicios en una sola.
+
+    Args:
+        force_refresh: Si True, ignora el cache y recarga las specs
 
     Returns:
         Dict con la especificación OpenAPI combinada
     """
     global _openapi_cache
 
-    # Usar cache si existe
-    if _openapi_cache is not None:
+    # Usar cache si existe y no se fuerza refresh
+    if _openapi_cache is not None and not force_refresh:
         return _openapi_cache
 
     # Spec base del gateway
@@ -66,11 +69,14 @@ async def aggregate_openapi_specs() -> Dict[str, Any]:
 
     # Obtener specs de todos los servicios
     for service_name, service_url in SERVICES.items():
+        logger.info(f"Fetching OpenAPI spec from {service_name} at {service_url}")
         service_spec = await fetch_service_openapi(service_name, service_url)
 
         if service_spec is None:
             logger.warning(f"Skipping service {service_name} - no OpenAPI spec available")
             continue
+
+        logger.info(f"Processing {len(service_spec.get('paths', {}))} paths from {service_name}")
 
         # Combinar schemas de componentes primero
         service_schema_mapping = {}
@@ -88,10 +94,19 @@ async def aggregate_openapi_specs() -> Dict[str, Any]:
                 # Los servicios ya tienen /v1/ en sus paths, así que solo añadimos el prefijo del servicio
                 gateway_path = path.replace("/v1/", f"/v1/{service_name}/", 1)
 
-                # Copiar las operaciones del path
-                # Los path_item incluyen: get, post, put, delete, etc.
-                # Cada operación tiene: summary, description, requestBody, responses, etc.
-                combined_spec["paths"][gateway_path] = path_item
+                # Filtrar solo los métodos que soportamos: GET, POST, PUT, DELETE
+                filtered_path_item = {}
+                for method in ["get", "post", "put", "delete"]:
+                    if method in path_item:
+                        filtered_path_item[method] = path_item[method]
+
+                        # Log si tiene requestBody (para debugging)
+                        if "requestBody" in path_item[method]:
+                            logger.debug(f"  {method.upper()} {gateway_path} has requestBody")
+
+                # Solo añadir el path si tiene al menos un método soportado
+                if filtered_path_item:
+                    combined_spec["paths"][gateway_path] = filtered_path_item
 
     # Añadir endpoint de health del gateway
     combined_spec["paths"]["/health"] = {
