@@ -6,6 +6,7 @@ from fastapi import FastAPI, Request, HTTPException
 from fastapi.responses import JSONResponse
 import httpx
 from core.config import SERVICES
+from core.openapi_aggregator import aggregate_openapi_specs
 
 app = FastAPI(
     title="Basmati API Gateway",
@@ -17,11 +18,21 @@ app = FastAPI(
 async def health_check():
     """
     Verifica el estado del API Gateway y sus servicios.
-    
+
     Returns:
         dict: Estado del gateway y disponibilidad de servicios
     """
     return {"status": "healthy", "service": "api-gateway"}
+
+@app.get("/openapi.json", include_in_schema=False)
+async def get_openapi():
+    """
+    Endpoint personalizado para servir la especificación OpenAPI combinada.
+
+    Returns:
+        dict: Especificación OpenAPI agregada de todos los servicios
+    """
+    return await aggregate_openapi_specs()
 
 async def proxy_request(service_name: str, path: str, request: Request):
     """
