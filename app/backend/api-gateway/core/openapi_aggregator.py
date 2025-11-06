@@ -142,9 +142,10 @@ async def aggregate_openapi_specs(force_refresh: bool = False) -> Dict[str, Any]
         # Combinar paths del servicio
         if "paths" in service_spec:
             for path, path_item in service_spec["paths"].items():
-                # Prefijar las rutas con /v1/{service}
-                # Los servicios ya tienen /v1/ en sus paths, así que solo añadimos el prefijo del servicio
-                gateway_path = path.replace("/v1/", f"/v1/{service_name}/", 1)
+                # Los servicios ya tienen sus rutas completas (ej: /v1/users/...)
+                # En el gateway queremos mantenerlas igual, sin duplicar el nombre del recurso
+                # Ejemplo: /v1/users del servicio → /v1/users en el gateway (NO /v1/users/users)
+                gateway_path = path
 
                 # Filtrar solo los métodos que soportamos: GET, POST, PUT, DELETE
                 filtered_path_item = {}

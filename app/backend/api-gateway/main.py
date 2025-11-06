@@ -143,26 +143,62 @@ async def proxy_request(service_name: str, path: str, request: Request):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-# Ruta dinámica genérica para todos los servicios
-@app.api_route("/v1/{service_name}/{path:path}", methods=["GET", "POST", "PUT", "DELETE"])
-async def dynamic_service_route(service_name: str, path: str, request: Request):
+# Rutas específicas para cada servicio (elimina duplicación)
+@app.api_route("/v1/users/{path:path}", methods=["GET", "POST", "PUT", "DELETE"])
+async def users_route(path: str, request: Request):
     """
-    Proxy dinámico para todos los servicios backend.
-
-    Esta ruta captura todas las peticiones con el formato /v1/{service}/{path}
-    y las enruta automáticamente al servicio correspondiente.
-
-    Args:
-        service_name: Nombre del servicio (users, calendars, events, etc.)
-        path: Ruta dentro del servicio
-        request: Petición HTTP original
-
-    Returns:
-        JSONResponse: Respuesta del servicio backend
-
-    Raises:
-        HTTPException 404: Si el servicio no existe
-        HTTPException 503: Si no se puede conectar con el servicio
-        HTTPException 504: Si el servicio tarda demasiado en responder
+    Proxy para el User Service.
+    
+    Ejemplos:
+        GET /v1/users → http://user-service:8001/v1/users
+        GET /v1/users/123 → http://user-service:8001/v1/users/123
+        GET /v1/users/search/by-email?email=test@example.com → http://user-service:8001/v1/users/search/by-email?email=test@example.com
     """
-    return await proxy_request(service_name, f"v1/{path}", request)
+    full_path = f"v1/users/{path}" if path else "v1/users"
+    return await proxy_request("users", full_path, request)
+
+@app.api_route("/v1/calendars/{path:path}", methods=["GET", "POST", "PUT", "DELETE"])
+async def calendars_route(path: str, request: Request):
+    """
+    Proxy para el Calendar Service.
+    
+    Ejemplos:
+        GET /v1/calendars → http://calendar-service:8002/v1/calendars
+        GET /v1/calendars/abc123 → http://calendar-service:8002/v1/calendars/abc123
+    """
+    full_path = f"v1/calendars/{path}" if path else "v1/calendars"
+    return await proxy_request("calendars", full_path, request)
+
+@app.api_route("/v1/events/{path:path}", methods=["GET", "POST", "PUT", "DELETE"])
+async def events_route(path: str, request: Request):
+    """
+    Proxy para el Event Service.
+    
+    Ejemplos:
+        GET /v1/events → http://event-service:8003/v1/events
+        POST /v1/events → http://event-service:8003/v1/events
+    """
+    full_path = f"v1/events/{path}" if path else "v1/events"
+    return await proxy_request("events", full_path, request)
+
+@app.api_route("/v1/notifications/{path:path}", methods=["GET", "POST", "PUT", "DELETE"])
+async def notifications_route(path: str, request: Request):
+    """
+    Proxy para el Notification Service.
+    
+    Ejemplos:
+        GET /v1/notifications/user/google_123 → http://notification-service:8004/v1/notifications/user/google_123
+    """
+    full_path = f"v1/notifications/{path}" if path else "v1/notifications"
+    return await proxy_request("notifications", full_path, request)
+
+@app.api_route("/v1/integrations/{path:path}", methods=["GET", "POST", "PUT", "DELETE"])
+async def integrations_route(path: str, request: Request):
+    """
+    Proxy para el Integration Service.
+    
+    Ejemplos:
+        POST /v1/integrations/google/import → http://integration-service:8006/v1/integrations/google/import
+    """
+    full_path = f"v1/integrations/{path}" if path else "v1/integrations"
+    return await proxy_request("integrations", full_path, request)

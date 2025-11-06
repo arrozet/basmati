@@ -57,6 +57,20 @@ class UserService:
         except ValueError as e:
             raise ValueError(f"Error al crear usuario: {str(e)}")
     
+    async def list_users(self, skip: int = 0, limit: int = 100) -> list[UserResponse]:
+        """
+        Lista todos los usuarios con paginación.
+        
+        Args:
+            skip: Número de registros a saltar
+            limit: Límite de registros a retornar
+            
+        Returns:
+            list[UserResponse]: Lista de usuarios
+        """
+        users = await self.user_repository.find_all(skip=skip, limit=limit)
+        return [self._document_to_response(user) for user in users]
+    
     async def get_user(self, user_id: str) -> UserResponse | None:
         """
         Obtiene un usuario por su ID de MongoDB.
