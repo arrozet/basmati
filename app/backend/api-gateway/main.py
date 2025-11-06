@@ -77,28 +77,26 @@ async def proxy_request(service_name: str, path: str, request: Request):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-# Rutas para cada servicio
-@app.api_route("/v1/users/{path:path}", methods=["GET", "POST", "PUT", "DELETE"])
-async def users_route(path: str, request: Request):
-    """Proxifica peticiones al servicio de usuarios"""
-    return await proxy_request("users", f"v1/{path}", request)
+# Ruta dinámica genérica para todos los servicios
+@app.api_route("/v1/{service_name}/{path:path}", methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS", "HEAD"])
+async def dynamic_service_route(service_name: str, path: str, request: Request):
+    """
+    Proxy dinámico para todos los servicios backend.
 
-@app.api_route("/v1/calendars/{path:path}", methods=["GET", "POST", "PUT", "DELETE"])
-async def calendars_route(path: str, request: Request):
-    """Proxifica peticiones al servicio de calendarios"""
-    return await proxy_request("calendars", f"v1/{path}", request)
+    Esta ruta captura todas las peticiones con el formato /v1/{service}/{path}
+    y las enruta automáticamente al servicio correspondiente.
 
-@app.api_route("/v1/events/{path:path}", methods=["GET", "POST", "PUT", "DELETE"])
-async def events_route(path: str, request: Request):
-    """Proxifica peticiones al servicio de eventos"""
-    return await proxy_request("events", f"v1/{path}", request)
+    Args:
+        service_name: Nombre del servicio (users, calendars, events, etc.)
+        path: Ruta dentro del servicio
+        request: Petición HTTP original
 
-@app.api_route("/v1/notifications/{path:path}", methods=["GET", "POST", "PUT", "DELETE"])
-async def notifications_route(path: str, request: Request):
-    """Proxifica peticiones al servicio de notificaciones"""
-    return await proxy_request("notifications", f"v1/{path}", request)
+    Returns:
+        JSONResponse: Respuesta del servicio backend
 
-@app.api_route("/v1/integrations/{path:path}", methods=["GET", "POST", "PUT", "DELETE"])
-async def integrations_route(path: str, request: Request):
-    """Proxifica peticiones al servicio de integraciones"""
-    return await proxy_request("integrations", f"v1/{path}", request)
+    Raises:
+        HTTPException 404: Si el servicio no existe
+        HTTPException 503: Si no se puede conectar con el servicio
+        HTTPException 504: Si el servicio tarda demasiado en responder
+    """
+    return await proxy_request(service_name, f"v1/{path}", request)
