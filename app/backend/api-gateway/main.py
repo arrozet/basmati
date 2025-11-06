@@ -42,7 +42,7 @@ async def proxy_request(service_name: str, path: str, request: Request):
     full_url = f"{service_url}/{path}"
     
     try:
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(timeout=30.0) as client:
             response = await client.request(
                 method=request.method,
                 url=full_url,
@@ -53,6 +53,11 @@ async def proxy_request(service_name: str, path: str, request: Request):
                 status_code=response.status_code,
                 content=response.json() if response.text else {}
             )
+    except httpx.TimeoutException:
+        raise HTTPException(
+            status_code=504,
+            detail=f"Timeout al conectar con {service_name}"
+        )
     except httpx.ConnectError:
         raise HTTPException(
             status_code=503,
