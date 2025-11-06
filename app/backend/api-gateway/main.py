@@ -118,6 +118,10 @@ async def proxy_request(service_name: str, path: str, request: Request):
     service_url = SERVICES[service_name]
     full_url = f"{service_url}/{path}"
     
+    # Agregar query parameters si existen
+    if request.url.query:
+        full_url = f"{full_url}?{request.url.query}"
+    
     try:
         async with httpx.AsyncClient(timeout=30.0) as client:
             response = await client.request(
