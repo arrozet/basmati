@@ -22,7 +22,15 @@ router = APIRouter()
 
 
 async def get_event_service(event_repository = Depends(get_event_repository)) -> EventService:
-	"""Inyecta una instancia de EventService configurada"""
+	"""
+	Proporciona una instancia de EventService con el Repository.
+	
+	Args:
+		event_repository: Repository de eventos (inyectado por FastAPI)
+		
+	Returns:
+		EventService: Instancia del servicio de eventos
+	"""
 	return EventService(event_repository)
 
 
@@ -31,7 +39,19 @@ async def create_event(
 	event: EventCreate,
 	service: EventService = Depends(get_event_service),
 ):
-	"""Crea un nuevo evento"""
+	"""
+	Crea un nuevo evento en el sistema.
+	
+	Args:
+		event: Datos del evento a crear
+		service: Servicio de eventos (inyectado por FastAPI)
+		
+	Returns:
+		EventResponse: El evento creado con su ID
+		
+	Raises:
+		HTTPException 400: Si los datos del evento son inválidos
+	"""
 	try:
 		return await service.create_event(event)
 	except ValueError as exc:
@@ -46,7 +66,19 @@ async def get_event(
 	event_id: str,
 	service: EventService = Depends(get_event_service),
 ):
-	"""Recupera un evento por su ID"""
+	"""
+	Obtiene un evento por su ID.
+	
+	Args:
+		event_id: ID del evento
+		service: Servicio de eventos (inyectado por FastAPI)
+		
+	Returns:
+		EventResponse: Evento encontrado
+		
+	Raises:
+		HTTPException 404: Si el evento no existe
+	"""
 	event = await service.get_event(event_id)
 	if not event:
 		raise HTTPException(
@@ -62,7 +94,21 @@ async def update_event(
 	event: EventUpdate,
 	service: EventService = Depends(get_event_service),
 ):
-	"""Actualiza los datos de un evento"""
+	"""
+	Actualiza los datos de un evento existente.
+	
+	Args:
+		event_id: ID del evento
+		event: Datos a actualizar
+		service: Servicio de eventos (inyectado por FastAPI)
+		
+	Returns:
+		EventResponse: Evento actualizado
+		
+	Raises:
+		HTTPException 400: Si los datos del evento son inválidos
+		HTTPException 404: Si el evento no existe
+	"""
 	try:
 		updated_event = await service.update_event(event_id, event)
 	except ValueError as exc:
@@ -84,7 +130,19 @@ async def delete_event(
 	event_id: str,
 	service: EventService = Depends(get_event_service),
 ):
-	"""Elimina un evento"""
+	"""
+	Elimina un evento del sistema.
+	
+	Args:
+		event_id: ID del evento
+		service: Servicio de eventos (inyectado por FastAPI)
+		
+	Returns:
+		ResponseMessage: Mensaje de confirmación
+		
+	Raises:
+		HTTPException 404: Si el evento no existe
+	"""
 	deleted = await service.delete_event(event_id)
 	if not deleted:
 		raise HTTPException(
@@ -104,7 +162,21 @@ async def add_comment(
 	comment: CommentCreate,
 	service: EventService = Depends(get_event_service),
 ):
-	"""Agrega un comentario y dispara notificación"""
+	"""
+	Agrega un comentario a un evento y dispara notificación.
+	
+	Args:
+		event_id: ID del evento
+		comment: Datos del comentario a crear
+		service: Servicio de eventos (inyectado por FastAPI)
+		
+	Returns:
+		EventComment: El comentario creado
+		
+	Raises:
+		HTTPException 400: Si los datos del comentario son inválidos
+		HTTPException 404: Si el evento no existe
+	"""
 	try:
 		new_comment = await service.add_comment(event_id, comment)
 	except ValueError as exc:
@@ -131,7 +203,21 @@ async def add_attachment(
 	attachment: AttachmentCreate,
 	service: EventService = Depends(get_event_service),
 ):
-	"""Agrega un adjunto al evento"""
+	"""
+	Agrega un adjunto (archivo/documento) a un evento.
+	
+	Args:
+		event_id: ID del evento
+		attachment: Datos del adjunto a crear
+		service: Servicio de eventos (inyectado por FastAPI)
+		
+	Returns:
+		EventAttachment: El adjunto creado
+		
+	Raises:
+		HTTPException 400: Si los datos del adjunto son inválidos
+		HTTPException 404: Si el evento no existe
+	"""
 	try:
 		new_attachment = await service.add_attachment(event_id, attachment)
 	except ValueError as exc:
@@ -153,7 +239,16 @@ async def search_by_calendar(
 	calendar_id: str = Query(..., description="ID del calendario"),
 	service: EventService = Depends(get_event_service),
 ):
-	"""Lista eventos pertenecientes a un calendario"""
+	"""
+	Lista todos los eventos pertenecientes a un calendario específico.
+	
+	Args:
+		calendar_id: ID del calendario
+		service: Servicio de eventos (inyectado por FastAPI)
+		
+	Returns:
+		list[EventResponse]: Lista de eventos del calendario
+	"""
 	events = await service.search_by_calendar(calendar_id)
 	return events
 
@@ -164,7 +259,20 @@ async def search_by_date_range(
 	end: datetime = Query(..., description="Fecha fin ISO 8601"),
 	service: EventService = Depends(get_event_service),
 ):
-	"""Busca eventos dentro de un rango de fechas"""
+	"""
+	Busca eventos dentro de un rango de fechas.
+	
+	Args:
+		start: Fecha de inicio del rango (formato ISO 8601)
+		end: Fecha de fin del rango (formato ISO 8601)
+		service: Servicio de eventos (inyectado por FastAPI)
+		
+	Returns:
+		list[EventResponse]: Lista de eventos en el rango de fechas
+		
+	Raises:
+		HTTPException 400: Si el rango de fechas es inválido
+	"""
 	try:
 		events = await service.search_by_date_range(start, end)
 	except ValueError as exc:
@@ -180,7 +288,16 @@ async def get_comment_users(
 	event_id: str,
 	service: EventService = Depends(get_event_service),
 ):
-	"""Recupera autores que comentaron en el evento"""
+	"""
+	Recupera los autores que han comentado en un evento específico.
+	
+	Args:
+		event_id: ID del evento
+		service: Servicio de eventos (inyectado por FastAPI)
+		
+	Returns:
+		list[EventCommentAuthor]: Lista de autores que comentaron en el evento
+	"""
 	return await service.get_comment_users(event_id)
 
 
@@ -189,7 +306,16 @@ async def get_commented_events_by_user(
 	user_external_id: str,
 	service: EventService = Depends(get_event_service),
 ):
-	"""Obtiene eventos en los que un usuario comentó"""
+	"""
+	Obtiene todos los eventos en los que un usuario ha comentado.
+	
+	Args:
+		user_external_id: ID externo del usuario
+		service: Servicio de eventos (inyectado por FastAPI)
+		
+	Returns:
+		list[EventResponse]: Lista de eventos en los que el usuario comentó
+	"""
 	return await service.get_commented_events_by_user(user_external_id)
 
 
@@ -198,9 +324,17 @@ async def search_by_text(
 	query: str = Query(..., description="Término de búsqueda"),
 	service: EventService = Depends(get_event_service),
 ):
-	"""Búsqueda full-text en eventos.
-
+	"""
+	Realiza una búsqueda full-text en eventos.
+	
 	Busca en los campos: title, description, location.address y location.place_name.
+	
+	Args:
+		query: Término de búsqueda
+		service: Servicio de eventos (inyectado por FastAPI)
+		
+	Returns:
+		list[EventResponse]: Lista de eventos que coinciden con la búsqueda
 	"""
 	return await service.search_by_text(query)
 
@@ -210,7 +344,16 @@ async def search_by_calendar_title(
 	calendar_title: str = Query(..., description="Título del calendario"),
 	service: EventService = Depends(get_event_service),
 ):
-	"""Busca eventos por título del calendario (usando campo denormalizado)"""
+	"""
+	Busca eventos por título del calendario (usando campo denormalizado).
+	
+	Args:
+		calendar_title: Título del calendario
+		service: Servicio de eventos (inyectado por FastAPI)
+		
+	Returns:
+		list[EventResponse]: Lista de eventos que pertenecen a calendarios con ese título
+	"""
 	return await service.search_by_calendar_title(calendar_title)
 
 
@@ -219,5 +362,14 @@ async def search_by_location(
 	location_query: str = Query(..., description="Término de búsqueda para ubicación"),
 	service: EventService = Depends(get_event_service),
 ):
-	"""Busca eventos por ubicación (address o place_name)"""
+	"""
+	Busca eventos por ubicación (address o place_name).
+	
+	Args:
+		location_query: Término de búsqueda para ubicación
+		service: Servicio de eventos (inyectado por FastAPI)
+		
+	Returns:
+		list[EventResponse]: Lista de eventos que coinciden con la ubicación buscada
+	"""
 	return await service.search_by_location(location_query)

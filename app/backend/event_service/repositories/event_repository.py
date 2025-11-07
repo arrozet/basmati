@@ -2,6 +2,7 @@
 from datetime import datetime, timezone
 from typing import Any
 from bson import ObjectId
+from bson.int64 import Int64
 from models.event import (
     EventModel,
     EventCommentModel,
@@ -36,6 +37,12 @@ class EventRepository:
             EventModel(**event_dict)
         except Exception as exc:
             raise ValueError(f"Datos de evento inválidos: {str(exc)}")
+
+        # Convertir size a int64 en todos los attachments para cumplir con JSON Schema de MongoDB
+        if "attachments" in event_dict:
+            for attachment in event_dict["attachments"]:
+                if "size" in attachment:
+                    attachment["size"] = Int64(attachment["size"])
 
         try:
             result = await self.collection.insert_one(event_dict)
@@ -84,6 +91,12 @@ class EventRepository:
             EventModel(**merged_event)
         except Exception as exc:
             raise ValueError(f"Datos de actualización inválidos: {str(exc)}")
+
+        # Convertir size a int64 en attachments si se están actualizando
+        if "attachments" in update_dict:
+            for attachment in update_dict["attachments"]:
+                if "size" in attachment:
+                    attachment["size"] = Int64(attachment["size"])
 
         try:
             update_dict["updated_at"] = datetime.now(timezone.utc)
@@ -163,6 +176,11 @@ class EventRepository:
             raise ValueError(f"Adjunto inválido: {str(exc)}")
 
         serialized_attachment = attachment_model.model_dump(by_alias=True)
+        
+        # Convertir size a int64 para cumplir con el JSON Schema de MongoDB
+        # MongoDB distingue entre int (32-bit) y long (64-bit)
+        if "size" in serialized_attachment:
+            serialized_attachment["size"] = Int64(serialized_attachment["size"])
 
         try:
             result = await self.collection.find_one_and_update(
