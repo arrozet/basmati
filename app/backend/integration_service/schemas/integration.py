@@ -20,17 +20,25 @@ class GoogleCalendarImportRequest(BaseModel):
 
 
 class TeamupImportRequest(BaseModel):
-    """Schema para importar desde Teamup"""
+    """
+    Schema para importar desde Teamup.
+    
+    NOTA: Teamup requiere API Key para TODOS los calendarios, incluso los públicos.
+    La API Key la debe proporcionar el administrador del calendario.
+    """
     user_external_id: str = Field(..., description="External ID del usuario")
-    teamup_api_key: str = Field(..., description="API Key de Teamup")
+    teamup_api_key: str = Field(
+        ..., 
+        description="API Key de Teamup"
+    )
     calendar_keys: list[str] = Field(..., description="Calendar keys de Teamup a importar")
     
     model_config = ConfigDict(
         json_schema_extra={
             "example": {
-                "user_external_id": "google_123456789",
-                "teamup_api_key": "tu_api_key_aqui",
-                "calendar_keys": ["ks1234567", "ks7654321"]
+                "user_external_id": "uma_admin",
+                "teamup_api_key": "5f207dbbaeafdc37ec0b89d1e716e7f2362889c4481c16d21d0a0a2c70110b6d",
+                "calendar_keys": ["ksfogsn8nf72mjdfcv"]
             }
         }
     )
@@ -44,7 +52,7 @@ class ImportedCalendar(BaseModel):
     model_config = ConfigDict(
         json_schema_extra={
             "example": {
-                "external_id": "primary",
+                "external_id": "ksfogsn8nf72mjdfcv",
                 "basmati_calendar_id": "6908a63eec57fb2153e7593a"
             }
         }
@@ -62,15 +70,11 @@ class ImportResponse(BaseModel):
         json_schema_extra={
             "example": {
                 "success": True,
-                "message": "Se importaron 2 calendarios correctamente",
+                "message": "Se importaron 1 calendarios correctamente",
                 "imported_sources": [
                     {
-                        "external_id": "primary",
+                        "external_id": "ksfogsn8nf72mjdfcv",
                         "basmati_calendar_id": "6908a63eec57fb2153e7593a"
-                    },
-                    {
-                        "external_id": "calendar_id_2",
-                        "basmati_calendar_id": "6908a290b41f60671c3bf146"
                     }
                 ],
                 "errors": []
