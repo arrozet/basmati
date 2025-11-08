@@ -45,18 +45,24 @@ async def import_from_teamup(import_request: TeamupImportRequest):
     """
     Importa calendarios desde Teamup creándolos directamente en Basmati.
     
-    **Cómo obtener la API Key:**
-    1. El administrador del calendario debe ir a: Calendar Settings → API
-    2. Generar una nueva API Key con permisos de lectura
-    3. Compartir esa API Key contigo
-        
+    **Seguridad de API Key:**
+    - La API Key puede proporcionarse en el request (opcional)
+    - Si no se proporciona, se usa la configurada en el servidor
+    
+    **Para usar con API Key personalizada:**
+    ```json
+    {
+        "user_external_id": "uma_admin",
+        "teamup_api_key": "tu_api_key_aqui",
+        "calendar_keys": ["ksfogsn8nf72mjdfcv"]
+    }
     ```
     
     Args:
-        import_request: Datos de importación (user_external_id, teamup_api_key, calendar_keys)
+        import_request: Datos de importación (user_external_id, calendar_keys, teamup_api_key opcional)
         
     Returns:
-        ImportResponse: Resultado con IDs de calendarios creados
+        ImportResponse: Resultado con IDs de calendarios creados y eventos importados
     """
     try:
         service = get_integration_service()

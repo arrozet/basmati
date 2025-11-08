@@ -23,13 +23,12 @@ class TeamupImportRequest(BaseModel):
     """
     Schema para importar desde Teamup.
     
-    NOTA: Teamup requiere API Key para TODOS los calendarios, incluso los públicos.
-    La API Key la debe proporcionar el administrador del calendario.
+    La API Key es opcional en el request. Si no se proporciona, se usa la configurada en el servidor.
     """
     user_external_id: str = Field(..., description="External ID del usuario")
-    teamup_api_key: str = Field(
-        ..., 
-        description="API Key de Teamup"
+    teamup_api_key: str | None = Field(
+        None, 
+        description="API Key de Teamup (opcional - usa la del servidor por defecto)"
     )
     calendar_keys: list[str] = Field(..., description="Calendar keys de Teamup a importar")
     
@@ -37,7 +36,6 @@ class TeamupImportRequest(BaseModel):
         json_schema_extra={
             "example": {
                 "user_external_id": "uma_admin",
-                "teamup_api_key": "5f207dbbaeafdc37ec0b89d1e716e7f2362889c4481c16d21d0a0a2c70110b6d",
                 "calendar_keys": ["ksfogsn8nf72mjdfcv"]
             }
         }

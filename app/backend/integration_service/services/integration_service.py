@@ -154,14 +154,27 @@ class IntegrationService:
         """
         Importa calendarios desde Teamup.
         
-        Simplemente crea calendarios en CalendarService sin guardar metadatos.
+        Si no se proporciona teamup_api_key en el request, usa la configurada en settings.
         
         Args:
-            import_request: Datos de importación (API key, calendar_keys)
+            import_request: Datos de importación (API key opcional, calendar_keys)
             
         Returns:
             ImportResponse: Resultado de la importación con IDs de calendarios creados
         """
+        from core.config import settings
+        
+        # Usar API Key del request o la del .env como fallback
+        api_key = import_request.teamup_api_key or settings.teamup_api_key
+        
+        if not api_key:
+            return ImportResponse(
+                success=False,
+                message="API Key de Teamup no proporcionada y no configurada en el servidor",
+                imported_sources=[],
+                errors=["Teamup API Key requerida pero no encontrada"]
+            )
+        
         imported_calendar_ids = []
         errors = []
         
@@ -172,7 +185,7 @@ class IntegrationService:
                     basmati_calendar_id = await self._create_basmati_calendar_from_teamup(
                         calendar_key,
                         import_request.user_external_id,
-                        import_request.teamup_api_key
+                        api_key  # Usar la API Key determinada (request o .env)
                     )
                     
                     if basmati_calendar_id:
