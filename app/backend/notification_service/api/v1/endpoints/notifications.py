@@ -1,5 +1,5 @@
 """Endpoints de notificaciones"""
-from fastapi import APIRouter, HTTPException, status, Query, Depends
+from fastapi import APIRouter, HTTPException, status, Query, Path, Body, Depends
 from schemas.notification import NotificationCreate, NotificationResponse
 from schemas.common import ResponseMessage
 from services.notification_service import NotificationService
@@ -19,9 +19,20 @@ async def get_notification_service(notification_repository = Depends(get_notific
     """
     return NotificationService(notification_repository)
 
-@router.post("", response_model=NotificationResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "",
+    response_model=NotificationResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Crear una nueva notificación",
+    description="Crea una nueva notificación (llamado por EventService u otros servicios).",
+    responses={
+        201: {"description": "Notificación creada exitosamente."},
+        400: {"description": "Error de validación al crear la notificación."},
+        500: {"description": "Error interno del servidor."}
+    }
+)
 async def create_notification(
-    notification: NotificationCreate, 
+    notification: NotificationCreate = Body(..., description="Datos de la notificación a crear"),
     service: NotificationService = Depends(get_notification_service)
 ):
     """
@@ -45,9 +56,18 @@ async def create_notification(
             detail=str(e)
         )
 
-@router.get("/user/{user_id}", response_model=list[NotificationResponse])
+@router.get(
+    "/user/{user_id}",
+    response_model=list[NotificationResponse],
+    summary="Obtener notificaciones de un usuario",
+    description="Obtiene todas las notificaciones de un usuario por su external_id.",
+    responses={
+        200: {"description": "Lista de notificaciones del usuario (ordenadas por fecha desc)."},
+        500: {"description": "Error interno del servidor."}
+    }
+)
 async def get_user_notifications(
-    user_id: str, 
+    user_id: str = Path(..., description="External ID del usuario"),
     service: NotificationService = Depends(get_notification_service)
 ):
     """
@@ -63,9 +83,19 @@ async def get_user_notifications(
     notifications = await service.get_user_notifications(user_id)
     return notifications
 
-@router.put("/{notification_id}/read", response_model=NotificationResponse)
+@router.put(
+    "/{notification_id}/read",
+    response_model=NotificationResponse,
+    summary="Marcar notificación como leída",
+    description="Marca una notificación como leída.",
+    responses={
+        200: {"description": "Notificación marcada como leída exitosamente."},
+        404: {"description": "La notificación con el ID especificado no existe."},
+        500: {"description": "Error interno del servidor."}
+    }
+)
 async def mark_notification_as_read(
-    notification_id: str, 
+    notification_id: str = Path(..., description="ID de la notificación"),
     service: NotificationService = Depends(get_notification_service)
 ):
     """
@@ -89,9 +119,18 @@ async def mark_notification_as_read(
         )
     return notification
 
-@router.put("/user/{user_id}/read-all", response_model=ResponseMessage)
+@router.put(
+    "/user/{user_id}/read-all",
+    response_model=ResponseMessage,
+    summary="Marcar todas las notificaciones como leídas",
+    description="Marca todas las notificaciones de un usuario como leídas.",
+    responses={
+        200: {"description": "Notificaciones marcadas como leídas exitosamente."},
+        500: {"description": "Error interno del servidor."}
+    }
+)
 async def mark_all_as_read(
-    user_id: str,
+    user_id: str = Path(..., description="External ID del usuario"),
     service: NotificationService = Depends(get_notification_service)
 ):
     """
@@ -107,7 +146,16 @@ async def mark_all_as_read(
     count = await service.mark_all_as_read(user_id)
     return ResponseMessage(message=f"{count} notificaciones marcadas como leídas")
 
-@router.get("/search/unread", response_model=list[NotificationResponse])
+@router.get(
+    "/search/unread",
+    response_model=list[NotificationResponse],
+    summary="Buscar notificaciones no leídas",
+    description="Busca notificaciones no leídas de un usuario (parametrized query 1).",
+    responses={
+        200: {"description": "Lista de notificaciones no leídas."},
+        500: {"description": "Error interno del servidor."}
+    }
+)
 async def search_unread_notifications(
     user_id: str = Query(..., description="External ID del usuario"),
     service: NotificationService = Depends(get_notification_service)
@@ -125,7 +173,16 @@ async def search_unread_notifications(
     notifications = await service.search_unread(user_id)
     return notifications
 
-@router.get("/search/by-event", response_model=list[NotificationResponse])
+@router.get(
+    "/search/by-event",
+    response_model=list[NotificationResponse],
+    summary="Buscar notificaciones por evento",
+    description="Busca notificaciones relacionadas con un evento específico (parametrized query 2).",
+    responses={
+        200: {"description": "Lista de notificaciones del evento."},
+        500: {"description": "Error interno del servidor."}
+    }
+)
 async def search_by_event(
     event_id: str = Query(..., description="ID del evento relacionado"),
     service: NotificationService = Depends(get_notification_service)
@@ -143,7 +200,16 @@ async def search_by_event(
     notifications = await service.search_by_event(event_id)
     return notifications
 
-@router.get("/search/by-type", response_model=list[NotificationResponse])
+@router.get(
+    "/search/by-type",
+    response_model=list[NotificationResponse],
+    summary="Buscar notificaciones por tipo",
+    description="Busca notificaciones por tipo.",
+    responses={
+        200: {"description": "Lista de notificaciones del tipo especificado."},
+        500: {"description": "Error interno del servidor."}
+    }
+)
 async def search_by_type(
     type: str = Query(..., description="Tipo de notificación (NEW_COMMENT, EVENT_UPDATE, CALENDAR_INVITE, EVENT_REMINDER)"),
     service: NotificationService = Depends(get_notification_service)
@@ -161,7 +227,16 @@ async def search_by_type(
     notifications = await service.search_by_type(type)
     return notifications
 
-@router.get("/search/by-calendar", response_model=list[NotificationResponse])
+@router.get(
+    "/search/by-calendar",
+    response_model=list[NotificationResponse],
+    summary="Buscar notificaciones por calendario",
+    description="Busca notificaciones relacionadas con un calendario específico.",
+    responses={
+        200: {"description": "Lista de notificaciones del calendario."},
+        500: {"description": "Error interno del servidor."}
+    }
+)
 async def search_by_calendar(
     calendar_id: str = Query(..., description="ID del calendario relacionado"),
     service: NotificationService = Depends(get_notification_service)
@@ -179,9 +254,19 @@ async def search_by_calendar(
     notifications = await service.search_by_calendar(calendar_id)
     return notifications
 
-@router.get("/{notification_id}", response_model=NotificationResponse)
+@router.get(
+    "/{notification_id}",
+    response_model=NotificationResponse,
+    summary="Obtener una notificación por ID",
+    description="Obtiene una notificación por su ID.",
+    responses={
+        200: {"description": "Notificación encontrada y devuelta exitosamente."},
+        404: {"description": "La notificación con el ID especificado no existe."},
+        500: {"description": "Error interno del servidor."}
+    }
+)
 async def get_notification(
-    notification_id: str, 
+    notification_id: str = Path(..., description="ID único de la notificación"),
     service: NotificationService = Depends(get_notification_service)
 ):
     """
@@ -205,9 +290,19 @@ async def get_notification(
         )
     return notification
 
-@router.delete("/{notification_id}", response_model=ResponseMessage)
+@router.delete(
+    "/{notification_id}",
+    response_model=ResponseMessage,
+    summary="Eliminar una notificación",
+    description="Elimina una notificación del sistema.",
+    responses={
+        200: {"description": "Notificación eliminada exitosamente."},
+        404: {"description": "La notificación con el ID especificado no existe."},
+        500: {"description": "Error interno del servidor."}
+    }
+)
 async def delete_notification(
-    notification_id: str, 
+    notification_id: str = Path(..., description="ID único de la notificación"),
     service: NotificationService = Depends(get_notification_service)
 ):
     """
