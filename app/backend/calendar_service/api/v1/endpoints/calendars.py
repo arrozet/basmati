@@ -1,5 +1,5 @@
 """Endpoints de calendarios"""
-from fastapi import APIRouter, HTTPException, status, Query, Depends
+from fastapi import APIRouter, HTTPException, status, Query, Path, Body, Depends
 from typing import List
 from schemas.calendar import CalendarCreate, CalendarUpdate, CalendarResponse, CalendarHierarchy
 from schemas.common import ResponseMessage
@@ -24,8 +24,22 @@ async def get_calendar_service(calendar_repository = Depends(get_calendar_reposi
 
 # ==================== CRUD ENDPOINTS ====================
 
-@router.post("", response_model=CalendarResponse, status_code=status.HTTP_201_CREATED)
-async def create_calendar(calendar: CalendarCreate, service: CalendarService = Depends(get_calendar_service)):
+@router.post(
+    "",
+    response_model=CalendarResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Crear un nuevo calendario",
+    description="Crea un nuevo calendario en el sistema.",
+    responses={
+        201: {"description": "Calendario creado exitosamente."},
+        400: {"description": "Error de validación o el calendario padre no existe."},
+        500: {"description": "Error interno del servidor."}
+    }
+)
+async def create_calendar(
+    calendar: CalendarCreate = Body(..., description="Datos del calendario a crear"),
+    service: CalendarService = Depends(get_calendar_service)
+):
     """
     Crea un nuevo calendario en el sistema.
     
@@ -48,8 +62,21 @@ async def create_calendar(calendar: CalendarCreate, service: CalendarService = D
         )
 
 
-@router.get("/{calendar_id}", response_model=CalendarResponse)
-async def get_calendar(calendar_id: str, service: CalendarService = Depends(get_calendar_service)):
+@router.get(
+    "/{calendar_id}",
+    response_model=CalendarResponse,
+    summary="Obtener un calendario por ID",
+    description="Obtiene un calendario por su ID.",
+    responses={
+        200: {"description": "Calendario encontrado y devuelto exitosamente."},
+        404: {"description": "El calendario con el ID especificado no existe."},
+        500: {"description": "Error interno del servidor."}
+    }
+)
+async def get_calendar(
+    calendar_id: str = Path(..., description="ID único del calendario"),
+    service: CalendarService = Depends(get_calendar_service)
+):
     """
     Obtiene un calendario por su ID.
     
@@ -70,8 +97,23 @@ async def get_calendar(calendar_id: str, service: CalendarService = Depends(get_
     return calendar
 
 
-@router.put("/{calendar_id}", response_model=CalendarResponse)
-async def update_calendar(calendar_id: str, calendar: CalendarUpdate, service: CalendarService = Depends(get_calendar_service)):
+@router.put(
+    "/{calendar_id}",
+    response_model=CalendarResponse,
+    summary="Actualizar un calendario",
+    description="Actualiza un calendario existente. Solo el creador puede actualizar el calendario.",
+    responses={
+        200: {"description": "Calendario actualizado exitosamente."},
+        400: {"description": "Error de validación en los datos proporcionados."},
+        404: {"description": "El calendario con el ID especificado no existe."},
+        500: {"description": "Error interno del servidor."}
+    }
+)
+async def update_calendar(
+    calendar_id: str = Path(..., description="ID único del calendario"),
+    calendar: CalendarUpdate = Body(..., description="Datos a actualizar del calendario"),
+    service: CalendarService = Depends(get_calendar_service)
+):
     """
     Actualiza un calendario existente.
     
@@ -100,8 +142,21 @@ async def update_calendar(calendar_id: str, calendar: CalendarUpdate, service: C
         )
 
 
-@router.delete("/{calendar_id}", response_model=ResponseMessage)
-async def delete_calendar(calendar_id: str, service: CalendarService = Depends(get_calendar_service)):
+@router.delete(
+    "/{calendar_id}",
+    response_model=ResponseMessage,
+    summary="Eliminar un calendario",
+    description="Elimina un calendario del sistema. Solo el creador puede eliminar el calendario.",
+    responses={
+        200: {"description": "Calendario eliminado exitosamente."},
+        404: {"description": "El calendario con el ID especificado no existe."},
+        500: {"description": "Error interno del servidor."}
+    }
+)
+async def delete_calendar(
+    calendar_id: str = Path(..., description="ID único del calendario"),
+    service: CalendarService = Depends(get_calendar_service)
+):
     """
     Elimina un calendario del sistema.
     
@@ -126,7 +181,16 @@ async def delete_calendar(calendar_id: str, service: CalendarService = Depends(g
 
 # ==================== PARAMETRIZED SEARCH ENDPOINTS ====================
 
-@router.get("/search/by-creator", response_model=List[CalendarResponse])
+@router.get(
+    "/search/by-creator",
+    response_model=List[CalendarResponse],
+    summary="Buscar calendarios por creador",
+    description="Busca calendarios por creador (parametrized query 1).",
+    responses={
+        200: {"description": "Lista de calendarios encontrados."},
+        500: {"description": "Error interno del servidor."}
+    }
+)
 async def search_by_creator(
     creator_external_id: str = Query(..., description="ID del creador (external_id)"),
     service: CalendarService = Depends(get_calendar_service)
@@ -145,7 +209,16 @@ async def search_by_creator(
     return calendars
 
 
-@router.get("/search/by-keywords", response_model=List[CalendarResponse])
+@router.get(
+    "/search/by-keywords",
+    response_model=List[CalendarResponse],
+    summary="Buscar calendarios por keywords",
+    description="Busca calendarios por keywords (parametrized query 2).",
+    responses={
+        200: {"description": "Lista de calendarios encontrados."},
+        500: {"description": "Error interno del servidor."}
+    }
+)
 async def search_by_keywords(
     keyword: str = Query(..., description="Palabra clave a buscar"),
     service: CalendarService = Depends(get_calendar_service)
@@ -164,7 +237,16 @@ async def search_by_keywords(
     return calendars
 
 
-@router.get("/search/by-visibility", response_model=List[CalendarResponse])
+@router.get(
+    "/search/by-visibility",
+    response_model=List[CalendarResponse],
+    summary="Buscar calendarios por visibilidad",
+    description="Busca calendarios por visibilidad.",
+    responses={
+        200: {"description": "Lista de calendarios encontrados."},
+        500: {"description": "Error interno del servidor."}
+    }
+)
 async def search_by_visibility(
     visibility: str = Query(..., description="Visibilidad (public/private/unlisted)"),
     service: CalendarService = Depends(get_calendar_service)
@@ -183,7 +265,16 @@ async def search_by_visibility(
     return calendars
 
 
-@router.get("/search/by-text", response_model=List[CalendarResponse])
+@router.get(
+    "/search/by-text",
+    response_model=List[CalendarResponse],
+    summary="Búsqueda full-text en calendarios",
+    description="Búsqueda full-text en calendarios. Busca en los campos: title, description y keywords del calendario.",
+    responses={
+        200: {"description": "Lista de calendarios encontrados."},
+        500: {"description": "Error interno del servidor."}
+    }
+)
 async def search_by_text(
     query: str = Query(..., description="Término de búsqueda"),
     service: CalendarService = Depends(get_calendar_service)
@@ -204,7 +295,16 @@ async def search_by_text(
     return calendars
 
 
-@router.get("/search/by-creator-name", response_model=List[CalendarResponse])
+@router.get(
+    "/search/by-creator-name",
+    response_model=List[CalendarResponse],
+    summary="Buscar calendarios por nombre del creador",
+    description="Busca calendarios por nombre del creador.",
+    responses={
+        200: {"description": "Lista de calendarios encontrados."},
+        500: {"description": "Error interno del servidor."}
+    }
+)
 async def search_by_creator_name(
     creator_name: str = Query(..., description="Nombre del creador"),
     service: CalendarService = Depends(get_calendar_service)
@@ -225,8 +325,20 @@ async def search_by_creator_name(
 
 # ==================== RELATIONSHIP ENDPOINTS ====================
 
-@router.get("/{calendar_id}/children", response_model=List[CalendarResponse])
-async def get_children(calendar_id: str, service: CalendarService = Depends(get_calendar_service)):
+@router.get(
+    "/{calendar_id}/children",
+    response_model=List[CalendarResponse],
+    summary="Obtener calendarios hijos",
+    description="Obtiene los calendarios hijos directos (relationship query 1).",
+    responses={
+        200: {"description": "Lista de calendarios hijos encontrados."},
+        500: {"description": "Error interno del servidor."}
+    }
+)
+async def get_children(
+    calendar_id: str = Path(..., description="ID del calendario padre"),
+    service: CalendarService = Depends(get_calendar_service)
+):
     """
     Obtiene los calendarios hijos directos (relationship query 1).
     
@@ -241,8 +353,21 @@ async def get_children(calendar_id: str, service: CalendarService = Depends(get_
     return children
 
 
-@router.get("/{calendar_id}/hierarchy", response_model=CalendarHierarchy)
-async def get_hierarchy(calendar_id: str, service: CalendarService = Depends(get_calendar_service)):
+@router.get(
+    "/{calendar_id}/hierarchy",
+    response_model=CalendarHierarchy,
+    summary="Obtener jerarquía de calendarios",
+    description="Obtiene toda la jerarquía de calendarios (relationship query 2). Utiliza el array path para construir la jerarquía completa.",
+    responses={
+        200: {"description": "Jerarquía de calendarios encontrada y devuelta exitosamente."},
+        404: {"description": "El calendario con el ID especificado no existe."},
+        500: {"description": "Error interno del servidor."}
+    }
+)
+async def get_hierarchy(
+    calendar_id: str = Path(..., description="ID del calendario raíz"),
+    service: CalendarService = Depends(get_calendar_service)
+):
     """
     Obtiene toda la jerarquía de calendarios (relationship query 2).
     
