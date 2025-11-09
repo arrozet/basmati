@@ -1,5 +1,5 @@
 """Endpoints de usuarios"""
-from fastapi import APIRouter, HTTPException, status, Query, Depends
+from fastapi import APIRouter, HTTPException, status, Query, Path, Body, Depends
 from typing import List
 from schemas.user import UserCreate, UserUpdate, UserResponse
 from schemas.common import ResponseMessage
@@ -43,8 +43,22 @@ async def get_user_service(user_repository = Depends(get_user_repository)) -> Us
     """
     return UserService(user_repository)
 
-@router.post("", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
-async def create_user(user: UserCreate, service: UserService = Depends(get_user_service)):
+@router.post(
+    "",
+    response_model=UserResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Crear un nuevo usuario",
+    description="Crea un nuevo usuario en el sistema con OAuth.",
+    responses={
+        201: {"description": "Usuario creado exitosamente."},
+        400: {"description": "Error de validación o ya existe un usuario con esas credenciales OAuth."},
+        500: {"description": "Error interno del servidor."}
+    }
+)
+async def create_user(
+    user: UserCreate = Body(..., description="Datos del usuario a crear (incluye external_id y provider)"),
+    service: UserService = Depends(get_user_service)
+):
     """
     Crea un nuevo usuario en el sistema con OAuth.
     
@@ -66,8 +80,21 @@ async def create_user(user: UserCreate, service: UserService = Depends(get_user_
             detail=str(e)
         )
 
-@router.get("/{user_id}", response_model=UserResponse)
-async def get_user(user_id: str, service: UserService = Depends(get_user_service)):
+@router.get(
+    "/{user_id}",
+    response_model=UserResponse,
+    summary="Obtener un usuario por ID",
+    description="Obtiene un usuario por su ID.",
+    responses={
+        200: {"description": "Usuario encontrado y devuelto exitosamente."},
+        404: {"description": "El usuario con el ID especificado no existe."},
+        500: {"description": "Error interno del servidor."}
+    }
+)
+async def get_user(
+    user_id: str = Path(..., description="ID único del usuario"),
+    service: UserService = Depends(get_user_service)
+):
     """
     Obtiene un usuario por su ID.
     
@@ -87,8 +114,22 @@ async def get_user(user_id: str, service: UserService = Depends(get_user_service
     
     return user
 
-@router.put("/{user_id}", response_model=UserResponse)
-async def update_user(user_id: str, user: UserUpdate, service: UserService = Depends(get_user_service)):
+@router.put(
+    "/{user_id}",
+    response_model=UserResponse,
+    summary="Actualizar un usuario",
+    description="Actualiza un usuario existente.",
+    responses={
+        200: {"description": "Usuario actualizado exitosamente."},
+        404: {"description": "El usuario con el ID especificado no existe."},
+        500: {"description": "Error interno del servidor."}
+    }
+)
+async def update_user(
+    user_id: str = Path(..., description="ID único del usuario"),
+    user: UserUpdate = Body(..., description="Datos a actualizar del usuario"),
+    service: UserService = Depends(get_user_service)
+):
     """
     Actualiza un usuario existente.
     
@@ -109,8 +150,21 @@ async def update_user(user_id: str, user: UserUpdate, service: UserService = Dep
     
     return updated_user
 
-@router.delete("/{user_id}", response_model=ResponseMessage)
-async def delete_user(user_id: str, service: UserService = Depends(get_user_service)):
+@router.delete(
+    "/{user_id}",
+    response_model=ResponseMessage,
+    summary="Eliminar un usuario",
+    description="Elimina un usuario del sistema.",
+    responses={
+        200: {"description": "Usuario eliminado exitosamente."},
+        404: {"description": "El usuario con el ID especificado no existe."},
+        500: {"description": "Error interno del servidor."}
+    }
+)
+async def delete_user(
+    user_id: str = Path(..., description="ID único del usuario"),
+    service: UserService = Depends(get_user_service)
+):
     """
     Elimina un usuario del sistema.
     
@@ -130,8 +184,21 @@ async def delete_user(user_id: str, service: UserService = Depends(get_user_serv
     
     return ResponseMessage(message="Usuario eliminado exitosamente")
 
-@router.get("/search/by-email", response_model=UserResponse)
-async def search_by_email(email: str = Query(..., description="Email del usuario"), service: UserService = Depends(get_user_service)):
+@router.get(
+    "/search/by-email",
+    response_model=UserResponse,
+    summary="Buscar usuario por email",
+    description="Busca un usuario por email (parametrized query 1).",
+    responses={
+        200: {"description": "Usuario encontrado y devuelto exitosamente."},
+        404: {"description": "No se encontró un usuario con ese email."},
+        500: {"description": "Error interno del servidor."}
+    }
+)
+async def search_by_email(
+    email: str = Query(..., description="Email del usuario"),
+    service: UserService = Depends(get_user_service)
+):
     """
     Busca un usuario por email (parametrized query 1).
     
@@ -151,8 +218,20 @@ async def search_by_email(email: str = Query(..., description="Email del usuario
     
     return user
 
-@router.get("/search/by-display-name", response_model=List[UserResponse])
-async def search_by_display_name(display_name: str = Query(..., description="Nombre o parte del nombre"), service: UserService = Depends(get_user_service)):
+@router.get(
+    "/search/by-display-name",
+    response_model=List[UserResponse],
+    summary="Buscar usuarios por nombre",
+    description="Busca usuarios por display_name parcial (parametrized query 2).",
+    responses={
+        200: {"description": "Lista de usuarios encontrados."},
+        500: {"description": "Error interno del servidor."}
+    }
+)
+async def search_by_display_name(
+    display_name: str = Query(..., description="Nombre o parte del nombre"),
+    service: UserService = Depends(get_user_service)
+):
     """
     Busca usuarios por display_name parcial (parametrized query 2).
     
@@ -166,7 +245,17 @@ async def search_by_display_name(display_name: str = Query(..., description="Nom
     users = await service.search_by_display_name(display_name)
     return users
 
-@router.get("/search/by-oauth", response_model=UserResponse)
+@router.get(
+    "/search/by-oauth",
+    response_model=UserResponse,
+    summary="Buscar usuario por credenciales OAuth",
+    description="Busca un usuario por sus credenciales OAuth.",
+    responses={
+        200: {"description": "Usuario encontrado y devuelto exitosamente."},
+        404: {"description": "No se encontró un usuario con esas credenciales OAuth."},
+        500: {"description": "Error interno del servidor."}
+    }
+)
 async def search_by_oauth(
     external_id: str = Query(..., description="ID del proveedor OAuth"),
     provider: str = Query(..., description="Proveedor OAuth (google/facebook)"),
