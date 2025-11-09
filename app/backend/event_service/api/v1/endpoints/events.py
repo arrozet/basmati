@@ -1,7 +1,7 @@
 """Endpoints REST para la gestión de eventos"""
 from datetime import datetime
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Path, Body, status
 
 from core.database import get_event_repository
 from schemas.common import ResponseMessage
@@ -34,9 +34,20 @@ async def get_event_service(event_repository = Depends(get_event_repository)) ->
 	return EventService(event_repository)
 
 
-@router.post("", response_model=EventResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+	"",
+	response_model=EventResponse,
+	status_code=status.HTTP_201_CREATED,
+	summary="Crear un nuevo evento",
+	description="Crea un nuevo evento en el sistema.",
+	responses={
+		201: {"description": "Evento creado exitosamente."},
+		400: {"description": "Error de validación en los datos del evento."},
+		500: {"description": "Error interno del servidor."}
+	}
+)
 async def create_event(
-	event: EventCreate,
+	event: EventCreate = Body(..., description="Datos del evento a crear"),
 	service: EventService = Depends(get_event_service),
 ):
 	"""
@@ -61,9 +72,19 @@ async def create_event(
 		) from exc
 
 
-@router.get("/{event_id}", response_model=EventResponse)
+@router.get(
+	"/{event_id}",
+	response_model=EventResponse,
+	summary="Obtener un evento por ID",
+	description="Obtiene un evento por su ID.",
+	responses={
+		200: {"description": "Evento encontrado y devuelto exitosamente."},
+		404: {"description": "El evento con el ID especificado no existe."},
+		500: {"description": "Error interno del servidor."}
+	}
+)
 async def get_event(
-	event_id: str,
+	event_id: str = Path(..., description="ID único del evento"),
 	service: EventService = Depends(get_event_service),
 ):
 	"""
@@ -88,10 +109,21 @@ async def get_event(
 	return event
 
 
-@router.put("/{event_id}", response_model=EventResponse)
+@router.put(
+	"/{event_id}",
+	response_model=EventResponse,
+	summary="Actualizar un evento",
+	description="Actualiza los datos de un evento existente.",
+	responses={
+		200: {"description": "Evento actualizado exitosamente."},
+		400: {"description": "Error de validación en los datos del evento."},
+		404: {"description": "El evento con el ID especificado no existe."},
+		500: {"description": "Error interno del servidor."}
+	}
+)
 async def update_event(
-	event_id: str,
-	event: EventUpdate,
+	event_id: str = Path(..., description="ID único del evento"),
+	event: EventUpdate = Body(..., description="Datos a actualizar del evento"),
 	service: EventService = Depends(get_event_service),
 ):
 	"""
@@ -125,9 +157,19 @@ async def update_event(
 	return updated_event
 
 
-@router.delete("/{event_id}", response_model=ResponseMessage)
+@router.delete(
+	"/{event_id}",
+	response_model=ResponseMessage,
+	summary="Eliminar un evento",
+	description="Elimina un evento del sistema.",
+	responses={
+		200: {"description": "Evento eliminado exitosamente."},
+		404: {"description": "El evento con el ID especificado no existe."},
+		500: {"description": "Error interno del servidor."}
+	}
+)
 async def delete_event(
-	event_id: str,
+	event_id: str = Path(..., description="ID único del evento"),
 	service: EventService = Depends(get_event_service),
 ):
 	"""
@@ -156,10 +198,18 @@ async def delete_event(
 	"/{event_id}/comments",
 	response_model=EventComment,
 	status_code=status.HTTP_201_CREATED,
+	summary="Agregar comentario a un evento",
+	description="Agrega un comentario a un evento y dispara notificación.",
+	responses={
+		201: {"description": "Comentario agregado exitosamente."},
+		400: {"description": "Error de validación en los datos del comentario."},
+		404: {"description": "El evento con el ID especificado no existe."},
+		500: {"description": "Error interno del servidor."}
+	}
 )
 async def add_comment(
-	event_id: str,
-	comment: CommentCreate,
+	event_id: str = Path(..., description="ID único del evento"),
+	comment: CommentCreate = Body(..., description="Datos del comentario a crear"),
 	service: EventService = Depends(get_event_service),
 ):
 	"""
@@ -197,10 +247,18 @@ async def add_comment(
 	"/{event_id}/attachments",
 	response_model=EventAttachment,
 	status_code=status.HTTP_201_CREATED,
+	summary="Agregar adjunto a un evento",
+	description="Agrega un adjunto (archivo/documento) a un evento.",
+	responses={
+		201: {"description": "Adjunto agregado exitosamente."},
+		400: {"description": "Error de validación en los datos del adjunto."},
+		404: {"description": "El evento con el ID especificado no existe."},
+		500: {"description": "Error interno del servidor."}
+	}
 )
 async def add_attachment(
-	event_id: str,
-	attachment: AttachmentCreate,
+	event_id: str = Path(..., description="ID único del evento"),
+	attachment: AttachmentCreate = Body(..., description="Datos del adjunto a crear"),
 	service: EventService = Depends(get_event_service),
 ):
 	"""
@@ -234,7 +292,16 @@ async def add_attachment(
 	return new_attachment
 
 
-@router.get("/search/by-calendar", response_model=list[EventResponse])
+@router.get(
+	"/search/by-calendar",
+	response_model=list[EventResponse],
+	summary="Buscar eventos por calendario",
+	description="Lista todos los eventos pertenecientes a un calendario específico (parametrized query 1).",
+	responses={
+		200: {"description": "Lista de eventos del calendario."},
+		500: {"description": "Error interno del servidor."}
+	}
+)
 async def search_by_calendar(
 	calendar_id: str = Query(..., description="ID del calendario"),
 	service: EventService = Depends(get_event_service),
@@ -253,7 +320,17 @@ async def search_by_calendar(
 	return events
 
 
-@router.get("/search/by-date-range", response_model=list[EventResponse])
+@router.get(
+	"/search/by-date-range",
+	response_model=list[EventResponse],
+	summary="Buscar eventos por rango de fechas",
+	description="Busca eventos dentro de un rango de fechas (parametrized query 2).",
+	responses={
+		200: {"description": "Lista de eventos en el rango de fechas."},
+		400: {"description": "Error de validación en el rango de fechas."},
+		500: {"description": "Error interno del servidor."}
+	}
+)
 async def search_by_date_range(
 	start: datetime = Query(..., description="Fecha inicio ISO 8601"),
 	end: datetime = Query(..., description="Fecha fin ISO 8601"),
@@ -283,9 +360,18 @@ async def search_by_date_range(
 	return events
 
 
-@router.get("/{event_id}/comments/users", response_model=list[EventCommentAuthor])
+@router.get(
+	"/{event_id}/comments/users",
+	response_model=list[EventCommentAuthor],
+	summary="Obtener usuarios que comentaron en un evento",
+	description="Recupera los autores que han comentado en un evento específico (relationship query 1).",
+	responses={
+		200: {"description": "Lista de autores que comentaron en el evento."},
+		500: {"description": "Error interno del servidor."}
+	}
+)
 async def get_comment_users(
-	event_id: str,
+	event_id: str = Path(..., description="ID único del evento"),
 	service: EventService = Depends(get_event_service),
 ):
 	"""
@@ -301,9 +387,18 @@ async def get_comment_users(
 	return await service.get_comment_users(event_id)
 
 
-@router.get("/users/{user_external_id}/commented", response_model=list[EventResponse])
+@router.get(
+	"/users/{user_external_id}/commented",
+	response_model=list[EventResponse],
+	summary="Obtener eventos comentados por un usuario",
+	description="Obtiene todos los eventos en los que un usuario ha comentado (relationship query 2).",
+	responses={
+		200: {"description": "Lista de eventos en los que el usuario comentó."},
+		500: {"description": "Error interno del servidor."}
+	}
+)
 async def get_commented_events_by_user(
-	user_external_id: str,
+	user_external_id: str = Path(..., description="ID externo del usuario"),
 	service: EventService = Depends(get_event_service),
 ):
 	"""
@@ -319,7 +414,16 @@ async def get_commented_events_by_user(
 	return await service.get_commented_events_by_user(user_external_id)
 
 
-@router.get("/search/by-text", response_model=list[EventResponse])
+@router.get(
+	"/search/by-text",
+	response_model=list[EventResponse],
+	summary="Búsqueda full-text en eventos",
+	description="Realiza una búsqueda full-text en eventos. Busca en los campos: title, description, location.address y location.place_name.",
+	responses={
+		200: {"description": "Lista de eventos que coinciden con la búsqueda."},
+		500: {"description": "Error interno del servidor."}
+	}
+)
 async def search_by_text(
 	query: str = Query(..., description="Término de búsqueda"),
 	service: EventService = Depends(get_event_service),
@@ -339,7 +443,16 @@ async def search_by_text(
 	return await service.search_by_text(query)
 
 
-@router.get("/search/by-calendar-title", response_model=list[EventResponse])
+@router.get(
+	"/search/by-calendar-title",
+	response_model=list[EventResponse],
+	summary="Buscar eventos por título del calendario",
+	description="Busca eventos por título del calendario (usando campo denormalizado).",
+	responses={
+		200: {"description": "Lista de eventos que pertenecen a calendarios con ese título."},
+		500: {"description": "Error interno del servidor."}
+	}
+)
 async def search_by_calendar_title(
 	calendar_title: str = Query(..., description="Título del calendario"),
 	service: EventService = Depends(get_event_service),
@@ -357,7 +470,16 @@ async def search_by_calendar_title(
 	return await service.search_by_calendar_title(calendar_title)
 
 
-@router.get("/search/by-location", response_model=list[EventResponse])
+@router.get(
+	"/search/by-location",
+	response_model=list[EventResponse],
+	summary="Buscar eventos por ubicación",
+	description="Busca eventos por ubicación (address o place_name).",
+	responses={
+		200: {"description": "Lista de eventos que coinciden con la ubicación buscada."},
+		500: {"description": "Error interno del servidor."}
+	}
+)
 async def search_by_location(
 	location_query: str = Query(..., description="Término de búsqueda para ubicación"),
 	service: EventService = Depends(get_event_service),
