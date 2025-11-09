@@ -11,5 +11,7 @@
 5. Notification Service: localhost:8004/docs
 6. Integration Service: localhost:8006/docs
 
+- Para probar los endpoints se recomienda primero crear el tipo de entidad a probar con el POST del CRUD y coger su ID o atributo necesario para probar el resto de elementos. Esto no es necesario hacerlo con los POST y PUT, ya que tienen su request body predefinido como ejemplo. No podemos indicar explícitamente la ID porque esta la crea MongoDB cada vez que se crea un usuario, por lo que podría llegar a ser problemático hardcodear una ID en las pruebas (depende del orden en el que se ejecute, por ejemplo, primero el DELETE, el GET fallaría).
+
 - Igualmente, toda esta información también está disponible en la URL del repositorio alojado en GitHub: https://github.com/arrozet/basmati
 
