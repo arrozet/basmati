@@ -274,3 +274,4 @@ docker-build-*.tar
 # Docker Compose state
 docker-compose.*.yml
 !docker-compose.yml
+/docs/deliverables/P2-Backend/backend
