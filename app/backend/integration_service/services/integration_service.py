@@ -1,6 +1,5 @@
 """Lógica de negocio para integración con servicios externos"""
 import httpx
-import traceback
 from schemas.integration import (
     GoogleCalendarImportRequest,
     TeamupImportRequest,
@@ -306,7 +305,7 @@ class IntegrationService:
                     try:
                         error_data = response.json()
                         error_detail = f"Status {response.status_code}: {error_data}"
-                    except:
+                    except Exception:
                         error_detail = f"Status {response.status_code}: {response.text}"
                     
                     print(f"❌ Error al crear calendario en Basmati: {error_detail}")
@@ -315,7 +314,7 @@ class IntegrationService:
         except httpx.ConnectError as e:
             print(f"❌ No se pudo conectar a CalendarService en {self.calendar_service_url}")
             print(f"   Error: {str(e)}")
-            print(f"   Verifica que el servicio esté corriendo: docker-compose ps calendar-service")
+            print("   Verifica que el servicio esté corriendo: docker-compose ps calendar-service")
             return None
         except Exception as e:
             print(f"❌ Excepción al crear calendario desde Teamup: {str(e)}")
@@ -403,7 +402,7 @@ class IntegrationService:
                         print(f"Error al importar evento: {str(e)}")
                         continue
                 
-                print(f"Importación de eventos completada")
+                print("Importación de eventos completada")
         
         except Exception as e:
             print(f"Error al importar eventos desde Teamup: {str(e)}")
