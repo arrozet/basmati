@@ -89,6 +89,28 @@ Define these in `tailwind.config.js`.
 *   **Typography:** Sans-serif, bold headings.
 *   **Rounded:** Slightly rounded `rounded-md` or square `rounded-none`.
 
+### UX & Accessibility Standards
+*   **Responsive Design:** Mobile-first approach. The layout must adapt seamlessly to mobile, tablet, and desktop screens using Tailwind's responsive prefixes (`sm:`, `md:`, `lg:`).
+*   **Accessibility (a11y):** Follow WCAG 2.1 AA standards.
+    *   All interactive elements must have visible focus states (`focus:ring`).
+    *   Images must have descriptive `alt` text.
+    *   Semantic HTML tags (`<main>`, `<nav>`, `<article>`, `<button>`) are mandatory.
+    *   Ensure sufficient color contrast between text and background.
+*   **Performance:**
+    *   Implement Lazy Loading for routes and heavy components.
+    *   Optimize images (use WebP format where possible).
+*   **User Experience:**
+    *   **Feedback:** Show loading spinners or skeletons during async operations.
+    *   **Notifications:** Provide clear success/error toast notifications for all server actions.
+    *   **Error Handling:** Graceful degradation and user-friendly error messages.
+
+### Content Guidelines
+*   **Language:** Spanish.
+*   **Capitalization:** Use **Sentence case** for all UI text (buttons, titles, labels).
+    *   ✅ "Crear evento", "Ajustes de cuenta"
+    *   ❌ "Crear Evento", "Ajustes De Cuenta" (No Title Case in Spanish)
+*   **Orthography:** Strict adherence to Spanish grammar rules (proper accents, opening question/exclamation marks `¿` `¡`).
+
 ## Directory Structure
 
 ```text
