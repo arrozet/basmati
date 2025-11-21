@@ -1,8 +1,24 @@
 services:
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    environment:
+      - VITE_API_GATEWAY_URL=http://localhost:8000
+    depends_on:
+      - api-gateway
+    networks:
+      - basmati-network
+
   # API Gateway
   api-gateway:
     build:
-      context: .
+      context: ./backend
       dockerfile: api-gateway/Dockerfile
     container_name: basmati-api-gateway
     ports:
@@ -26,7 +42,7 @@ services:
   # User Service
   user-service:
     build:
-      context: .
+      context: ./backend
       dockerfile: user_service/Dockerfile
     container_name: basmati-user-service
     ports:
@@ -41,7 +57,7 @@ services:
   # Calendar Service
   calendar-service:
     build:
-      context: .
+      context: ./backend
       dockerfile: calendar_service/Dockerfile
     container_name: basmati-calendar-service
     ports:
@@ -59,7 +75,7 @@ services:
   # Event Service
   event-service:
     build:
-      context: .
+      context: ./backend
       dockerfile: event_service/Dockerfile
     container_name: basmati-event-service
     ports:
@@ -79,7 +95,7 @@ services:
   # Notification Service
   notification-service:
     build:
-      context: .
+      context: ./backend
       dockerfile: notification_service/Dockerfile
     container_name: basmati-notification-service
     ports:
@@ -98,7 +114,7 @@ services:
   # Integration Service
   integration-service:
     build:
-      context: .
+      context: ./backend
       dockerfile: integration_service/Dockerfile
     container_name: basmati-integration-service
     ports:
@@ -120,3 +136,4 @@ services:
 networks:
   basmati-network:
     driver: bridge
+
