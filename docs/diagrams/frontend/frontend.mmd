@@ -1,0 +1,99 @@
+---
+config:
+  layout: elk
+---
+flowchart TB
+ subgraph UI_Layer["1. UI Layer (React + Vite + Tailwind)"]
+    direction TB
+        Pages[("Pages<br>(Dashboard, Calendar, Profile)")]
+        Components[("Components<br>(EventModal, CalendarGrid, MapView)")]
+        Hooks[("Custom Hooks<br>(useCalendar, useEvents, useMap)")]
+  end
+ subgraph EventCases["Event Use Cases"]
+        GetEvents["GetEventsUseCase"]
+        CreateEvent["CreateEventUseCase"]
+  end
+ subgraph CalCases["Calendar Use Cases"]
+        GetCalendars["GetCalendarsUseCase"]
+  end
+ subgraph MapCases["Map Use Cases"]
+        GetLocationCoords["GetLocationCoordsUseCase"]
+  end
+ subgraph App_Layer["2. Application Layer (Use Cases)"]
+    direction TB
+        EventCases
+        CalCases
+        MapCases
+  end
+ subgraph Entities["Entities / Models"]
+        ModelEvent["Event Model"]
+        ModelCalendar["Calendar Model"]
+        ModelUser["User Model"]
+  end
+ subgraph Interfaces["Repository Interfaces"]
+        IEventRepo["IEventRepository<br>(Interface)"]
+        ICalRepo["ICalendarRepository<br>(Interface)"]
+        IMapRepo["IMapServiceRepository<br>(Interface)"]
+  end
+ subgraph Domain_Layer["3. Domain Layer (Core)"]
+    direction TB
+        Entities
+        Interfaces
+  end
+ subgraph Infra_Layer["4. Infrastructure Layer (API Clients)"]
+    direction TB
+        HttpEventRepo["HttpEventRepository<br>(Axios implementation)"]
+        HttpCalRepo["HttpCalendarRepository<br>(Axios implementation)"]
+        HttpMapRepo["HttpMapRepository<br>(Axios implementation)"]
+        ApiClient["API Client / Axios Instance<br>(Base URL config)"]
+  end
+ subgraph subGraph9["Capas de Clean Architecture"]
+    direction TB
+        UI_Layer
+        App_Layer
+        Domain_Layer
+        Infra_Layer
+  end
+ subgraph External["External World"]
+        Gateway["API Gateway (Puerto 8000)"]
+  end
+    Pages --> Components
+    Components --> Hooks
+    Hooks --> GetEvents & CreateEvent & GetCalendars & GetLocationCoords
+    GetEvents --> IEventRepo
+    CreateEvent --> IEventRepo
+    GetCalendars --> ICalRepo
+    GetLocationCoords --> IMapRepo
+    GetEvents -.-> ModelEvent
+    IEventRepo -.-> ModelEvent
+    HttpEventRepo -- implements --> IEventRepo
+    HttpCalRepo -- implements --> ICalRepo
+    HttpMapRepo -- implements --> IMapRepo
+    HttpEventRepo --> ApiClient
+    HttpCalRepo --> ApiClient
+    HttpMapRepo --> ApiClient
+    ApiClient -- JSON / HTTP --> Gateway
+
+     Pages:::ui
+     Components:::ui
+     Hooks:::ui
+     GetEvents:::app
+     CreateEvent:::app
+     GetCalendars:::app
+     GetLocationCoords:::app
+     ModelEvent:::dom
+     ModelCalendar:::dom
+     ModelUser:::dom
+     IEventRepo:::dom
+     ICalRepo:::dom
+     IMapRepo:::dom
+     HttpEventRepo:::infra
+     HttpCalRepo:::infra
+     HttpMapRepo:::infra
+     ApiClient:::infra
+     Gateway:::ext
+    classDef ui fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+    classDef app fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    classDef dom fill:#fff3e0,stroke:#ef6c00,stroke-width:2px
+    classDef infra fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
+    classDef ext fill:#eeeeee,stroke:#616161,stroke-width:2px,stroke-dasharray: 5 5
