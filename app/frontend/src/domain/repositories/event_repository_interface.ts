@@ -22,5 +22,17 @@ export interface Event_Repository_Interface {
      * @param params Objeto con criterios de búsqueda.
      */
     search_advanced(params: { title?: string; organizer?: string; keywords?: string }): Promise<Event_Model[]>;
+
+    /**
+     * Obtiene un evento por su ID.
+     * @param id ID del evento.
+     */
+    get_event(id: string): Promise<Event_Model | null>;
+
+    /**
+     * Actualiza un evento existente.
+     * @param event Evento con los datos actualizados.
+     */
+    update(event: Event_Model): Promise<Event_Model>;
 }
 

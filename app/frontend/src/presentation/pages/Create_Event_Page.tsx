@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { MainLayout } from '../components/layout/MainLayout';
 import { Neo_Card } from '../components/ui/Neo_Card';
 import { Neo_Input } from '../components/ui/Neo_Input';
@@ -12,6 +12,7 @@ const create_event_use_case = new Create_Event_Use_Case(repository);
 
 export const Create_Event_Page = () => {
     const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
     const [loading, set_loading] = useState(false);
     const [error, set_error] = useState<string | null>(null);
     
@@ -22,6 +23,17 @@ export const Create_Event_Page = () => {
         description: '',
         calendar_id: '507f1f77bcf86cd799439011' // Default valid ObjectId
     });
+
+    useEffect(() => {
+        const dateParam = searchParams.get('date');
+        if (dateParam) {
+            set_form_data(prev => ({
+                ...prev,
+                start_time: `${dateParam}T00:00`,
+                end_time: `${dateParam}T23:59`
+            }));
+        }
+    }, [searchParams]);
 
     const handle_change = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         set_form_data({

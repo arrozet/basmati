@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { MainLayout } from '../components/layout/MainLayout';
 import { Neo_Card } from '../components/ui/Neo_Card';
 import { Neo_Button } from '../components/ui/Neo_Button';
@@ -22,11 +23,25 @@ const get_first_day_of_month = (year: number, month: number) => {
 };
 
 const CalendarGrid: React.FC<{ currentDate: Date, view: ViewType, events: Event_Model[] }> = ({ currentDate, view, events }) => {
+    const navigate = useNavigate();
     const year = currentDate.getFullYear();
     const month = currentDate.getMonth();
     
     const days_labels = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
     const months_labels = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+
+    const handle_event_click = (event_id: string) => {
+        navigate(`/events/edit/${event_id}`);
+    };
+
+    const handle_day_click = (date: Date) => {
+        // Format date as YYYY-MM-DD using local time
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        const dateStr = `${year}-${month}-${day}`;
+        navigate(`/events/new?date=${dateStr}`);
+    };
 
     if (view === 'year') {
         return (
@@ -67,11 +82,17 @@ const CalendarGrid: React.FC<{ currentDate: Date, view: ViewType, events: Event_
                 <div 
                     key={i} 
                     className="bg-white border-3 border-basmati-black shadow-hard p-2 hover:-translate-y-1 hover:shadow-[6px_6px_0px_0px_rgba(26,26,26,1)] transition-all cursor-pointer relative min-h-[100px] md:min-h-[120px] overflow-hidden"
+                    onClick={() => handle_day_click(current_day_date)}
                 >
                     <span className="font-bold text-gray-800 absolute top-2 right-2">{i}</span>
                     <div className="mt-6 flex flex-col gap-1">
                         {day_events.map(event => (
-                            <div key={event.id} className="bg-basmati-yellow border-2 border-basmati-black p-1 text-xs font-bold truncate shadow-sm" title={event.title}>
+                            <div 
+                                key={event.id} 
+                                className="bg-basmati-yellow border-2 border-basmati-black p-1 text-xs font-bold truncate shadow-sm hover:bg-basmati-yellow/80 cursor-pointer" 
+                                title={event.title}
+                                onClick={(e) => { e.stopPropagation(); handle_event_click(event.id); }}
+                            >
                                 {event.title}
                             </div>
                         ))}
@@ -122,7 +143,11 @@ const CalendarGrid: React.FC<{ currentDate: Date, view: ViewType, events: Event_
                             </div>
                             <div className="flex-1 bg-gray-50 relative overflow-y-auto">
                                 {day_events.map(event => (
-                                    <div key={event.id} className="bg-basmati-blue/20 border-l-4 border-basmati-blue p-1 text-xs mb-1">
+                                    <div 
+                                        key={event.id} 
+                                        className="bg-basmati-blue/20 border-l-4 border-basmati-blue p-1 text-xs mb-1 cursor-pointer hover:bg-basmati-blue/30"
+                                        onClick={(e) => { e.stopPropagation(); handle_event_click(event.id); }}
+                                    >
                                         {new Date(event.start_time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} - {event.title}
                                     </div>
                                 ))}
@@ -149,7 +174,11 @@ const CalendarGrid: React.FC<{ currentDate: Date, view: ViewType, events: Event_
                         <div className="text-gray-500 italic">No hay eventos para este día.</div>
                     ) : (
                         day_events.map(event => (
-                            <div key={event.id} className="flex gap-4 border-b border-gray-200 py-4">
+                            <div 
+                                key={event.id} 
+                                className="flex gap-4 border-b border-gray-200 py-4 cursor-pointer hover:bg-gray-50"
+                                onClick={() => handle_event_click(event.id)}
+                            >
                                 <div className="w-20 font-bold text-gray-500">
                                     {new Date(event.start_time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
                                 </div>

@@ -216,3 +216,11 @@ async def integrations_route(path: str, request: Request):
     """
     full_path = f"v1/integrations/{path}" if path else "v1/integrations"
     return await proxy_request("integrations", full_path, request)
+
+@app.api_route("/v2/events/{path:path}", methods=["GET", "POST", "PUT", "DELETE"])
+async def events_v2_route(path: str, request: Request):
+    """
+    Proxy para el Event Service V2.
+    """
+    full_path = f"v2/events/{path}" if path else "v2/events"
+    return await proxy_request("events", full_path, request)

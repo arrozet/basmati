@@ -17,7 +17,7 @@ export class Http_Event_Repository implements Event_Repository_Interface {
             visibility: "private"
         };
 
-        const response = await api_client.post("/v1/events", payload);
+        const response = await api_client.post("/v2/events", payload);
         
         const item = response.data;
         return {
@@ -32,7 +32,7 @@ export class Http_Event_Repository implements Event_Repository_Interface {
     }
 
     async get_events_by_date_range(start: Date, end: Date): Promise<Event_Model[]> {
-        const response = await api_client.get("/v1/events/search/by-date-range", {
+        const response = await api_client.get("/v2/events/search/by-date-range", {
             params: {
                 start: start.toISOString(),
                 end: end.toISOString()
@@ -51,7 +51,7 @@ export class Http_Event_Repository implements Event_Repository_Interface {
     }
 
     async search_events(query: string): Promise<Event_Model[]> {
-        const response = await api_client.get(`/v1/events/search/by-text`, {
+        const response = await api_client.get(`/v2/events/search/by-text`, {
             params: { query }
         });
         
@@ -67,7 +67,7 @@ export class Http_Event_Repository implements Event_Repository_Interface {
     }
 
     async search_advanced(params: { title?: string; organizer?: string; keywords?: string }): Promise<Event_Model[]> {
-        const response = await api_client.get(`/v1/events/search/advanced`, {
+        const response = await api_client.get(`/v2/events/search/advanced`, {
             params
         });
         
@@ -80,6 +80,49 @@ export class Http_Event_Repository implements Event_Repository_Interface {
             calendar_id: item.calendar_id,
             color: item.color
         }));
+    }
+
+    async get_event(id: string): Promise<Event_Model | null> {
+        try {
+            const response = await api_client.get(`/v2/events/${id}`);
+            const item = response.data;
+            return {
+                id: item.id,
+                title: item.title,
+                start_time: new Date(item.start_time),
+                end_time: new Date(item.end_time),
+                description: item.description,
+                calendar_id: item.calendar_id,
+                color: item.color
+            };
+        } catch (error) {
+            console.error("Error fetching event:", error);
+            return null;
+        }
+    }
+
+    async update(event: Event_Model): Promise<Event_Model> {
+        const payload = {
+            title: event.title,
+            description: event.description,
+            start_time: event.start_time.toISOString(),
+            end_time: event.end_time.toISOString(),
+            color: event.color,
+            // Include other fields if necessary, but these are the main ones for update
+        };
+
+        const response = await api_client.put(`/v2/events/${event.id}`, payload);
+        const item = response.data;
+        
+        return {
+            id: item.id,
+            title: item.title,
+            start_time: new Date(item.start_time),
+            end_time: new Date(item.end_time),
+            description: item.description,
+            calendar_id: item.calendar_id,
+            color: item.color
+        };
     }
 }
 

@@ -4,6 +4,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
 from api.v1.router import api_router
+from api.v2.router import api_router as api_router_v2
 from core.config import settings
 from core.database import connect_to_mongo, close_mongo_connection
 
@@ -30,7 +31,7 @@ app = FastAPI(
 
 
 app.include_router(api_router, prefix="/v1")
-
+app.include_router(api_router_v2, prefix="/v2")
 
 @app.get("/health")
 async def health_check():
