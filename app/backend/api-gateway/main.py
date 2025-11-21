@@ -4,6 +4,7 @@ Punto de entrada centralizado para todos los servicios de backend.
 """
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 import httpx
 from core.config import SERVICES
@@ -53,6 +54,15 @@ app = FastAPI(
     description="Punto de entrada centralizado para todos los servicios de Basmati",
     version="1.0.0",
     lifespan=lifespan
+)
+
+# Configuración de CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Permitir todos los orígenes en desarrollo
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 def custom_openapi():

@@ -1,5 +1,5 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { Neo_Button } from '../ui/Neo_Button';
 import { Neo_Input } from '../ui/Neo_Input';
 
@@ -8,6 +8,16 @@ interface NavbarProps {
 }
 
 export const Navbar: React.FC<NavbarProps> = ({ onMenuClick }) => {
+    const [search_query, set_search_query] = useState("");
+    const navigate = useNavigate();
+
+    const handle_search = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (search_query.trim()) {
+            navigate(`/search?q=${encodeURIComponent(search_query)}`);
+        }
+    };
+
     return (
         <nav className="h-16 border-b-3 border-basmati-black bg-white flex items-center justify-between px-4 md:px-6 sticky top-0 z-50">
             <div className="flex items-center gap-4">
@@ -23,10 +33,14 @@ export const Navbar: React.FC<NavbarProps> = ({ onMenuClick }) => {
             </div>
 
             <div className="hidden md:block flex-1 max-w-xl mx-4">
-                <Neo_Input 
-                    placeholder="Buscar eventos, calendarios..." 
-                    className="w-full h-10" 
-                />
+                <form onSubmit={handle_search}>
+                    <Neo_Input 
+                        placeholder="Buscar eventos, calendarios..." 
+                        className="w-full h-10"
+                        value={search_query}
+                        onChange={(e) => set_search_query(e.target.value)}
+                    />
+                </form>
             </div>
 
             <div className="flex items-center gap-2 md:gap-4">

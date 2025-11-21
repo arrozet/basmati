@@ -304,3 +304,44 @@ class EventRepository:
             return await cursor.to_list(length=100)
         except Exception:
             return []
+
+    async def search_advanced(
+        self,
+        title: str | None = None,
+        calendar_title: str | None = None,
+        description: str | None = None
+    ) -> list[dict]:
+        """Búsqueda avanzada de eventos.
+
+        Permite buscar por título, título del calendario y descripción (palabras clave).
+        Combina los criterios con lógica AND.
+
+        Args:
+            title: Título del evento
+            calendar_title: Título del calendario (Organizador)
+            description: Descripción (Palabras clave)
+
+        Returns:
+            list[dict]: Lista de eventos encontrados
+        """
+        filters = []
+        
+        if title:
+            filters.append({"title": {"$regex": title, "$options": "i"}})
+        
+        if calendar_title:
+            filters.append({"calendar_title": {"$regex": calendar_title, "$options": "i"}})
+            
+        if description:
+            filters.append({"description": {"$regex": description, "$options": "i"}})
+            
+        if not filters:
+            return []
+            
+        search_filter = {"$and": filters} if len(filters) > 1 else filters[0]
+        
+        try:
+            cursor = self.collection.find(search_filter)
+            return await cursor.to_list(length=100)
+        except Exception:
+            return []

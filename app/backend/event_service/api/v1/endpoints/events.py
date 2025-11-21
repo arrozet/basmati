@@ -495,3 +495,34 @@ async def search_by_location(
 		list[EventResponse]: Lista de eventos que coinciden con la ubicación buscada
 	"""
 	return await service.search_by_location(location_query)
+
+
+@router.get(
+	"/search/advanced",
+	response_model=list[EventResponse],
+	summary="Búsqueda avanzada de eventos",
+	description="Busca eventos por título, organizador (título de calendario) y palabras clave (descripción).",
+	responses={
+		200: {"description": "Lista de eventos que coinciden con la búsqueda."},
+		500: {"description": "Error interno del servidor."}
+	}
+)
+async def search_advanced(
+	title: str | None = Query(None, description="Título del evento"),
+	organizer: str | None = Query(None, description="Organizador (Título del calendario)"),
+	keywords: str | None = Query(None, description="Palabras clave (Descripción)"),
+	service: EventService = Depends(get_event_service),
+):
+	"""
+	Realiza una búsqueda avanzada en eventos.
+	
+	Args:
+		title: Título del evento
+		organizer: Organizador (se busca en calendar_title)
+		keywords: Palabras clave (se busca en description)
+		service: Servicio de eventos (inyectado por FastAPI)
+		
+	Returns:
+		list[EventResponse]: Lista de eventos que coinciden con la búsqueda
+	"""
+	return await service.search_advanced(title=title, calendar_title=organizer, description=keywords)
