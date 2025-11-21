@@ -42,7 +42,7 @@ export const Login_Page = () => {
                     </div>
 
                     <Neo_Button type="submit" className="mt-4 w-full">
-                        Iniciar Sesión
+                        Iniciar sesión
                     </Neo_Button>
                 </form>
 

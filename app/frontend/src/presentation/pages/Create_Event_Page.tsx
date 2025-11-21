@@ -11,13 +11,13 @@ export const Create_Event_Page = () => {
     return (
         <MainLayout>
             <div className="flex justify-center">
-                <Neo_Card className="w-full max-w-2xl" title="Crear Nuevo Evento">
+                <Neo_Card className="w-full max-w-2xl" title="Crear evento">
                     <form className="flex flex-col gap-6">
                         <Neo_Input label="Título" placeholder="Ej: Cena con amigos" />
                         
-                        <div className="grid grid-cols-2 gap-4">
-                            <Neo_Input label="Fecha Inicio" type="datetime-local" />
-                            <Neo_Input label="Fecha Fin" type="datetime-local" />
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <Neo_Input label="Fecha inicio" type="datetime-local" />
+                            <Neo_Input label="Fecha fin" type="datetime-local" />
                         </div>
 
                         <div className="flex flex-col gap-1">
@@ -37,9 +37,9 @@ export const Create_Event_Page = () => {
                             </select>
                         </div>
 
-                        <div className="flex gap-4 mt-4">
+                        <div className="flex flex-col md:flex-row gap-4 mt-4">
                             <Neo_Button type="button" onClick={() => navigate('/dashboard')} variant="success" className="flex-1">
-                                Guardar Evento
+                                Guardar evento
                             </Neo_Button>
                             <Neo_Button type="button" onClick={() => navigate('/dashboard')} variant="danger" className="flex-1">
                                 Cancelar
@@ -51,4 +51,3 @@ export const Create_Event_Page = () => {
         </MainLayout>
     );
 };
-
