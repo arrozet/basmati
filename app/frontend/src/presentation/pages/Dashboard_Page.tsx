@@ -22,7 +22,13 @@ const get_first_day_of_month = (year: number, month: number) => {
     return day === 0 ? 6 : day - 1;
 };
 
-const CalendarGrid: React.FC<{ currentDate: Date, view: ViewType, events: Event_Model[] }> = ({ currentDate, view, events }) => {
+const CalendarGrid: React.FC<{ 
+    currentDate: Date, 
+    view: ViewType, 
+    events: Event_Model[],
+    onViewChange: (view: ViewType) => void,
+    onDateChange: (date: Date) => void
+}> = ({ currentDate, view, events, onViewChange, onDateChange }) => {
     const navigate = useNavigate();
     const year = currentDate.getFullYear();
     const month = currentDate.getMonth();
@@ -45,9 +51,18 @@ const CalendarGrid: React.FC<{ currentDate: Date, view: ViewType, events: Event_
 
     if (view === 'year') {
         return (
-            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                 {months_labels.map((m_label, idx) => (
-                    <Neo_Card key={m_label} className="hover:scale-105 transition-transform cursor-pointer">
+                    <Neo_Card 
+                        key={m_label} 
+                        className="hover:scale-105 transition-transform cursor-pointer"
+                        onClick={() => {
+                            const newDate = new Date(currentDate);
+                            newDate.setMonth(idx);
+                            onDateChange(newDate);
+                            onViewChange('month');
+                        }}
+                    >
                         <h3 className="font-bold text-center mb-2">{m_label}</h3>
                         <div className="grid grid-cols-7 gap-1 text-[0.6rem]">
                             {Array.from({ length: get_days_in_month(year, idx) }).map((_, d_idx) => (
@@ -73,6 +88,7 @@ const CalendarGrid: React.FC<{ currentDate: Date, view: ViewType, events: Event_
         // Days of current month
         for (let i = 1; i <= days_in_month; i++) {
             const current_day_date = new Date(year, month, i);
+            const day_name = days_labels[current_day_date.getDay() === 0 ? 6 : current_day_date.getDay() - 1];
             const day_events = events.filter(e => {
                 const e_date = new Date(e.start_time);
                 return e_date.getDate() === i && e_date.getMonth() === month && e_date.getFullYear() === year;
@@ -81,10 +97,13 @@ const CalendarGrid: React.FC<{ currentDate: Date, view: ViewType, events: Event_
             days.push(
                 <div 
                     key={i} 
-                    className="bg-white border-3 border-basmati-black shadow-hard p-2 hover:-translate-y-1 hover:shadow-[6px_6px_0px_0px_rgba(26,26,26,1)] transition-all cursor-pointer relative min-h-[100px] md:min-h-[120px] overflow-hidden"
+                    className="bg-white border-3 border-basmati-black shadow-hard p-2 hover:-translate-y-1 hover:shadow-[6px_6px_0px_0px_rgba(26,26,26,1)] transition-all cursor-pointer relative min-h-[80px] md:min-h-[120px] overflow-hidden"
                     onClick={() => handle_day_click(current_day_date)}
                 >
-                    <span className="font-bold text-gray-800 absolute top-2 right-2">{i}</span>
+                    <div className="flex justify-between items-start">
+                        <span className="md:hidden font-bold text-gray-500 text-xs uppercase">{day_name}</span>
+                        <span className="font-bold text-gray-800 absolute top-2 right-2">{i}</span>
+                    </div>
                     <div className="mt-6 flex flex-col gap-1">
                         {day_events.map(event => (
                             <div 
@@ -108,7 +127,7 @@ const CalendarGrid: React.FC<{ currentDate: Date, view: ViewType, events: Event_
                         <div key={day} className="text-center font-black text-xl uppercase">{day}</div>
                     ))}
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-7 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-7 gap-2 md:gap-4">
                     {days}
                 </div>
             </div>
@@ -128,7 +147,7 @@ const CalendarGrid: React.FC<{ currentDate: Date, view: ViewType, events: Event_
         });
 
         return (
-            <div className="grid grid-cols-1 md:grid-cols-7 gap-4 h-[600px]">
+            <div className="grid grid-cols-1 md:grid-cols-7 gap-4 h-auto md:h-[600px]">
                 {week_dates.map((date, idx) => {
                     const day_events = events.filter(e => {
                         const e_date = new Date(e.start_time);
@@ -136,7 +155,11 @@ const CalendarGrid: React.FC<{ currentDate: Date, view: ViewType, events: Event_
                     });
 
                     return (
-                        <div key={idx} className="border-3 border-basmati-black bg-white p-2 flex flex-col">
+                        <div 
+                            key={idx} 
+                            className="border-3 border-basmati-black bg-white p-2 flex flex-col cursor-pointer hover:bg-gray-50 transition-colors"
+                            onClick={() => handle_day_click(date)}
+                        >
                             <div className="font-black text-center border-b-3 border-basmati-black pb-2 mb-2">
                                 <div className="text-xs uppercase text-gray-500">{days_labels[idx]}</div>
                                 <div className="text-xl">{date.getDate()}</div>
@@ -166,18 +189,21 @@ const CalendarGrid: React.FC<{ currentDate: Date, view: ViewType, events: Event_
         });
 
         return (
-            <div className="border-3 border-basmati-black bg-white p-4 min-h-[600px]">
+            <div 
+                className="border-3 border-basmati-black bg-white p-4 min-h-[600px] cursor-pointer"
+                onClick={() => handle_day_click(currentDate)}
+            >
                 <h3 className="font-black text-2xl mb-4">{days_labels[currentDate.getDay() === 0 ? 6 : currentDate.getDay() - 1]} {currentDate.getDate()}</h3>
                 <div className="space-y-4">
                     {/* Simple list for now, could be a timeline */}
                     {day_events.length === 0 ? (
-                        <div className="text-gray-500 italic">No hay eventos para este día.</div>
+                        <div className="text-gray-500 italic">No hay eventos para este día. Haz click para crear uno.</div>
                     ) : (
                         day_events.map(event => (
                             <div 
                                 key={event.id} 
                                 className="flex gap-4 border-b border-gray-200 py-4 cursor-pointer hover:bg-gray-50"
-                                onClick={() => handle_event_click(event.id)}
+                                onClick={(e) => { e.stopPropagation(); handle_event_click(event.id); }}
                             >
                                 <div className="w-20 font-bold text-gray-500">
                                     {new Date(event.start_time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
@@ -253,7 +279,7 @@ export const Dashboard_Page = () => {
                         <p className="font-medium text-gray-600">La vida es eso que pasa mientras haces otros planes.</p>
                     </div>
                 </div>
-                <div className="flex gap-2 w-full md:w-auto overflow-x-auto pb-2 md:pb-0">
+                <div className="grid grid-cols-2 md:flex gap-2 w-full md:w-auto">
                     <Neo_Button 
                         variant={view === 'year' ? 'primary' : 'secondary'} 
                         onClick={() => set_view('year')}
@@ -290,7 +316,13 @@ export const Dashboard_Page = () => {
                     <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-basmati-black"></div>
                 </div>
             ) : (
-                <CalendarGrid currentDate={current_date} view={view} events={events} />
+                <CalendarGrid 
+                    currentDate={current_date} 
+                    view={view} 
+                    events={events} 
+                    onViewChange={set_view}
+                    onDateChange={set_current_date}
+                />
             )}
         </MainLayout>
     );

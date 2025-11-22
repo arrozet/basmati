@@ -305,6 +305,9 @@ class EventRepository:
         except Exception:
             return []
 
+## A PARTIR DE AQUÍ SERÍA PARTE DE LA VERSIÓN 2 DEL REPOSITORIO ##
+
+
     async def search_advanced(
         self,
         title: str | None = None,

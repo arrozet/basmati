@@ -27,12 +27,12 @@ export const Navbar: React.FC<NavbarProps> = ({ onMenuClick }) => {
                 >
                     ☰
                 </button>
-                <Link to="/" className="text-xl md:text-2xl font-black tracking-tighter uppercase hover:text-basmati-yellow transition-colors">
+                <Link to="/dashboard" className="text-xl md:text-2xl font-black tracking-tighter uppercase hover:text-basmati-yellow transition-colors">
                     Basmati
                 </Link>
             </div>
 
-            <div className="hidden md:block flex-1 max-w-xl mx-4">
+            <div className="flex-1 max-w-xl mx-4 hidden md:block">
                 <form onSubmit={handle_search}>
                     <Neo_Input 
                         placeholder="Buscar eventos, calendarios..." 
@@ -42,6 +42,14 @@ export const Navbar: React.FC<NavbarProps> = ({ onMenuClick }) => {
                     />
                 </form>
             </div>
+
+            {/* Mobile Search Icon (toggles nothing for now, just placeholder or navigate to search) */}
+            <button 
+                className="md:hidden p-2 mr-2"
+                onClick={() => navigate('/search')}
+            >
+                🔍
+            </button>
 
             <div className="flex items-center gap-2 md:gap-4">
                 <Neo_Button variant="secondary" className="px-3 py-1 text-sm md:text-base md:px-4">

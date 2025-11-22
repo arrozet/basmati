@@ -142,7 +142,7 @@ export const Edit_Event_Page = () => {
                             required
                         />
 
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <Neo_Input
                                 label="Fecha inicio"
                                 type="date"
@@ -159,7 +159,7 @@ export const Edit_Event_Page = () => {
                             />
                         </div>
 
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <Neo_Input
                                 label="Fecha fin"
                                 type="date"

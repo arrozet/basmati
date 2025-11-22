@@ -239,6 +239,8 @@ class EventService:
         events = await self.event_repository.search_by_location(location_query)
         return [self._document_to_response(event) for event in events]
 
+## A PARTIR DE AQUÍ SERÍA PARTE DE LA VERSIÓN 2 DEL SERVICIO ##
+
     async def search_advanced(
         self,
         title: str | None = None,
@@ -257,6 +259,8 @@ class EventService:
         """
         events = await self.event_repository.search_advanced(title, calendar_title, description)
         return [self._document_to_response(event) for event in events]
+
+## HASTA AQUÍ LA VERSIÓN 2 DEL SERVICIO ##
 
     async def _notify_new_comment(self, event_doc: dict, comment_doc: dict) -> None:
         """Envía notificación al creador del evento tras un nuevo comentario."""

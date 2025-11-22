@@ -36,11 +36,11 @@ export const Search_Page: React.FC = () => {
     };
 
     return (
-        <div className="p-8 w-full max-w-6xl mx-auto">
-            <div className="flex justify-between items-center mb-8">
-                <h1 className="text-4xl font-bold text-basmati-black">Búsqueda de Eventos</h1>
-                <Link to="/dashboard">
-                    <Neo_Button variant="secondary">
+        <div className="p-4 md:p-8 w-full max-w-6xl mx-auto">
+            <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
+                <h1 className="text-3xl md:text-4xl font-bold text-basmati-black text-center md:text-left">Búsqueda de Eventos</h1>
+                <Link to="/dashboard" className="w-full md:w-auto">
+                    <Neo_Button variant="secondary" className="w-full md:w-auto">
                         ← Volver al Calendario
                     </Neo_Button>
                 </Link>
