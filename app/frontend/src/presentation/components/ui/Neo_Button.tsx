@@ -19,7 +19,7 @@ interface Neo_Button_Props extends React.ButtonHTMLAttributes<HTMLButtonElement>
  * @param disabled - Estado deshabilitado.
  * @param children - Contenido del botón.
  */
-export const Neo_Button: React.FC<Neo_Button_Props> = ({ 
+export const Neo_Button = React.forwardRef<HTMLButtonElement, Neo_Button_Props>(({ 
     children, 
     className, 
     variant = 'primary',
@@ -27,7 +27,7 @@ export const Neo_Button: React.FC<Neo_Button_Props> = ({
     loading = false,
     disabled = false,
     ...props 
-}) => {
+}, ref) => {
     const variants = {
         primary: 'bg-basmati-yellow hover:bg-[#d9ae42] text-basmati-black',
         secondary: 'bg-white hover:bg-gray-100 text-basmati-black',
@@ -39,6 +39,7 @@ export const Neo_Button: React.FC<Neo_Button_Props> = ({
 
     return (
         <button 
+            ref={ref}
             type={type}
             disabled={is_disabled}
             className={cn(
@@ -62,5 +63,7 @@ export const Neo_Button: React.FC<Neo_Button_Props> = ({
             )}
         </button>
     );
-};
+});
+
+Neo_Button.displayName = 'Neo_Button';
 

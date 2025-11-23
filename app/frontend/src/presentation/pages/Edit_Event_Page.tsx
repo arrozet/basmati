@@ -4,6 +4,7 @@ import { MainLayout } from '../components/layout/MainLayout';
 import { Neo_Card } from '../components/ui/Neo_Card';
 import { Neo_Input } from '../components/ui/Neo_Input';
 import { Neo_Button } from '../components/ui/Neo_Button';
+import { Neo_Modal } from '../components/ui/Neo_Modal';
 import { Http_Event_Repository } from '../../infrastructure/repositories/http_event_repository';
 import { Event_Model } from '../../domain/models/event_model';
 
@@ -20,6 +21,10 @@ export const Edit_Event_Page = () => {
     const [saving, set_saving] = useState(false);
     const [error, set_error] = useState<string | null>(null);
     const [event, set_event] = useState<Event_Model | null>(null);
+    
+    // Modal de confirmación para borrar
+    const [delete_modal_open, set_delete_modal_open] = useState(false);
+    const [deleting, set_deleting] = useState(false);
     
     const [form_data, set_form_data] = useState({
         title: '',
@@ -107,6 +112,37 @@ export const Edit_Event_Page = () => {
         }
     };
 
+    const handle_delete_click = () => {
+        set_delete_modal_open(true);
+    };
+
+    const handle_confirm_delete = async () => {
+        if (!event) return;
+        
+        set_deleting(true);
+        try {
+            // Simular borrado (no conectado al backend)
+            console.log(`Evento ${event.id} eliminado visualmente`);
+            
+            // Esperar un poco para simular la llamada
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            // Redirigir al dashboard
+            navigate('/dashboard');
+        } catch (error) {
+            console.error('Error al eliminar evento:', error);
+            set_error("Error al eliminar el evento");
+        } finally {
+            set_deleting(false);
+        }
+    };
+
+    const handle_close_delete_modal = () => {
+        if (!deleting) {
+            set_delete_modal_open(false);
+        }
+    };
+
     if (loading) {
         return (
             <MainLayout>
@@ -133,70 +169,98 @@ export const Edit_Event_Page = () => {
     return (
         <MainLayout>
              <div className="flex justify-center">
-                <Neo_Card className="w-full max-w-2xl" title="Editar evento">
-                    <form onSubmit={handle_submit} className="space-y-6">
-                        <Neo_Input
-                            label="Título"
-                            value={form_data.title}
-                            onChange={(e) => set_form_data({...form_data, title: e.target.value})}
-                            placeholder="Título del evento"
-                            required
-                        />
+                <Neo_Card className="w-full max-w-2xl">
+                    <header className="mb-6 flex justify-between items-center">
+                        <h1 className="text-2xl font-black">Editar evento</h1>
+                        <Neo_Button 
+                            type="button" 
+                            variant="danger"
+                            onClick={handle_delete_click}
+                            aria-label="Eliminar este evento"
+                        >
+                            Eliminar evento
+                        </Neo_Button>
+                    </header>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <form onSubmit={handle_submit} className="space-y-6" aria-label="Formulario de edición de evento">
+                        <fieldset className="border-0 p-0 m-0">
+                            <legend className="sr-only">Información básica del evento</legend>
                             <Neo_Input
-                                label="Fecha inicio"
-                                type="date"
-                                value={form_data.start_date}
-                                onChange={(e) => set_form_data({...form_data, start_date: e.target.value})}
+                                label="Título"
+                                value={form_data.title}
+                                onChange={(e) => set_form_data({...form_data, title: e.target.value})}
+                                placeholder="Título del evento"
                                 required
+                                id="event-title"
                             />
-                            <Neo_Input
-                                label="Hora inicio"
-                                type="time"
-                                value={form_data.start_time}
-                                onChange={(e) => set_form_data({...form_data, start_time: e.target.value})}
-                                required
-                            />
-                        </div>
+                        </fieldset>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <Neo_Input
-                                label="Fecha fin"
-                                type="date"
-                                value={form_data.end_date}
-                                onChange={(e) => set_form_data({...form_data, end_date: e.target.value})}
-                                required
-                            />
-                            <Neo_Input
-                                label="Hora fin"
-                                type="time"
-                                value={form_data.end_time}
-                                onChange={(e) => set_form_data({...form_data, end_time: e.target.value})}
-                                required
-                            />
-                        </div>
+                        <fieldset className="border-0 p-0 m-0">
+                            <legend className="text-sm font-bold text-basmati-black mb-3">Fecha y hora de inicio</legend>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <Neo_Input
+                                    label="Fecha inicio"
+                                    type="date"
+                                    value={form_data.start_date}
+                                    onChange={(e) => set_form_data({...form_data, start_date: e.target.value})}
+                                    required
+                                    id="event-start-date"
+                                />
+                                <Neo_Input
+                                    label="Hora inicio"
+                                    type="time"
+                                    value={form_data.start_time}
+                                    onChange={(e) => set_form_data({...form_data, start_time: e.target.value})}
+                                    required
+                                    id="event-start-time"
+                                />
+                            </div>
+                        </fieldset>
 
-                        <div>
+                        <fieldset className="border-0 p-0 m-0">
+                            <legend className="text-sm font-bold text-basmati-black mb-3">Fecha y hora de fin</legend>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <Neo_Input
+                                    label="Fecha fin"
+                                    type="date"
+                                    value={form_data.end_date}
+                                    onChange={(e) => set_form_data({...form_data, end_date: e.target.value})}
+                                    required
+                                    id="event-end-date"
+                                />
+                                <Neo_Input
+                                    label="Hora fin"
+                                    type="time"
+                                    value={form_data.end_time}
+                                    onChange={(e) => set_form_data({...form_data, end_time: e.target.value})}
+                                    required
+                                    id="event-end-time"
+                                />
+                            </div>
+                        </fieldset>
+
+                        <fieldset className="border-0 p-0 m-0">
+                            <legend className="sr-only">Descripción del evento</legend>
                             <label htmlFor="event-description" className="block text-sm font-bold text-basmati-black mb-1">
                                 Descripción
                             </label>
                             <textarea
                                 id="event-description"
-                                className="w-full px-3 py-2 border-3 border-basmati-black focus:outline-none focus:ring-4 focus:ring-basmati-yellow ring-offset-2 bg-white"
+                                className="w-full px-3 py-2 border-3 border-basmati-black focus:outline-none focus:ring-4 focus:ring-basmati-yellow ring-offset-2 bg-white rounded-sm hover:shadow-hard transition-shadow"
                                 rows={4}
                                 value={form_data.description}
                                 onChange={(e) => set_form_data({...form_data, description: e.target.value})}
                                 placeholder="Detalles del evento..."
                                 aria-label="Descripción del evento"
                             />
-                        </div>
+                        </fieldset>
 
-                        <div className="flex justify-end space-x-4 pt-4">
+                        <div className="flex justify-end space-x-4 pt-4 border-t-3 border-gray-200">
                             <Neo_Button 
                                 type="button" 
                                 variant="secondary" 
                                 onClick={() => navigate('/dashboard')}
+                                aria-label="Cancelar edición y volver"
                             >
                                 Cancelar
                             </Neo_Button>
@@ -204,11 +268,32 @@ export const Edit_Event_Page = () => {
                                 type="submit" 
                                 variant="primary"
                                 disabled={saving}
+                                loading={saving}
+                                aria-label="Guardar cambios del evento"
                             >
-                                {saving ? 'Guardando...' : 'Guardar Cambios'}
+                                Guardar cambios
                             </Neo_Button>
                         </div>
                     </form>
+
+                    {/* Modal de confirmación de borrado */}
+                    <Neo_Modal
+                        is_open={delete_modal_open}
+                        on_close={handle_close_delete_modal}
+                        on_confirm={handle_confirm_delete}
+                        title="¿Eliminar evento?"
+                        variant="danger"
+                        confirm_text="Eliminar"
+                        cancel_text="Cancelar"
+                        loading={deleting}
+                    >
+                        <p className="text-base">
+                            ¿Estás seguro de que deseas eliminar el evento <strong>"{event?.title}"</strong>?
+                        </p>
+                        <p className="text-sm text-gray-600 mt-2">
+                            Esta acción no se puede deshacer.
+                        </p>
+                    </Neo_Modal>
                 </Neo_Card>
             </div>
         </MainLayout>

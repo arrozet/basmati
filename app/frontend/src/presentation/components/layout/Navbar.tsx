@@ -13,7 +13,13 @@ interface NavbarProps {
  */
 export const Navbar: React.FC<NavbarProps> = ({ onMenuClick }) => {
     const [search_query, set_search_query] = useState("");
+    const [menu_open, set_menu_open] = useState(false);
     const navigate = useNavigate();
+
+    const handle_menu_click = () => {
+        set_menu_open(!menu_open);
+        onMenuClick?.();
+    };
 
     const handle_search = (e: React.FormEvent) => {
         e.preventDefault();
@@ -31,12 +37,13 @@ export const Navbar: React.FC<NavbarProps> = ({ onMenuClick }) => {
             <div className="flex items-center gap-4">
                 <button 
                     type="button"
-                    onClick={onMenuClick}
-                    className="md:hidden p-2 font-bold border-3 border-basmati-black shadow-hard active:shadow-none active:translate-x-[2px] active:translate-y-[2px] transition-all focus:outline-none focus:ring-4 focus:ring-basmati-yellow focus:ring-offset-2"
-                    aria-label="Abrir menú de navegación"
-                    aria-expanded={false}
+                    onClick={handle_menu_click}
+                    className="md:hidden p-2 font-bold border-3 border-basmati-black shadow-hard active:shadow-none active:translate-x-[2px] active:translate-y-[2px] transition-all focus:outline-none focus:ring-4 focus:ring-basmati-yellow focus:ring-offset-2 hover:bg-basmati-yellow"
+                    aria-label={menu_open ? "Cerrar menú de navegación" : "Abrir menú de navegación"}
+                    aria-expanded={menu_open}
+                    aria-controls="sidebar-menu"
                 >
-                    ☰
+                    <span aria-hidden="true">☰</span>
                 </button>
                 <Link 
                     to="/dashboard" 
@@ -63,11 +70,11 @@ export const Navbar: React.FC<NavbarProps> = ({ onMenuClick }) => {
             {/* Mobile Search Icon */}
             <button 
                 type="button"
-                className="md:hidden p-2 mr-2 focus:outline-none focus:ring-4 focus:ring-basmati-yellow focus:ring-offset-2 rounded"
+                className="md:hidden p-2 mr-2 focus:outline-none focus:ring-4 focus:ring-basmati-yellow focus:ring-offset-2 rounded hover:bg-basmati-yellow/20 transition-colors"
                 onClick={() => navigate('/search')}
                 aria-label="Ir a página de búsqueda"
             >
-                🔍
+                <span aria-hidden="true">🔍</span>
             </button>
 
             <div className="flex items-center gap-2 md:gap-4">

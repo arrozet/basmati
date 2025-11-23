@@ -3,8 +3,41 @@
 @tailwind utilities;
 
 @layer base {
+  /* Configuración base del documento */
+  html {
+    font-size: 100%; /* 16px por defecto, escalable según preferencias del usuario */
+    line-height: 1.5;
+  }
+
   body {
     @apply bg-basmati-bg text-basmati-black;
+    font-size: 1rem; /* Unidad relativa */
+  }
+
+  /* Jerarquía de encabezados con unidades relativas */
+  h1 {
+    font-size: 2.5rem; /* 40px */
+    line-height: 1.2;
+  }
+
+  h2 {
+    font-size: 2rem; /* 32px */
+    line-height: 1.3;
+  }
+
+  h3 {
+    font-size: 1.5rem; /* 24px */
+    line-height: 1.4;
+  }
+
+  h4 {
+    font-size: 1.25rem; /* 20px */
+    line-height: 1.4;
+  }
+
+  h5, h6 {
+    font-size: 1rem; /* 16px */
+    line-height: 1.5;
   }
 
   /* Accesibilidad: Foco visible para todos los elementos interactivos */
@@ -12,21 +45,102 @@
     @apply outline-none ring-4 ring-basmati-yellow ring-offset-2;
   }
 
-  /* Asegurar que los botones y enlaces tengan cursor pointer */
+  /* Elementos interactivos con cursor pointer y estados hover */
   button,
-  a {
+  a,
+  [role="button"],
+  [tabindex="0"] {
     cursor: pointer;
+    transition: all 0.2s ease-in-out;
   }
 
-  /* Mejorar legibilidad con tamaño de fuente base relativo */
-  html {
-    font-size: 100%; /* 16px por defecto, escalable según preferencias del usuario */
+  button:hover:not(:disabled),
+  a:hover,
+  [role="button"]:hover:not([aria-disabled="true"]) {
+    transform: translateY(-1px);
+  }
+
+  button:active:not(:disabled),
+  a:active,
+  [role="button"]:active:not([aria-disabled="true"]) {
+    transform: translateY(1px);
   }
 
   /* Asegurar contraste mínimo en texto deshabilitado */
-  :disabled {
+  :disabled,
+  [aria-disabled="true"] {
     opacity: 0.6;
     cursor: not-allowed;
+    filter: grayscale(50%);
+  }
+
+  /* Mejorar legibilidad de inputs y textareas */
+  input,
+  textarea,
+  select {
+    font-size: 1rem; /* Unidad relativa */
+    line-height: 1.5;
+  }
+
+  /* Skip to main content link (oculto por defecto, visible con foco) */
+  .skip-to-main {
+    position: absolute;
+    left: -9999px;
+    z-index: 999;
+    padding: 1rem;
+    background-color: #EBBE4D;
+    color: #1A1A1A;
+    font-weight: bold;
+    text-decoration: none;
+  }
+
+  .skip-to-main:focus {
+    left: 0.5rem;
+    top: 0.5rem;
+  }
+
+  /* Screen reader only class */
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+  }
+
+  /* Reducir movimiento para usuarios con preferencias de accesibilidad */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
   }
 }
 
+@layer utilities {
+  /* Utilidades personalizadas para sombras duras (Neobrutalism) */
+  .shadow-hard {
+    box-shadow: 4px 4px 0px 0px rgba(26, 26, 26, 1);
+  }
+
+  .shadow-hard-lg {
+    box-shadow: 6px 6px 0px 0px rgba(26, 26, 26, 1);
+  }
+
+  .shadow-hard-xl {
+    box-shadow: 8px 8px 0px 0px rgba(26, 26, 26, 1);
+  }
+
+  /* Borde de 3px personalizado */
+  .border-3 {
+    border-width: 3px;
+  }
+}

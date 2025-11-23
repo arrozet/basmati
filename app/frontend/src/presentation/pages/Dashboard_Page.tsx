@@ -3,8 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { MainLayout } from '../components/layout/MainLayout';
 import { Neo_Card } from '../components/ui/Neo_Card';
 import { Neo_Button } from '../components/ui/Neo_Button';
+import { Neo_Modal } from '../components/ui/Neo_Modal';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faChevronLeft, faChevronRight } from '@fortawesome/free-solid-svg-icons';
+import { faChevronLeft, faChevronRight, faTrash } from '@fortawesome/free-solid-svg-icons';
 import { use_calendar_events } from '../hooks/use_calendar_events';
 import { Event_Model } from '../../domain/models/event_model';
 
@@ -27,8 +28,9 @@ const CalendarGrid: React.FC<{
     view: ViewType, 
     events: Event_Model[],
     onViewChange: (view: ViewType) => void,
-    onDateChange: (date: Date) => void
-}> = ({ currentDate, view, events, onViewChange, onDateChange }) => {
+    onDateChange: (date: Date) => void,
+    onDeleteEvent: (event_id: string) => void
+}> = ({ currentDate, view, events, onViewChange, onDateChange, onDeleteEvent }) => {
     const navigate = useNavigate();
     const year = currentDate.getFullYear();
     const month = currentDate.getMonth();
@@ -51,7 +53,7 @@ const CalendarGrid: React.FC<{
 
     if (view === 'year') {
         return (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            <section className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4" aria-label="Vista anual del calendario">
                 {months_labels.map((m_label, idx) => (
                     <Neo_Card 
                         key={m_label} 
@@ -62,16 +64,28 @@ const CalendarGrid: React.FC<{
                             onDateChange(newDate);
                             onViewChange('month');
                         }}
+                        role="button"
+                        tabIndex={0}
+                        onKeyDown={(e) => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                                e.preventDefault();
+                                const newDate = new Date(currentDate);
+                                newDate.setMonth(idx);
+                                onDateChange(newDate);
+                                onViewChange('month');
+                            }
+                        }}
+                        aria-label={`Ver mes de ${m_label}`}
                     >
                         <h3 className="font-bold text-center mb-2">{m_label}</h3>
-                        <div className="grid grid-cols-7 gap-1 text-[0.6rem]">
+                        <div className="grid grid-cols-7 gap-1 text-[0.6rem]" aria-hidden="true">
                             {Array.from({ length: get_days_in_month(year, idx) }).map((_, d_idx) => (
                                 <div key={d_idx} className="text-center bg-gray-100 rounded-sm">{d_idx + 1}</div>
                             ))}
                         </div>
                     </Neo_Card>
                 ))}
-            </div>
+            </section>
         );
     }
 
@@ -97,22 +111,45 @@ const CalendarGrid: React.FC<{
             days.push(
                 <div 
                     key={i} 
-                    className="bg-white border-3 border-basmati-black shadow-hard p-2 hover:-translate-y-1 hover:shadow-[6px_6px_0px_0px_rgba(26,26,26,1)] transition-all cursor-pointer relative min-h-[80px] md:min-h-[120px] overflow-hidden"
+                    className="bg-white border-3 border-basmati-black shadow-hard p-2 hover:-translate-y-1 hover:shadow-[6px_6px_0px_0px_rgba(26,26,26,1)] transition-all cursor-pointer relative min-h-[80px] md:min-h-[120px] overflow-hidden focus-within:ring-4 focus-within:ring-basmati-yellow"
                     onClick={() => handle_day_click(current_day_date)}
+                    role="gridcell"
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            handle_day_click(current_day_date);
+                        }
+                    }}
+                    aria-label={`${day_name} ${i}, ${day_events.length} evento${day_events.length !== 1 ? 's' : ''}`}
                 >
                     <div className="flex justify-between items-start">
                         <span className="md:hidden font-bold text-gray-500 text-xs uppercase">{day_name}</span>
-                        <span className="font-bold text-gray-800 absolute top-2 right-2">{i}</span>
+                        <time className="font-bold text-gray-800 absolute top-2 right-2" dateTime={current_day_date.toISOString()}>
+                            {i}
+                        </time>
                     </div>
                     <div className="mt-6 flex flex-col gap-1">
                         {day_events.map(event => (
                             <div 
                                 key={event.id} 
-                                className="bg-basmati-yellow border-2 border-basmati-black p-1 text-xs font-bold truncate shadow-sm hover:bg-basmati-yellow/80 cursor-pointer" 
+                                className="bg-basmati-yellow border-2 border-basmati-black p-1 pl-2 pr-8 text-xs font-bold truncate shadow-sm hover:bg-basmati-yellow/80 cursor-pointer group relative" 
                                 title={event.title}
                                 onClick={(e) => { e.stopPropagation(); handle_event_click(event.id); }}
                             >
-                                {event.title}
+                                <span>{event.title}</span>
+                                <button
+                                    type="button"
+                                    className="absolute right-0.5 top-0 bottom-0 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity bg-basmati-red text-white px-1.5 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-basmati-red focus:opacity-100 z-10"
+                                    onClick={(e) => { 
+                                        e.stopPropagation(); 
+                                        onDeleteEvent(event.id);
+                                    }}
+                                    aria-label={`Eliminar evento ${event.title}`}
+                                    tabIndex={0}
+                                >
+                                    <FontAwesomeIcon icon={faTrash} className="w-3 h-3" />
+                                </button>
                             </div>
                         ))}
                     </div>
@@ -121,16 +158,16 @@ const CalendarGrid: React.FC<{
         }
 
         return (
-            <div className="w-full">
-                <div className="hidden md:grid grid-cols-7 gap-4 mb-4">
+            <section className="w-full" aria-label="Vista mensual del calendario">
+                <div className="hidden md:grid grid-cols-7 gap-4 mb-4" role="row">
                     {days_labels.map(day => (
-                        <div key={day} className="text-center font-black text-xl uppercase">{day}</div>
+                        <div key={day} className="text-center font-black text-xl uppercase" role="columnheader">{day}</div>
                     ))}
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-7 gap-2 md:gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-7 gap-2 md:gap-4" role="grid" aria-label="Días del mes">
                     {days}
                 </div>
-            </div>
+            </section>
         );
     }
 
@@ -147,7 +184,7 @@ const CalendarGrid: React.FC<{
         });
 
         return (
-            <div className="grid grid-cols-1 md:grid-cols-7 gap-4 h-auto md:h-[600px]">
+            <section className="grid grid-cols-1 md:grid-cols-7 gap-4 h-auto md:h-[600px]" aria-label="Vista semanal del calendario">
                 {week_dates.map((date, idx) => {
                     const day_events = events.filter(e => {
                         const e_date = new Date(e.start_time);
@@ -155,30 +192,52 @@ const CalendarGrid: React.FC<{
                     });
 
                     return (
-                        <div 
+                        <article 
                             key={idx} 
                             className="border-3 border-basmati-black bg-white p-2 flex flex-col cursor-pointer hover:bg-gray-50 transition-colors"
                             onClick={() => handle_day_click(date)}
+                            tabIndex={0}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter' || e.key === ' ') {
+                                    e.preventDefault();
+                                    handle_day_click(date);
+                                }
+                            }}
+                            aria-label={`${days_labels[idx]}, ${date.getDate()}, ${day_events.length} evento${day_events.length !== 1 ? 's' : ''}`}
                         >
-                            <div className="font-black text-center border-b-3 border-basmati-black pb-2 mb-2">
+                            <header className="font-black text-center border-b-3 border-basmati-black pb-2 mb-2">
                                 <div className="text-xs uppercase text-gray-500">{days_labels[idx]}</div>
-                                <div className="text-xl">{date.getDate()}</div>
-                            </div>
+                                <time className="text-xl" dateTime={date.toISOString()}>{date.getDate()}</time>
+                            </header>
                             <div className="flex-1 bg-gray-50 relative overflow-y-auto">
                                 {day_events.map(event => (
                                     <div 
                                         key={event.id} 
-                                        className="bg-basmati-blue/20 border-l-4 border-basmati-blue p-1 text-xs mb-1 cursor-pointer hover:bg-basmati-blue/30"
+                                        className="bg-basmati-blue/20 border-l-4 border-basmati-blue p-1 pl-2 pr-8 text-xs mb-1 cursor-pointer hover:bg-basmati-blue/30 group relative"
                                         onClick={(e) => { e.stopPropagation(); handle_event_click(event.id); }}
                                     >
-                                        {new Date(event.start_time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} - {event.title}
+                                        <div className="truncate">
+                                            {new Date(event.start_time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} - {event.title}
+                                        </div>
+                                        <button
+                                            type="button"
+                                            className="absolute right-0.5 top-0 bottom-0 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity bg-basmati-red text-white px-1 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-basmati-red focus:opacity-100 z-10"
+                                            onClick={(e) => { 
+                                                e.stopPropagation(); 
+                                                onDeleteEvent(event.id);
+                                            }}
+                                            aria-label={`Eliminar evento ${event.title}`}
+                                            tabIndex={0}
+                                        >
+                                            <FontAwesomeIcon icon={faTrash} className="w-3 h-3" />
+                                        </button>
                                     </div>
                                 ))}
                             </div>
-                        </div>
+                        </article>
                     );
                 })}
-            </div>
+            </section>
         );
     }
 
@@ -189,34 +248,55 @@ const CalendarGrid: React.FC<{
         });
 
         return (
-            <div 
+            <section 
                 className="border-3 border-basmati-black bg-white p-4 min-h-[600px] cursor-pointer"
                 onClick={() => handle_day_click(currentDate)}
+                tabIndex={0}
+                onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        handle_day_click(currentDate);
+                    }
+                }}
+                aria-label={`Vista de día, ${day_events.length} evento${day_events.length !== 1 ? 's' : ''}`}
             >
                 <h3 className="font-black text-2xl mb-4">{days_labels[currentDate.getDay() === 0 ? 6 : currentDate.getDay() - 1]} {currentDate.getDate()}</h3>
                 <div className="space-y-4">
                     {/* Simple list for now, could be a timeline */}
                     {day_events.length === 0 ? (
-                        <div className="text-gray-500 italic">No hay eventos para este día. Haz click para crear uno.</div>
+                        <p className="text-gray-500 italic">No hay eventos para este día. Haz click para crear uno.</p>
                     ) : (
                         day_events.map(event => (
-                            <div 
+                            <article 
                                 key={event.id} 
-                                className="flex gap-4 border-b border-gray-200 py-4 cursor-pointer hover:bg-gray-50"
+                                className="flex gap-4 border-b border-gray-200 py-4 cursor-pointer hover:bg-gray-50 group relative"
                                 onClick={(e) => { e.stopPropagation(); handle_event_click(event.id); }}
                             >
-                                <div className="w-20 font-bold text-gray-500">
+                                <time className="w-20 font-bold text-gray-500" dateTime={event.start_time.toISOString()}>
                                     {new Date(event.start_time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
-                                </div>
+                                </time>
                                 <div className="flex-1 bg-basmati-yellow/20 border-l-4 border-basmati-yellow p-2 rounded">
-                                    <div className="font-bold">{event.title}</div>
-                                    <div className="text-sm">{event.description}</div>
+                                    <h4 className="font-bold">{event.title}</h4>
+                                    <p className="text-sm">{event.description}</p>
                                 </div>
-                            </div>
+                                <button
+                                    type="button"
+                                    className="opacity-0 group-hover:opacity-100 transition-opacity self-center"
+                                    onClick={(e) => { 
+                                        e.stopPropagation(); 
+                                        onDeleteEvent(event.id);
+                                    }}
+                                    aria-label={`Eliminar evento ${event.title}`}
+                                >
+                                    <Neo_Button variant="danger" className="py-1 px-3">
+                                        <FontAwesomeIcon icon={faTrash} />
+                                    </Neo_Button>
+                                </button>
+                            </article>
                         ))
                     )}
                 </div>
-            </div>
+            </section>
         );
     }
 
@@ -227,6 +307,50 @@ export const Dashboard_Page = () => {
     const [current_date, set_current_date] = useState(new Date());
     const [view, set_view] = useState<ViewType>('month');
     const { events, loading } = use_calendar_events(current_date, view);
+    
+    // Modal de confirmación para borrar
+    const [delete_modal_open, set_delete_modal_open] = useState(false);
+    const [event_to_delete, set_event_to_delete] = useState<{ id: string, title: string } | null>(null);
+    const [deleting, set_deleting] = useState(false);
+
+    const handle_delete_request = (event_id: string) => {
+        const event = events.find(e => e.id === event_id);
+        if (event) {
+            set_event_to_delete({ id: event.id, title: event.title });
+            set_delete_modal_open(true);
+        }
+    };
+
+    const handle_confirm_delete = async () => {
+        if (!event_to_delete) return;
+        
+        set_deleting(true);
+        try {
+            // Simular borrado (no conectado al backend)
+            console.log(`Evento ${event_to_delete.id} eliminado visualmente`);
+            
+            // Esperar un poco para simular la llamada
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            // Cerrar modal
+            set_delete_modal_open(false);
+            set_event_to_delete(null);
+            
+            // Aquí normalmente recargarías los eventos o los eliminarías del estado
+            // Por ahora solo mostramos feedback visual
+        } catch (error) {
+            console.error('Error al eliminar evento:', error);
+        } finally {
+            set_deleting(false);
+        }
+    };
+
+    const handle_close_delete_modal = () => {
+        if (!deleting) {
+            set_delete_modal_open(false);
+            set_event_to_delete(null);
+        }
+    };
 
     const handle_prev = () => {
         const new_date = new Date(current_date);
@@ -264,7 +388,7 @@ export const Dashboard_Page = () => {
 
     return (
         <MainLayout>
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-8 gap-4">
+            <header className="flex flex-col md:flex-row justify-between items-start md:items-end mb-8 gap-4">
                 <div className="flex items-center gap-4">
                     <nav aria-label="Navegación del calendario" className="flex gap-2">
                         <button 
@@ -327,7 +451,7 @@ export const Dashboard_Page = () => {
                         Día
                     </Neo_Button>
                 </div>
-            </div>
+            </header>
             
             {loading ? (
                 <div className="flex justify-center items-center h-64" role="status" aria-live="polite">
@@ -335,13 +459,35 @@ export const Dashboard_Page = () => {
                     <span className="sr-only">Cargando eventos del calendario...</span>
                 </div>
             ) : (
-                <CalendarGrid 
-                    currentDate={current_date} 
-                    view={view} 
-                    events={events} 
-                    onViewChange={set_view}
-                    onDateChange={set_current_date}
-                />
+                <>
+                    <CalendarGrid 
+                        currentDate={current_date} 
+                        view={view} 
+                        events={events} 
+                        onViewChange={set_view}
+                        onDateChange={set_current_date}
+                        onDeleteEvent={handle_delete_request}
+                    />
+                    
+                    {/* Modal de confirmación de borrado */}
+                    <Neo_Modal
+                        is_open={delete_modal_open}
+                        on_close={handle_close_delete_modal}
+                        on_confirm={handle_confirm_delete}
+                        title="¿Eliminar evento?"
+                        variant="danger"
+                        confirm_text="Eliminar"
+                        cancel_text="Cancelar"
+                        loading={deleting}
+                    >
+                        <p className="text-base">
+                            ¿Estás seguro de que deseas eliminar el evento <strong>"{event_to_delete?.title}"</strong>?
+                        </p>
+                        <p className="text-sm text-gray-600 mt-2">
+                            Esta acción no se puede deshacer.
+                        </p>
+                    </Neo_Modal>
+                </>
             )}
         </MainLayout>
     );

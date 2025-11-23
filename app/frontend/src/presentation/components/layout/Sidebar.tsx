@@ -32,6 +32,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
                     isOpen ? "translate-x-0" : "-translate-x-full" // Toggle on mobile
                 )}
                 aria-label="Menú lateral de calendarios"
+                id="sidebar-menu"
             >
                 
                 <div>
@@ -61,8 +62,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
                             <li key={cal}>
                                 <button 
                                     type="button"
-                                    className="flex items-center gap-2 w-full text-left cursor-pointer hover:translate-x-1 transition-transform focus:outline-none focus:ring-2 focus:ring-basmati-yellow p-2 rounded"
+                                    className="flex items-center gap-2 w-full text-left cursor-pointer hover:translate-x-1 transition-transform focus:outline-none focus:ring-2 focus:ring-basmati-yellow p-2 rounded hover:bg-white"
                                     aria-label={`Ver calendario ${cal}`}
+                                    onClick={onClose}
                                 >
                                     <div className="w-4 h-4 border-3 border-basmati-black bg-basmati-yellow" aria-hidden="true"></div>
                                     <span className="font-medium">{cal}</span>
@@ -79,8 +81,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
                             <li key={cal}>
                                 <button 
                                     type="button"
-                                    className="flex items-center gap-2 w-full text-left cursor-pointer hover:translate-x-1 transition-transform focus:outline-none focus:ring-2 focus:ring-basmati-yellow p-2 rounded"
+                                    className="flex items-center gap-2 w-full text-left cursor-pointer hover:translate-x-1 transition-transform focus:outline-none focus:ring-2 focus:ring-basmati-yellow p-2 rounded hover:bg-white"
                                     aria-label={`Ver calendario ${cal}`}
+                                    onClick={onClose}
                                 >
                                     <div className="w-4 h-4 border-3 border-basmati-black bg-basmati-blue" aria-hidden="true"></div>
                                     <span className="font-medium">{cal}</span>
