@@ -71,20 +71,15 @@ export const Navbar: React.FC<NavbarProps> = ({ onMenuClick }) => {
             </button>
 
             <div className="flex items-center gap-2 md:gap-4">
-                <Neo_Button 
-                    variant="secondary" 
-                    className="px-3 py-1 text-sm md:text-base md:px-4"
-                    aria-label="Ver mi perfil de usuario"
-                >
-                    Mi perfil
-                </Neo_Button>
-                <Neo_Button 
-                    variant="primary" 
-                    className="hidden md:block px-4 py-1"
-                    aria-label="Ver notificaciones"
-                >
-                    Notificaciones
-                </Neo_Button>
+                <Link to="/settings">
+                    <Neo_Button 
+                        variant="secondary" 
+                        className="px-3 py-1 text-sm md:text-base md:px-4"
+                        aria-label="Ver configuración de perfil y notificaciones"
+                    >
+                        Mi perfil
+                    </Neo_Button>
+                </Link>
             </div>
         </nav>
     );

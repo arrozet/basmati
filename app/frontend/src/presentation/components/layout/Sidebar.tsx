@@ -42,6 +42,18 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
                     </Link>
                 </div>
 
+                <div>
+                    <Link to="/calendars/new" onClick={onClose}>
+                        <Neo_Button 
+                            variant="secondary" 
+                            className="w-full flex items-center justify-center gap-2" 
+                            aria-label="Crear nuevo calendario"
+                        >
+                            <span aria-hidden="true">+</span> Crear calendario
+                        </Neo_Button>
+                    </Link>
+                </div>
+
                 <nav aria-label="Mis calendarios">
                     <h2 className="font-bold text-lg mb-2">Mis calendarios</h2>
                     <ul className="flex flex-col gap-2 list-none p-0">

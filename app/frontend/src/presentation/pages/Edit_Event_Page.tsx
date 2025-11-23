@@ -27,8 +27,7 @@ export const Edit_Event_Page = () => {
         start_time: '',
         end_date: '',
         end_time: '',
-        description: '',
-        color: '#3B82F6'
+        description: ''
     });
 
     useEffect(() => {
@@ -64,8 +63,7 @@ export const Edit_Event_Page = () => {
                         start_time: format_time(start),
                         end_date: format_date(end),
                         end_time: format_time(end),
-                        description: fetched_event.description || '',
-                        color: fetched_event.color || '#3B82F6'
+                        description: fetched_event.description || ''
                     });
                 } else {
                     set_error("Evento no encontrado");
@@ -96,8 +94,7 @@ export const Edit_Event_Page = () => {
                 title: form_data.title,
                 description: form_data.description,
                 start_time: start_iso,
-                end_time: end_iso,
-                color: form_data.color
+                end_time: end_iso
             };
 
             await repository.update(updated_event);
@@ -194,34 +191,6 @@ export const Edit_Event_Page = () => {
                                 aria-label="Descripción del evento"
                             />
                         </div>
-
-                        <fieldset className="border-0 p-0 m-0">
-                            <legend className="block text-sm font-bold text-basmati-black mb-1">
-                                Color del evento
-                            </legend>
-                            <div className="flex gap-2" role="radiogroup" aria-label="Selector de color del evento">
-                                {[
-                                    { color: '#3B82F6', name: 'Azul' },
-                                    { color: '#EF4444', name: 'Rojo' },
-                                    { color: '#10B981', name: 'Verde' },
-                                    { color: '#F59E0B', name: 'Naranja' },
-                                    { color: '#8B5CF6', name: 'Morado' },
-                                    { color: '#EC4899', name: 'Rosa' }
-                                ].map(({ color, name }) => (
-                                    <button
-                                        key={color}
-                                        type="button"
-                                        className={`w-8 h-8 rounded-full border-3 transition-all focus:outline-none focus:ring-4 focus:ring-basmati-yellow focus:ring-offset-2 ${form_data.color === color ? 'border-basmati-black scale-110' : 'border-transparent hover:scale-105'}`}
-                                        style={{ backgroundColor: color }}
-                                        onClick={() => set_form_data({...form_data, color})}
-                                        aria-label={`Seleccionar color ${name}`}
-                                        aria-pressed={form_data.color === color}
-                                        role="radio"
-                                        aria-checked={form_data.color === color}
-                                    />
-                                ))}
-                            </div>
-                        </fieldset>
 
                         <div className="flex justify-end space-x-4 pt-4">
                             <Neo_Button 

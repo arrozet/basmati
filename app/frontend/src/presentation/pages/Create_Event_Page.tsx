@@ -6,9 +6,13 @@ import { Neo_Input } from '../components/ui/Neo_Input';
 import { Neo_Button } from '../components/ui/Neo_Button';
 import { Create_Event_Use_Case } from '../../application/event/create_event_use_case';
 import { Http_Event_Repository } from '../../infrastructure/repositories/http_event_repository';
+import { use_calendars } from '../hooks/use_calendars';
 
 const repository = new Http_Event_Repository();
 const create_event_use_case = new Create_Event_Use_Case(repository);
+
+// Mock user ID (En producción vendría del contexto de autenticación)
+const CURRENT_USER_ID = 'user_dev_1';
 
 /**
  * Página de creación de evento accesible.
@@ -17,6 +21,7 @@ const create_event_use_case = new Create_Event_Use_Case(repository);
 export const Create_Event_Page = () => {
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
+    const { calendars, loading: loading_calendars } = use_calendars(CURRENT_USER_ID);
     const [loading, set_loading] = useState(false);
     const [error, set_error] = useState<string | null>(null);
     
@@ -25,7 +30,7 @@ export const Create_Event_Page = () => {
         start_time: '',
         end_time: '',
         description: '',
-        calendar_id: '507f1f77bcf86cd799439011' // Default valid ObjectId
+        calendar_id: ''
     });
 
     useEffect(() => {
@@ -37,7 +42,15 @@ export const Create_Event_Page = () => {
                 end_time: `${dateParam}T23:59`
             }));
         }
-    }, [searchParams]);
+        
+        // Set default calendar when calendars load
+        if (calendars.length > 0 && !form_data.calendar_id) {
+            set_form_data(prev => ({
+                ...prev,
+                calendar_id: calendars[0].id
+            }));
+        }
+    }, [searchParams, calendars]);
 
     const handle_change = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         set_form_data({
@@ -137,19 +150,41 @@ export const Create_Event_Page = () => {
                             <label htmlFor="event-calendar" className="font-bold text-sm text-basmati-black">
                                 Calendario <span className="text-basmati-red" aria-label="requerido">*</span>
                             </label>
-                            <select 
-                                id="event-calendar"
-                                className="border-3 border-basmati-black px-3 py-2 focus:outline-none focus:ring-4 focus:ring-basmati-yellow ring-offset-2 transition-all bg-white"
-                                name="calendar_id"
-                                value={form_data.calendar_id}
-                                onChange={handle_change}
-                                required
-                                aria-label="Seleccionar calendario para el evento"
-                            >
-                                <option value="507f1f77bcf86cd799439011">Personal</option>
-                                <option value="507f1f77bcf86cd799439012">Trabajo</option>
-                                <option value="507f1f77bcf86cd799439013">Universidad</option>
-                            </select>
+                            {loading_calendars ? (
+                                <div className="border-3 border-basmati-black px-3 py-2 bg-gray-100 text-gray-500">
+                                    Cargando calendarios...
+                                </div>
+                            ) : calendars.length === 0 ? (
+                                <div className="border-3 border-basmati-black px-3 py-2 bg-gray-100 text-gray-500">
+                                    No tienes calendarios. <button type="button" onClick={() => navigate('/calendars/new')} className="underline text-basmati-blue hover:text-basmati-blue/80">Crear uno</button>
+                                </div>
+                            ) : (
+                                <select 
+                                    id="event-calendar"
+                                    className="border-3 border-basmati-black px-3 py-2 focus:outline-none focus:ring-4 focus:ring-basmati-yellow ring-offset-2 transition-all bg-white"
+                                    name="calendar_id"
+                                    value={form_data.calendar_id}
+                                    onChange={handle_change}
+                                    required
+                                    aria-label="Seleccionar calendario para el evento"
+                                >
+                                    {calendars.map(cal => (
+                                        <option key={cal.id} value={cal.id}>
+                                            {cal.title}
+                                        </option>
+                                    ))}
+                                </select>
+                            )}
+                            {form_data.calendar_id && calendars.length > 0 && (
+                                <div className="mt-2 flex items-center gap-2">
+                                    <span className="text-sm text-gray-600">Color del calendario:</span>
+                                    <div 
+                                        className="w-8 h-8 rounded border-3 border-basmati-black"
+                                        style={{ backgroundColor: calendars.find(c => c.id === form_data.calendar_id)?.color || '#EBBE4D' }}
+                                        aria-label="Vista previa del color del calendario"
+                                    ></div>
+                                </div>
+                            )}
                         </div>
 
                         {error && (

@@ -26,8 +26,7 @@ export class Http_Event_Repository implements Event_Repository_Interface {
             start_time: new Date(item.start_time),
             end_time: new Date(item.end_time),
             description: item.description,
-            calendar_id: item.calendar_id,
-            color: item.color
+            calendar_id: item.calendar_id
         };
     }
 
@@ -45,8 +44,7 @@ export class Http_Event_Repository implements Event_Repository_Interface {
             start_time: new Date(item.start_time),
             end_time: new Date(item.end_time),
             description: item.description,
-            calendar_id: item.calendar_id,
-            color: item.color
+            calendar_id: item.calendar_id
         }));
     }
 
@@ -61,8 +59,7 @@ export class Http_Event_Repository implements Event_Repository_Interface {
             start_time: new Date(item.start_time),
             end_time: new Date(item.end_time),
             description: item.description,
-            calendar_id: item.calendar_id,
-            color: item.color
+            calendar_id: item.calendar_id
         }));
     }
 
@@ -77,8 +74,7 @@ export class Http_Event_Repository implements Event_Repository_Interface {
             start_time: new Date(item.start_time),
             end_time: new Date(item.end_time),
             description: item.description,
-            calendar_id: item.calendar_id,
-            color: item.color
+            calendar_id: item.calendar_id
         }));
     }
 
@@ -92,8 +88,7 @@ export class Http_Event_Repository implements Event_Repository_Interface {
                 start_time: new Date(item.start_time),
                 end_time: new Date(item.end_time),
                 description: item.description,
-                calendar_id: item.calendar_id,
-                color: item.color
+                calendar_id: item.calendar_id
             };
         } catch (error) {
             console.error("Error fetching event:", error);
@@ -106,8 +101,7 @@ export class Http_Event_Repository implements Event_Repository_Interface {
             title: event.title,
             description: event.description,
             start_time: event.start_time.toISOString(),
-            end_time: event.end_time.toISOString(),
-            color: event.color,
+            end_time: event.end_time.toISOString()
             // Include other fields if necessary, but these are the main ones for update
         };
 
@@ -120,8 +114,7 @@ export class Http_Event_Repository implements Event_Repository_Interface {
             start_time: new Date(item.start_time),
             end_time: new Date(item.end_time),
             description: item.description,
-            calendar_id: item.calendar_id,
-            color: item.color
+            calendar_id: item.calendar_id
         };
     }
 }

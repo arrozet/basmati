@@ -5,6 +5,5 @@ export interface Event_Model {
     end_time: Date;
     description?: string;
     calendar_id: string;
-    color?: string;
 }
 
