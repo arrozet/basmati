@@ -7,6 +7,10 @@ interface NavbarProps {
     onMenuClick?: () => void;
 }
 
+/**
+ * Barra de navegación principal accesible.
+ * Usa elemento semántico <nav> con landmarks ARIA apropiados.
+ */
 export const Navbar: React.FC<NavbarProps> = ({ onMenuClick }) => {
     const [search_query, set_search_query] = useState("");
     const navigate = useNavigate();
@@ -19,43 +23,66 @@ export const Navbar: React.FC<NavbarProps> = ({ onMenuClick }) => {
     };
 
     return (
-        <nav className="h-16 border-b-3 border-basmati-black bg-white flex items-center justify-between px-4 md:px-6 sticky top-0 z-50">
+        <nav 
+            className="h-16 border-b-3 border-basmati-black bg-white flex items-center justify-between px-4 md:px-6 sticky top-0 z-50"
+            role="navigation"
+            aria-label="Navegación principal"
+        >
             <div className="flex items-center gap-4">
                 <button 
+                    type="button"
                     onClick={onMenuClick}
-                    className="md:hidden p-2 font-bold border-3 border-basmati-black shadow-hard active:shadow-none active:translate-x-[2px] active:translate-y-[2px] transition-all"
+                    className="md:hidden p-2 font-bold border-3 border-basmati-black shadow-hard active:shadow-none active:translate-x-[2px] active:translate-y-[2px] transition-all focus:outline-none focus:ring-4 focus:ring-basmati-yellow focus:ring-offset-2"
+                    aria-label="Abrir menú de navegación"
+                    aria-expanded={false}
                 >
                     ☰
                 </button>
-                <Link to="/dashboard" className="text-xl md:text-2xl font-black tracking-tighter uppercase hover:text-basmati-yellow transition-colors">
+                <Link 
+                    to="/dashboard" 
+                    className="text-xl md:text-2xl font-black tracking-tighter uppercase hover:text-basmati-yellow transition-colors focus:outline-none focus:ring-4 focus:ring-basmati-yellow focus:ring-offset-2"
+                    aria-label="Ir a página principal de Basmati"
+                >
                     Basmati
                 </Link>
             </div>
 
             <div className="flex-1 max-w-xl mx-4 hidden md:block">
-                <form onSubmit={handle_search}>
+                <form onSubmit={handle_search} role="search" aria-label="Buscar eventos y calendarios">
                     <Neo_Input 
                         placeholder="Buscar eventos, calendarios..." 
                         className="w-full h-10"
                         value={search_query}
                         onChange={(e) => set_search_query(e.target.value)}
+                        aria-label="Campo de búsqueda"
+                        type="search"
                     />
                 </form>
             </div>
 
-            {/* Mobile Search Icon (toggles nothing for now, just placeholder or navigate to search) */}
+            {/* Mobile Search Icon */}
             <button 
-                className="md:hidden p-2 mr-2"
+                type="button"
+                className="md:hidden p-2 mr-2 focus:outline-none focus:ring-4 focus:ring-basmati-yellow focus:ring-offset-2 rounded"
                 onClick={() => navigate('/search')}
+                aria-label="Ir a página de búsqueda"
             >
                 🔍
             </button>
 
             <div className="flex items-center gap-2 md:gap-4">
-                <Neo_Button variant="secondary" className="px-3 py-1 text-sm md:text-base md:px-4">
+                <Neo_Button 
+                    variant="secondary" 
+                    className="px-3 py-1 text-sm md:text-base md:px-4"
+                    aria-label="Ver mi perfil de usuario"
+                >
                     Mi perfil
                 </Neo_Button>
-                <Neo_Button variant="primary" className="hidden md:block px-4 py-1">
+                <Neo_Button 
+                    variant="primary" 
+                    className="hidden md:block px-4 py-1"
+                    aria-label="Ver notificaciones"
+                >
                     Notificaciones
                 </Neo_Button>
             </div>

@@ -266,24 +266,36 @@ export const Dashboard_Page = () => {
         <MainLayout>
             <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-8 gap-4">
                 <div className="flex items-center gap-4">
-                    <div className="flex gap-2">
-                        <button onClick={handle_prev} className="p-2 border-3 border-basmati-black bg-white shadow-hard hover:translate-y-1 hover:shadow-none transition-all">
-                            <FontAwesomeIcon icon={faChevronLeft} />
+                    <nav aria-label="Navegación del calendario" className="flex gap-2">
+                        <button 
+                            type="button"
+                            onClick={handle_prev} 
+                            className="p-2 border-3 border-basmati-black bg-white shadow-hard hover:translate-y-1 hover:shadow-none transition-all focus:outline-none focus:ring-4 focus:ring-basmati-yellow focus:ring-offset-2"
+                            aria-label={`Ir a ${view === 'year' ? 'año anterior' : view === 'month' ? 'mes anterior' : view === 'week' ? 'semana anterior' : 'día anterior'}`}
+                        >
+                            <FontAwesomeIcon icon={faChevronLeft} aria-hidden="true" />
                         </button>
-                        <button onClick={handle_next} className="p-2 border-3 border-basmati-black bg-white shadow-hard hover:translate-y-1 hover:shadow-none transition-all">
-                            <FontAwesomeIcon icon={faChevronRight} />
+                        <button 
+                            type="button"
+                            onClick={handle_next} 
+                            className="p-2 border-3 border-basmati-black bg-white shadow-hard hover:translate-y-1 hover:shadow-none transition-all focus:outline-none focus:ring-4 focus:ring-basmati-yellow focus:ring-offset-2"
+                            aria-label={`Ir a ${view === 'year' ? 'año siguiente' : view === 'month' ? 'mes siguiente' : view === 'week' ? 'semana siguiente' : 'día siguiente'}`}
+                        >
+                            <FontAwesomeIcon icon={faChevronRight} aria-hidden="true" />
                         </button>
-                    </div>
+                    </nav>
                     <div>
-                        <h2 className="text-3xl md:text-4xl font-black uppercase mb-1">{get_header_title()}</h2>
+                        <h1 className="text-3xl md:text-4xl font-black uppercase mb-1">{get_header_title()}</h1>
                         <p className="font-medium text-gray-600">La vida es eso que pasa mientras haces otros planes.</p>
                     </div>
                 </div>
-                <div className="grid grid-cols-2 md:flex gap-2 w-full md:w-auto">
+                <div className="grid grid-cols-2 md:flex gap-2 w-full md:w-auto" role="group" aria-label="Seleccionar vista del calendario">
                     <Neo_Button 
                         variant={view === 'year' ? 'primary' : 'secondary'} 
                         onClick={() => set_view('year')}
                         className="flex-1 md:flex-none"
+                        aria-pressed={view === 'year'}
+                        aria-label="Vista por año"
                     >
                         Año
                     </Neo_Button>
@@ -291,6 +303,8 @@ export const Dashboard_Page = () => {
                         variant={view === 'month' ? 'primary' : 'secondary'} 
                         onClick={() => set_view('month')}
                         className="flex-1 md:flex-none"
+                        aria-pressed={view === 'month'}
+                        aria-label="Vista por mes"
                     >
                         Mes
                     </Neo_Button>
@@ -298,6 +312,8 @@ export const Dashboard_Page = () => {
                         variant={view === 'week' ? 'primary' : 'secondary'} 
                         onClick={() => set_view('week')}
                         className="flex-1 md:flex-none"
+                        aria-pressed={view === 'week'}
+                        aria-label="Vista por semana"
                     >
                         Semana
                     </Neo_Button>
@@ -305,6 +321,8 @@ export const Dashboard_Page = () => {
                         variant={view === 'day' ? 'primary' : 'secondary'} 
                         onClick={() => set_view('day')}
                         className="flex-1 md:flex-none"
+                        aria-pressed={view === 'day'}
+                        aria-label="Vista por día"
                     >
                         Día
                     </Neo_Button>
@@ -312,8 +330,9 @@ export const Dashboard_Page = () => {
             </div>
             
             {loading ? (
-                <div className="flex justify-center items-center h-64">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-basmati-black"></div>
+                <div className="flex justify-center items-center h-64" role="status" aria-live="polite">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-basmati-black" aria-hidden="true"></div>
+                    <span className="sr-only">Cargando eventos del calendario...</span>
                 </div>
             ) : (
                 <CalendarGrid 

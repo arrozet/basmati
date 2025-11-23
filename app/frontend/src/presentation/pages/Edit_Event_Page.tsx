@@ -9,6 +9,10 @@ import { Event_Model } from '../../domain/models/event_model';
 
 const repository = new Http_Event_Repository();
 
+/**
+ * Página de edición de evento accesible.
+ * Formulario con labels asociados, botones semánticos y aria-labels.
+ */
 export const Edit_Event_Page = () => {
     const { id } = useParams();
     const navigate = useNavigate();
@@ -177,34 +181,47 @@ export const Edit_Event_Page = () => {
                         </div>
 
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                            <label htmlFor="event-description" className="block text-sm font-bold text-basmati-black mb-1">
                                 Descripción
                             </label>
                             <textarea
-                                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                id="event-description"
+                                className="w-full px-3 py-2 border-3 border-basmati-black focus:outline-none focus:ring-4 focus:ring-basmati-yellow ring-offset-2 bg-white"
                                 rows={4}
                                 value={form_data.description}
                                 onChange={(e) => set_form_data({...form_data, description: e.target.value})}
                                 placeholder="Detalles del evento..."
+                                aria-label="Descripción del evento"
                             />
                         </div>
 
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                                Color
-                            </label>
-                            <div className="flex gap-2">
-                                {['#3B82F6', '#EF4444', '#10B981', '#F59E0B', '#8B5CF6', '#EC4899'].map((color) => (
+                        <fieldset className="border-0 p-0 m-0">
+                            <legend className="block text-sm font-bold text-basmati-black mb-1">
+                                Color del evento
+                            </legend>
+                            <div className="flex gap-2" role="radiogroup" aria-label="Selector de color del evento">
+                                {[
+                                    { color: '#3B82F6', name: 'Azul' },
+                                    { color: '#EF4444', name: 'Rojo' },
+                                    { color: '#10B981', name: 'Verde' },
+                                    { color: '#F59E0B', name: 'Naranja' },
+                                    { color: '#8B5CF6', name: 'Morado' },
+                                    { color: '#EC4899', name: 'Rosa' }
+                                ].map(({ color, name }) => (
                                     <button
                                         key={color}
                                         type="button"
-                                        className={`w-8 h-8 rounded-full border-2 ${form_data.color === color ? 'border-gray-900' : 'border-transparent'}`}
+                                        className={`w-8 h-8 rounded-full border-3 transition-all focus:outline-none focus:ring-4 focus:ring-basmati-yellow focus:ring-offset-2 ${form_data.color === color ? 'border-basmati-black scale-110' : 'border-transparent hover:scale-105'}`}
                                         style={{ backgroundColor: color }}
                                         onClick={() => set_form_data({...form_data, color})}
+                                        aria-label={`Seleccionar color ${name}`}
+                                        aria-pressed={form_data.color === color}
+                                        role="radio"
+                                        aria-checked={form_data.color === color}
                                     />
                                 ))}
                             </div>
-                        </div>
+                        </fieldset>
 
                         <div className="flex justify-end space-x-4 pt-4">
                             <Neo_Button 

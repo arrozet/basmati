@@ -6,5 +6,27 @@
   body {
     @apply bg-basmati-bg text-basmati-black;
   }
+
+  /* Accesibilidad: Foco visible para todos los elementos interactivos */
+  *:focus-visible {
+    @apply outline-none ring-4 ring-basmati-yellow ring-offset-2;
+  }
+
+  /* Asegurar que los botones y enlaces tengan cursor pointer */
+  button,
+  a {
+    cursor: pointer;
+  }
+
+  /* Mejorar legibilidad con tamaño de fuente base relativo */
+  html {
+    font-size: 100%; /* 16px por defecto, escalable según preferencias del usuario */
+  }
+
+  /* Asegurar contraste mínimo en texto deshabilitado */
+  :disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
 }
 

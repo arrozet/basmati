@@ -10,6 +10,10 @@ import { Http_Event_Repository } from '../../infrastructure/repositories/http_ev
 const repository = new Http_Event_Repository();
 const create_event_use_case = new Create_Event_Use_Case(repository);
 
+/**
+ * Página de creación de evento accesible.
+ * Usa formulario semántico con labels asociados, aria-live para mensajes de error.
+ */
 export const Create_Event_Page = () => {
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
@@ -42,7 +46,8 @@ export const Create_Event_Page = () => {
         });
     };
 
-    const handle_submit = async () => {
+    const handle_submit = async (e: React.FormEvent) => {
+        e.preventDefault();
         set_loading(true);
         set_error(null);
 
@@ -73,50 +78,73 @@ export const Create_Event_Page = () => {
         <MainLayout>
             <div className="flex justify-center">
                 <Neo_Card className="w-full max-w-2xl" title="Crear evento">
-                    <form className="flex flex-col gap-6">
+                    <form 
+                        onSubmit={handle_submit} 
+                        className="flex flex-col gap-6"
+                        aria-label="Formulario de creación de evento"
+                    >
                         <Neo_Input 
                             label="Título" 
                             placeholder="Ej: Cena con amigos" 
                             name="title"
                             value={form_data.title}
                             onChange={handle_change}
+                            required
+                            id="event-title"
+                            autoComplete="off"
                         />
                         
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <Neo_Input 
-                                label="Fecha inicio" 
-                                type="datetime-local" 
-                                name="start_time"
-                                value={form_data.start_time}
-                                onChange={handle_change}
-                            />
-                            <Neo_Input 
-                                label="Fecha fin" 
-                                type="datetime-local" 
-                                name="end_time"
-                                value={form_data.end_time}
-                                onChange={handle_change}
-                            />
-                        </div>
+                        <fieldset className="border-0 p-0 m-0">
+                            <legend className="font-bold text-sm mb-2 text-basmati-black">Fechas del evento</legend>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <Neo_Input 
+                                    label="Fecha inicio" 
+                                    type="datetime-local" 
+                                    name="start_time"
+                                    value={form_data.start_time}
+                                    onChange={handle_change}
+                                    required
+                                    id="event-start"
+                                />
+                                <Neo_Input 
+                                    label="Fecha fin" 
+                                    type="datetime-local" 
+                                    name="end_time"
+                                    value={form_data.end_time}
+                                    onChange={handle_change}
+                                    required
+                                    id="event-end"
+                                />
+                            </div>
+                        </fieldset>
 
                         <div className="flex flex-col gap-1">
-                            <label className="font-bold text-sm">Descripción</label>
+                            <label htmlFor="event-description" className="font-bold text-sm text-basmati-black">
+                                Descripción
+                            </label>
                             <textarea 
-                                className="border-3 border-basmati-black p-2 focus:outline-none focus:ring-4 focus:ring-basmati-yellow/50 transition-all bg-white h-32 resize-none"
+                                id="event-description"
+                                className="border-3 border-basmati-black px-3 py-2 focus:outline-none focus:ring-4 focus:ring-basmati-yellow ring-offset-2 transition-all bg-white h-32 resize-none"
                                 placeholder="Detalles del evento..."
                                 name="description"
                                 value={form_data.description}
                                 onChange={handle_change}
+                                aria-label="Descripción del evento"
                             />
                         </div>
 
                         <div className="flex flex-col gap-1">
-                            <label className="font-bold text-sm">Calendario</label>
+                            <label htmlFor="event-calendar" className="font-bold text-sm text-basmati-black">
+                                Calendario <span className="text-basmati-red" aria-label="requerido">*</span>
+                            </label>
                             <select 
-                                className="border-3 border-basmati-black p-2 focus:outline-none focus:ring-4 focus:ring-basmati-yellow/50 transition-all bg-white"
+                                id="event-calendar"
+                                className="border-3 border-basmati-black px-3 py-2 focus:outline-none focus:ring-4 focus:ring-basmati-yellow ring-offset-2 transition-all bg-white"
                                 name="calendar_id"
                                 value={form_data.calendar_id}
                                 onChange={handle_change}
+                                required
+                                aria-label="Seleccionar calendario para el evento"
                             >
                                 <option value="507f1f77bcf86cd799439011">Personal</option>
                                 <option value="507f1f77bcf86cd799439012">Trabajo</option>
@@ -125,22 +153,32 @@ export const Create_Event_Page = () => {
                         </div>
 
                         {error && (
-                            <div className="bg-basmati-red text-white p-2 font-bold">
+                            <div 
+                                className="bg-basmati-red text-white p-3 font-bold border-3 border-basmati-black" 
+                                role="alert"
+                                aria-live="assertive"
+                            >
                                 {error}
                             </div>
                         )}
 
                         <div className="flex flex-col md:flex-row gap-4 mt-4">
                             <Neo_Button 
-                                type="button" 
-                                onClick={handle_submit} 
+                                type="submit" 
                                 variant="success" 
                                 className="flex-1"
                                 disabled={loading}
+                                loading={loading}
                             >
                                 {loading ? 'Guardando...' : 'Guardar evento'}
                             </Neo_Button>
-                            <Neo_Button type="button" onClick={() => navigate('/dashboard')} variant="danger" className="flex-1">
+                            <Neo_Button 
+                                type="button" 
+                                onClick={() => navigate('/dashboard')} 
+                                variant="danger" 
+                                className="flex-1"
+                                disabled={loading}
+                            >
                                 Cancelar
                             </Neo_Button>
                         </div>
