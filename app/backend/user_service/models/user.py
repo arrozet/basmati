@@ -45,6 +45,7 @@ class UserModel(BaseModel):
     followed_calendar_ids: list[PyObjectId] = Field(default_factory=list)
     created_at: datetime = Field(default_factory=datetime.utcnow)
     last_login: datetime | None = None
+    schema_version: int = Field(default=1, description="Versión del esquema del documento")
     
     model_config = {
         "populate_by_name": True,

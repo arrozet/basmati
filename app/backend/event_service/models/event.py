@@ -126,6 +126,7 @@ class EventModel(BaseModel):
 	)
 	created_at: datetime = Field(default_factory=datetime.utcnow, description="Fecha de creación")
 	updated_at: datetime = Field(default_factory=datetime.utcnow, description="Última actualización")
+	schema_version: int = Field(default=1, description="Versión del esquema del documento")
 
 	model_config = {
 		"populate_by_name": True,
