@@ -3,7 +3,7 @@ from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Path, Body, status
 
-from core.database import get_event_repository
+from core.database import get_event_repository, get_database
 from schemas.common import ResponseMessage
 from schemas.event import (
 	EventCreate,
@@ -15,23 +15,19 @@ from schemas.event import (
 	EventAttachment,
 	EventCommentAuthor,
 )
-from services.event_service import EventService
+from services.event_service_v2 import EventServiceV2
+from repositories.event_repository_v2 import EventRepositoryV2
 
 
 router = APIRouter()
 
 
-async def get_event_service(event_repository = Depends(get_event_repository)) -> EventService:
-	"""
-	Proporciona una instancia de EventService con el Repository.
-	
-	Args:
-		event_repository: Repository de eventos (inyectado por FastAPI)
-		
-	Returns:
-		EventService: Instancia del servicio de eventos
-	"""
-	return EventService(event_repository)
+
+from core.database import get_database
+
+async def get_event_service_v2(db = Depends(get_database)) -> EventServiceV2:
+    repository = EventRepositoryV2(db)
+    return EventServiceV2(repository)
 
 
 @router.post(
@@ -48,7 +44,7 @@ async def get_event_service(event_repository = Depends(get_event_repository)) ->
 )
 async def create_event(
 	event: EventCreate = Body(..., description="Datos del evento a crear"),
-	service: EventService = Depends(get_event_service),
+	service: EventServiceV2 = Depends(get_event_service_v2),
 ):
 	"""
 	Crea un nuevo evento en el sistema.
@@ -85,7 +81,7 @@ async def create_event(
 )
 async def get_event(
 	event_id: str = Path(..., description="ID único del evento"),
-	service: EventService = Depends(get_event_service),
+	service: EventServiceV2 = Depends(get_event_service_v2),
 ):
 	"""
 	Obtiene un evento por su ID.
@@ -124,7 +120,7 @@ async def get_event(
 async def update_event(
 	event_id: str = Path(..., description="ID único del evento"),
 	event: EventUpdate = Body(..., description="Datos a actualizar del evento"),
-	service: EventService = Depends(get_event_service),
+	service: EventServiceV2 = Depends(get_event_service_v2),
 ):
 	"""
 	Actualiza los datos de un evento existente.
@@ -170,7 +166,7 @@ async def update_event(
 )
 async def delete_event(
 	event_id: str = Path(..., description="ID único del evento"),
-	service: EventService = Depends(get_event_service),
+	service: EventServiceV2 = Depends(get_event_service_v2),
 ):
 	"""
 	Elimina un evento del sistema.
@@ -210,7 +206,7 @@ async def delete_event(
 async def add_comment(
 	event_id: str = Path(..., description="ID único del evento"),
 	comment: CommentCreate = Body(..., description="Datos del comentario a crear"),
-	service: EventService = Depends(get_event_service),
+	service: EventServiceV2 = Depends(get_event_service_v2),
 ):
 	"""
 	Agrega un comentario a un evento y dispara notificación.
@@ -259,7 +255,7 @@ async def add_comment(
 async def add_attachment(
 	event_id: str = Path(..., description="ID único del evento"),
 	attachment: AttachmentCreate = Body(..., description="Datos del adjunto a crear"),
-	service: EventService = Depends(get_event_service),
+	service: EventServiceV2 = Depends(get_event_service_v2),
 ):
 	"""
 	Agrega un adjunto (archivo/documento) a un evento.
@@ -304,7 +300,7 @@ async def add_attachment(
 )
 async def search_by_calendar(
 	calendar_id: str = Query(..., description="ID del calendario"),
-	service: EventService = Depends(get_event_service),
+	service: EventServiceV2 = Depends(get_event_service_v2),
 ):
 	"""
 	Lista todos los eventos pertenecientes a un calendario específico.
@@ -334,7 +330,8 @@ async def search_by_calendar(
 async def search_by_date_range(
 	start: datetime = Query(..., description="Fecha inicio ISO 8601"),
 	end: datetime = Query(..., description="Fecha fin ISO 8601"),
-	service: EventService = Depends(get_event_service),
+	calendar_id: str | None = Query(None, description="ID del calendario (opcional)"),
+	service: EventServiceV2 = Depends(get_event_service_v2),
 ):
 	"""
 	Busca eventos dentro de un rango de fechas.
@@ -342,6 +339,7 @@ async def search_by_date_range(
 	Args:
 		start: Fecha de inicio del rango (formato ISO 8601)
 		end: Fecha de fin del rango (formato ISO 8601)
+		calendar_id: ID del calendario (opcional)
 		service: Servicio de eventos (inyectado por FastAPI)
 		
 	Returns:
@@ -351,7 +349,7 @@ async def search_by_date_range(
 		HTTPException 400: Si el rango de fechas es inválido
 	"""
 	try:
-		events = await service.search_by_date_range(start, end)
+		events = await service.search_by_date_range(start, end, calendar_id)
 	except ValueError as exc:
 		raise HTTPException(
 			status_code=status.HTTP_400_BAD_REQUEST,
@@ -372,7 +370,7 @@ async def search_by_date_range(
 )
 async def get_comment_users(
 	event_id: str = Path(..., description="ID único del evento"),
-	service: EventService = Depends(get_event_service),
+	service: EventServiceV2 = Depends(get_event_service_v2),
 ):
 	"""
 	Recupera los autores que han comentado en un evento específico.
@@ -399,7 +397,7 @@ async def get_comment_users(
 )
 async def get_commented_events_by_user(
 	user_external_id: str = Path(..., description="ID externo del usuario"),
-	service: EventService = Depends(get_event_service),
+	service: EventServiceV2 = Depends(get_event_service_v2),
 ):
 	"""
 	Obtiene todos los eventos en los que un usuario ha comentado.
@@ -426,7 +424,7 @@ async def get_commented_events_by_user(
 )
 async def search_by_text(
 	query: str = Query(..., description="Término de búsqueda"),
-	service: EventService = Depends(get_event_service),
+	service: EventServiceV2 = Depends(get_event_service_v2),
 ):
 	"""
 	Realiza una búsqueda full-text en eventos.
@@ -455,7 +453,7 @@ async def search_by_text(
 )
 async def search_by_calendar_title(
 	calendar_title: str = Query(..., description="Título del calendario"),
-	service: EventService = Depends(get_event_service),
+	service: EventServiceV2 = Depends(get_event_service_v2),
 ):
 	"""
 	Busca eventos por título del calendario (usando campo denormalizado).
@@ -482,7 +480,7 @@ async def search_by_calendar_title(
 )
 async def search_by_location(
 	location_query: str = Query(..., description="Término de búsqueda para ubicación"),
-	service: EventService = Depends(get_event_service),
+	service: EventServiceV2 = Depends(get_event_service_v2),
 ):
 	"""
 	Busca eventos por ubicación (address o place_name).
@@ -511,7 +509,7 @@ async def search_advanced(
 	title: str | None = Query(None, description="Título del evento"),
 	organizer: str | None = Query(None, description="Organizador (Título del calendario)"),
 	keywords: str | None = Query(None, description="Palabras clave (Descripción)"),
-	service: EventService = Depends(get_event_service),
+	service: EventServiceV2 = Depends(get_event_service_v2),
 ):
 	"""
 	Realiza una búsqueda avanzada en eventos.

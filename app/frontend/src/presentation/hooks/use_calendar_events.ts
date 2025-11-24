@@ -6,7 +6,7 @@ import { Event_Model } from "../../domain/models/event_model";
 const repository = new Http_Event_Repository();
 const get_events_use_case = new Get_Events_By_Date_Range_Use_Case(repository);
 
-export const use_calendar_events = (currentDate: Date, view: 'year' | 'month' | 'week' | 'day') => {
+export const use_calendar_events = (currentDate: Date, view: 'year' | 'month' | 'week' | 'day', calendar_id?: string) => {
     const [events, set_events] = useState<Event_Model[]>([]);
     const [loading, set_loading] = useState(false);
 
@@ -39,7 +39,7 @@ export const use_calendar_events = (currentDate: Date, view: 'year' | 'month' | 
                 start.setHours(0,0,0,0);
                 end.setHours(23,59,59,999);
 
-                const result = await get_events_use_case.execute(start, end);
+                const result = await get_events_use_case.execute(start, end, calendar_id);
                 set_events(result);
             } catch (error) {
                 console.error("Error fetching events:", error);
@@ -49,7 +49,7 @@ export const use_calendar_events = (currentDate: Date, view: 'year' | 'month' | 
         };
 
         fetch_events();
-    }, [currentDate, view]);
+    }, [currentDate, view, calendar_id]);
 
     return { events, loading };
 };

@@ -30,13 +30,17 @@ export class Http_Event_Repository implements Event_Repository_Interface {
         };
     }
 
-    async get_events_by_date_range(start: Date, end: Date): Promise<Event_Model[]> {
-        const response = await api_client.get("/v2/events/search/by-date-range", {
-            params: {
-                start: start.toISOString(),
-                end: end.toISOString()
-            }
-        });
+    async get_events_by_date_range(start: Date, end: Date, calendar_id?: string): Promise<Event_Model[]> {
+        const params: any = {
+            start: start.toISOString(),
+            end: end.toISOString()
+        };
+
+        if (calendar_id) {
+            params.calendar_id = calendar_id;
+        }
+
+        const response = await api_client.get("/v2/events/search/by-date-range", { params });
 
         return response.data.map((item: any) => ({
             id: item.id,

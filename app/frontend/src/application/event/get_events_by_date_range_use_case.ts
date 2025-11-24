@@ -8,7 +8,7 @@ export class Get_Events_By_Date_Range_Use_Case {
         this.repository = repository;
     }
 
-    async execute(start: Date, end: Date): Promise<Event_Model[]> {
-        return await this.repository.get_events_by_date_range(start, end);
+    async execute(start: Date, end: Date, calendar_id?: string): Promise<Event_Model[]> {
+        return await this.repository.get_events_by_date_range(start, end, calendar_id);
     }
 }

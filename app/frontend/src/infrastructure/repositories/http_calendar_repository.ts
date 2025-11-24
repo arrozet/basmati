@@ -8,12 +8,12 @@ export class Http_Calendar_Repository implements Calendar_Repository_Interface {
      */
     async get_all(user_id: string): Promise<Calendar_Model[]> {
         try {
-            const response = await api_client.get(`/v1/calendars/user/${user_id}`);
+            const response = await api_client.get(`/v1/calendars/search/by-creator?creator_external_id=${user_id}`);
             return response.data.map((item: any) => ({
                 id: item.id,
                 title: item.title,
-                color: item.color,
-                owner_id: item.owner_id,
+                color: item.color || '#EBBE4D',
+                owner_id: item.creator_id || item.owner_id,
                 icon: item.icon,
                 is_public: item.is_public
             }));

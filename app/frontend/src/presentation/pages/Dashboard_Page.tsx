@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { MainLayout } from '../components/layout/MainLayout';
 import { Neo_Card } from '../components/ui/Neo_Card';
 import { Neo_Button } from '../components/ui/Neo_Button';
 import { Neo_Modal } from '../components/ui/Neo_Modal';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faChevronLeft, faChevronRight, faTrash } from '@fortawesome/free-solid-svg-icons';
+import { faChevronLeft, faChevronRight, faTrash, faFilter } from '@fortawesome/free-solid-svg-icons';
 import { use_calendar_events } from '../hooks/use_calendar_events';
 import { Event_Model } from '../../domain/models/event_model';
 
@@ -304,9 +304,12 @@ const CalendarGrid: React.FC<{
 };
 
 export const Dashboard_Page = () => {
+    const [searchParams, setSearchParams] = useSearchParams();
+    const calendar_id = searchParams.get('calendar_id') || undefined;
+    
     const [current_date, set_current_date] = useState(new Date());
     const [view, set_view] = useState<ViewType>('month');
-    const { events, loading } = use_calendar_events(current_date, view);
+    const { events, loading } = use_calendar_events(current_date, view, calendar_id);
     
     // Modal de confirmación para borrar
     const [delete_modal_open, set_delete_modal_open] = useState(false);
@@ -386,6 +389,12 @@ export const Dashboard_Page = () => {
         if (view === 'day') return `${current_date.getDate()} de ${months[current_date.getMonth()]} ${current_date.getFullYear()}`;
     };
 
+    const clear_calendar_filter = () => {
+        const newParams = new URLSearchParams(searchParams);
+        newParams.delete('calendar_id');
+        setSearchParams(newParams);
+    };
+
     return (
         <MainLayout>
             <header className="flex flex-col md:flex-row justify-between items-start md:items-end mb-8 gap-4">
@@ -410,7 +419,20 @@ export const Dashboard_Page = () => {
                     </nav>
                     <div>
                         <h1 className="text-3xl md:text-4xl font-black uppercase mb-1">{get_header_title()}</h1>
-                        <p className="font-medium text-gray-600">La vida es eso que pasa mientras haces otros planes.</p>
+                        <div className="flex items-center gap-2">
+                            <p className="font-medium text-gray-600">La vida es eso que pasa mientras haces otros planes.</p>
+                            {calendar_id && (
+                                <button 
+                                    onClick={clear_calendar_filter}
+                                    className="text-xs bg-basmati-blue text-white px-2 py-1 rounded-full flex items-center gap-1 hover:bg-blue-600 transition-colors"
+                                    title="Quitar filtro de calendario"
+                                >
+                                    <FontAwesomeIcon icon={faFilter} />
+                                    Filtro activo
+                                    <span className="ml-1 font-bold">×</span>
+                                </button>
+                            )}
+                        </div>
                     </div>
                 </div>
                 <div className="grid grid-cols-2 md:flex gap-2 w-full md:w-auto" role="group" aria-label="Seleccionar vista del calendario">

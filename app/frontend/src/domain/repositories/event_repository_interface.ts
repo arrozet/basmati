@@ -9,7 +9,7 @@ export interface Event_Repository_Interface {
      * @param start Fecha inicio.
      * @param end Fecha fin.
      */
-    get_events_by_date_range(start: Date, end: Date): Promise<Event_Model[]>;
+    get_events_by_date_range(start: Date, end: Date, calendar_id?: string): Promise<Event_Model[]>;
 
     /**
      * Busca eventos por texto.
