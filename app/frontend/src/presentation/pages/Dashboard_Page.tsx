@@ -27,10 +27,11 @@ const CalendarGrid: React.FC<{
     currentDate: Date, 
     view: ViewType, 
     events: Event_Model[],
+    calendar_id?: string,
     onViewChange: (view: ViewType) => void,
     onDateChange: (date: Date) => void,
     onDeleteEvent: (event_id: string) => void
-}> = ({ currentDate, view, events, onViewChange, onDateChange, onDeleteEvent }) => {
+}> = ({ currentDate, view, events, calendar_id, onViewChange, onDateChange, onDeleteEvent }) => {
     const navigate = useNavigate();
     const year = currentDate.getFullYear();
     const month = currentDate.getMonth();
@@ -48,7 +49,21 @@ const CalendarGrid: React.FC<{
         const month = String(date.getMonth() + 1).padStart(2, '0');
         const day = String(date.getDate()).padStart(2, '0');
         const dateStr = `${year}-${month}-${day}`;
-        navigate(`/events/new?date=${dateStr}`);
+        
+        // Get calendar_id from URL params if exists (using window.location or passing it as prop)
+        // Since we are inside CalendarGrid, we don't have direct access to searchParams unless passed
+        // But we can use the hook again or just pass it down.
+        // Actually, CalendarGrid is a component inside Dashboard_Page which has searchParams.
+        // Let's pass calendar_id to CalendarGrid.
+        
+        // Wait, I need to update the component signature first.
+        // For now, let's just use the prop I will add.
+        const params = new URLSearchParams();
+        params.append('date', dateStr);
+        if (calendar_id) {
+            params.append('calendar_id', calendar_id);
+        }
+        navigate(`/events/new?${params.toString()}`);
     };
 
     if (view === 'year') {
@@ -486,6 +501,7 @@ export const Dashboard_Page = () => {
                         currentDate={current_date} 
                         view={view} 
                         events={events} 
+                        calendar_id={calendar_id}
                         onViewChange={set_view}
                         onDateChange={set_current_date}
                         onDeleteEvent={handle_delete_request}

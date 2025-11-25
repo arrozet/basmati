@@ -26,6 +26,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
         if (onClose) onClose();
     };
 
+    const createEventLink = active_calendar_id 
+        ? `/events/new?calendar_id=${active_calendar_id}` 
+        : '/events/new';
+
     return (
         <>
             {/* Overlay for mobile */}
@@ -48,7 +52,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
             >
                 
                 <div>
-                    <Link to="/events/new" onClick={onClose}>
+                    <Link to={createEventLink} onClick={onClose}>
                         <Neo_Button className="w-full flex items-center justify-center gap-2" aria-label="Crear nuevo evento">
                             <span aria-hidden="true">+</span> Crear evento
                         </Neo_Button>

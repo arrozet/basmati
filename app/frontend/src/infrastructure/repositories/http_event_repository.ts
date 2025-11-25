@@ -36,7 +36,7 @@ export class Http_Event_Repository implements Event_Repository_Interface {
             end: end.toISOString()
         };
 
-        if (calendar_id) {
+        if (calendar_id && calendar_id.trim() !== "") {
             params.calendar_id = calendar_id;
         }
 

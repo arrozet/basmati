@@ -46,7 +46,36 @@ class EventRepositoryV2(EventRepository):
             }
             
             if calendar_id:
-                query["$and"].append({"calendar_id": ObjectId(calendar_id)})
+                if ObjectId.is_valid(calendar_id):
+                    # Buscar tanto por ObjectId como por String para compatibilidad con datos legacy
+                    query["$and"].append({
+                        "$or": [
+                            {"calendar_id": ObjectId(calendar_id)},
+                            {"calendar_id": calendar_id}
+                        ]
+                    })
+                else:
+                    query["$and"].append({"calendar_id": calendar_id})
+
+            cursor = self.collection.find(query)
+            return await cursor.to_list(length=200)
+        except Exception:
+            return []
+
+    async def find_by_calendar(self, calendar_id: str) -> list[dict]:
+        """Busca eventos por ID de calendario (parametrized query 1)."""
+        try:
+            query = {}
+            if ObjectId.is_valid(calendar_id):
+                # Buscar tanto por ObjectId como por String para compatibilidad con datos legacy
+                query = {
+                    "$or": [
+                        {"calendar_id": ObjectId(calendar_id)},
+                        {"calendar_id": calendar_id}
+                    ]
+                }
+            else:
+                query = {"calendar_id": calendar_id}
 
             cursor = self.collection.find(query)
             return await cursor.to_list(length=200)

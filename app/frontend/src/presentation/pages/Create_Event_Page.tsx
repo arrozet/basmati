@@ -35,6 +35,8 @@ export const Create_Event_Page = () => {
 
     useEffect(() => {
         const dateParam = searchParams.get('date');
+        const calendarIdParam = searchParams.get('calendar_id');
+
         if (dateParam) {
             set_form_data(prev => ({
                 ...prev,
@@ -43,8 +45,13 @@ export const Create_Event_Page = () => {
             }));
         }
         
-        // Set default calendar when calendars load
-        if (calendars.length > 0 && !form_data.calendar_id) {
+        // Set default calendar
+        if (calendarIdParam) {
+            set_form_data(prev => ({
+                ...prev,
+                calendar_id: calendarIdParam
+            }));
+        } else if (calendars.length > 0 && !form_data.calendar_id) {
             set_form_data(prev => ({
                 ...prev,
                 calendar_id: calendars[0].id

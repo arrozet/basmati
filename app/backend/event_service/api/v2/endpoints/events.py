@@ -1,7 +1,7 @@
 """Endpoints REST para la gestión de eventos"""
 from datetime import datetime
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Path, Body, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Path, Body, status, Request
 
 from core.database import get_event_repository, get_database
 from schemas.common import ResponseMessage
@@ -22,6 +22,26 @@ from repositories.event_repository_v2 import EventRepositoryV2
 router = APIRouter()
 
 
+# async def get_event_service(request: Request) -> EventServiceV2:
+# 	"""
+# 	Proporciona una instancia de EventServiceV2 con el RepositoryV2.
+# 	
+# 	Args:
+# 		request: Request de FastAPI para acceder a la DB
+# 		
+# 	Returns:
+# 		EventServiceV2: Instancia del servicio de eventos V2
+# 	"""
+# 	# Obtenemos la DB desde app.state (configurado en main.py)
+# 	# Nota: Esto asume que main.py expone la db en app.state.database
+# 	# Si no, deberíamos usar la misma inyección que antes pero adaptada.
+# 	# Dado que get_event_repository inyecta EventRepository, necesitamos instanciar V2 manualmente o crear un get_event_repository_v2
+# 	
+# 	# Vamos a usar la inyección existente de DB si es posible, o crear una nueva dependencia.
+# 	# Para simplificar y no tocar core/database.py (que podría ser legacy), lo hacemos aquí si es posible.
+# 	# Pero get_event_repository devuelve una instancia de EventRepository.
+# 	# Mejor opción: Importar get_database y crear el repo aquí.
+# 	pass
 
 from core.database import get_database
 
