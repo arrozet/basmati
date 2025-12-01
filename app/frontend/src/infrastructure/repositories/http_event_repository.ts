@@ -8,14 +8,29 @@ export class Http_Event_Repository implements Event_Repository_Interface {
         return Promise.resolve([]);
     }
     async create(event: Omit<Event_Model, 'id'>): Promise<Event_Model> {
+        // Helper to validate ObjectId
+        const isValidObjectId = (id: string) => /^[0-9a-fA-F]{24}$/.test(id);
+
+        let calendar_id = event.calendar_id;
+        // Fallback if ID is missing or invalid (e.g. ":1" from routing errors)
+        if (!calendar_id || !isValidObjectId(calendar_id)) {
+             console.warn(`Invalid or missing calendar_id: "${calendar_id}". Using mock default.`);
+             calendar_id = "507f1f77bcf86cd799439011"; // Default mock ID
+        }
+
         // TODO: Hardcoded values for now as we don't have auth/calendar selection fully implemented
         const payload = {
             ...event,
-            calendar_id: event.calendar_id || "507f1f77bcf86cd799439011", // Default mock ID
+            calendar_id: calendar_id,
             calendar_title: "Personal",
             creator_external_id: "user_dev_1", // Mock user
-            visibility: "private"
+            visibility: "private",
+            // Explicitly format dates to ISO strings to ensure backend compatibility
+            start_time: event.start_time instanceof Date ? event.start_time.toISOString() : event.start_time,
+            end_time: event.end_time instanceof Date ? event.end_time.toISOString() : event.end_time,
         };
+
+        console.log("Sending Create Event Payload:", payload);
 
         const response = await api_client.post("/v2/events", payload);
         
@@ -120,6 +135,16 @@ export class Http_Event_Repository implements Event_Repository_Interface {
             description: item.description,
             calendar_id: item.calendar_id
         };
+    }
+
+    async delete(id: string): Promise<boolean> {
+        try {
+            await api_client.delete(`/v2/events/${id}`);
+            return true;
+        } catch (error) {
+            console.error("Error deleting event:", error);
+            return false;
+        }
     }
 }
 

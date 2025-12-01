@@ -43,7 +43,6 @@ class CalendarModel(BaseModel):
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
     subscriber_count: int = 0  # contador denormalizado
-    schema_version: int = Field(default=1, description="Versión del esquema del documento")
     
     model_config = {
         "populate_by_name": True,

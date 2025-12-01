@@ -52,7 +52,8 @@ export const Create_Calendar_Page = () => {
             await create_calendar({
                 title: form_data.title,
                 color: form_data.color,
-                owner_id: form_data.owner_id,
+                // Ensure owner_id is consistent with what the sidebar expects for "My Calendars"
+                owner_id: form_data.owner_id === CURRENT_USER_ID ? CURRENT_USER_ID : form_data.owner_id,
                 icon: form_data.icon,
                 is_public: form_data.is_public
             });

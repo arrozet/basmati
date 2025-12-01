@@ -87,8 +87,13 @@ export const Create_Event_Page = () => {
             });
             navigate('/dashboard');
         } catch (err: any) {
-            console.error(err);
-            set_error(err.message || "Error al crear el evento");
+            console.error("Error completo:", err);
+            if (err.response && err.response.data) {
+                console.error("Detalles del error del servidor:", err.response.data);
+                set_error(`Error del servidor: ${JSON.stringify(err.response.data.detail || err.response.data)}`);
+            } else {
+                set_error(err.message || "Error al crear el evento");
+            }
         } finally {
             set_loading(false);
         }

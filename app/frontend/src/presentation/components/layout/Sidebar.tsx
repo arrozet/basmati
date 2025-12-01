@@ -21,6 +21,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
     const [searchParams] = useSearchParams();
     const active_calendar_id = searchParams.get('calendar_id');
 
+    const myCalendars = calendars.filter(cal => cal.owner_id === 'user_dev_1');
+    const otherCalendars = calendars.filter(cal => cal.owner_id !== 'user_dev_1');
+
     const handle_calendar_click = (calendar_id: string) => {
         navigate(`/dashboard?calendar_id=${calendar_id}`);
         if (onClose) onClose();
@@ -86,7 +89,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
                         <div className="text-sm text-gray-500">Cargando...</div>
                     ) : (
                         <ul className="flex flex-col gap-2 list-none p-0">
-                            {calendars.map((cal) => (
+                            {myCalendars.map((cal) => (
                                 <li key={cal.id}>
                                     <button 
                                         type="button"
@@ -106,7 +109,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
                                     </button>
                                 </li>
                             ))}
-                            {calendars.length === 0 && (
+                            {myCalendars.length === 0 && (
                                 <li className="text-sm text-gray-500 italic">No tienes calendarios.</li>
                             )}
                         </ul>
@@ -116,16 +119,23 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
                 <nav aria-label="Otros calendarios">
                     <h2 className="font-bold text-lg mb-2">Otros calendarios</h2>
                     <ul className="flex flex-col gap-2 list-none p-0">
-                        {['Festivos', 'Cumpleaños'].map((cal) => (
-                            <li key={cal}>
+                        {otherCalendars.map((cal) => (
+                            <li key={cal.id}>
                                 <button 
                                     type="button"
-                                    className="flex items-center gap-2 w-full text-left cursor-pointer hover:translate-x-1 transition-transform focus:outline-none focus:ring-2 focus:ring-basmati-yellow p-2 rounded hover:bg-white"
-                                    aria-label={`Ver calendario ${cal}`}
-                                    onClick={onClose}
+                                    className={clsx(
+                                        "flex items-center gap-2 w-full text-left cursor-pointer hover:translate-x-1 transition-transform focus:outline-none focus:ring-2 focus:ring-basmati-yellow p-2 rounded",
+                                        active_calendar_id === cal.id ? "bg-basmati-yellow/20 font-bold border-r-4 border-basmati-yellow" : "hover:bg-white"
+                                    )}
+                                    aria-label={`Ver calendario ${cal.title}`}
+                                    onClick={() => handle_calendar_click(cal.id)}
                                 >
-                                    <div className="w-4 h-4 border-3 border-basmati-black bg-basmati-blue" aria-hidden="true"></div>
-                                    <span className="font-medium">{cal}</span>
+                                    <div 
+                                        className="w-4 h-4 border-3 border-basmati-black" 
+                                        style={{ backgroundColor: cal.color || '#5496FF' }}
+                                        aria-hidden="true"
+                                    ></div>
+                                    <span className="font-medium">{cal.title}</span>
                                 </button>
                             </li>
                         ))}

@@ -34,5 +34,11 @@ export interface Event_Repository_Interface {
      * @param event Evento con los datos actualizados.
      */
     update(event: Event_Model): Promise<Event_Model>;
+
+    /**
+     * Elimina un evento por su ID.
+     * @param id ID del evento a eliminar.
+     */
+    delete(id: string): Promise<boolean>;
 }
 

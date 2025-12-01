@@ -8,6 +8,11 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faChevronLeft, faChevronRight, faTrash, faFilter } from '@fortawesome/free-solid-svg-icons';
 import { use_calendar_events } from '../hooks/use_calendar_events';
 import { Event_Model } from '../../domain/models/event_model';
+import { Delete_Event_Use_Case } from '../../application/event/delete_event_use_case';
+import { Http_Event_Repository } from '../../infrastructure/repositories/http_event_repository';
+
+const repository = new Http_Event_Repository();
+const delete_event_use_case = new Delete_Event_Use_Case(repository);
 
 type ViewType = 'year' | 'month' | 'week' | 'day';
 
@@ -324,7 +329,7 @@ export const Dashboard_Page = () => {
     
     const [current_date, set_current_date] = useState(new Date());
     const [view, set_view] = useState<ViewType>('month');
-    const { events, loading } = use_calendar_events(current_date, view, calendar_id);
+    const { events, loading, refresh } = use_calendar_events(current_date, view, calendar_id);
     
     // Modal de confirmación para borrar
     const [delete_modal_open, set_delete_modal_open] = useState(false);
@@ -344,18 +349,14 @@ export const Dashboard_Page = () => {
         
         set_deleting(true);
         try {
-            // Simular borrado (no conectado al backend)
-            console.log(`Evento ${event_to_delete.id} eliminado visualmente`);
-            
-            // Esperar un poco para simular la llamada
-            await new Promise(resolve => setTimeout(resolve, 500));
+            await delete_event_use_case.execute(event_to_delete.id);
             
             // Cerrar modal
             set_delete_modal_open(false);
             set_event_to_delete(null);
             
-            // Aquí normalmente recargarías los eventos o los eliminarías del estado
-            // Por ahora solo mostramos feedback visual
+            // Recargar eventos
+            refresh();
         } catch (error) {
             console.error('Error al eliminar evento:', error);
         } finally {

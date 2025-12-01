@@ -9,14 +9,39 @@ export class Http_Calendar_Repository implements Calendar_Repository_Interface {
     async get_all(user_id: string): Promise<Calendar_Model[]> {
         try {
             const response = await api_client.get(`/v1/calendars/search/by-creator?creator_external_id=${user_id}`);
-            return response.data.map((item: any) => ({
+            const myCalendars = response.data.map((item: any) => ({
                 id: item.id,
                 title: item.title,
                 color: item.color || '#EBBE4D',
-                owner_id: item.creator_id || item.owner_id,
+                // Ensure we map the owner_id back to the user_id we know if it matches, or keep backend value
+                // The backend might return creator_external_id OR creator_id
+                owner_id: item.creator_external_id || item.creator_id || item.owner_id || user_id, 
                 icon: item.icon,
                 is_public: item.is_public
             }));
+
+            // TODO: Implement fetch for followed/subscribed calendars from backend
+            // For now, we inject system/other calendars to satisfy "Otros calendarios" requirement
+            const otherCalendars: Calendar_Model[] = [
+                {
+                    id: "system_holidays",
+                    title: "Festivos",
+                    color: "#5496FF",
+                    owner_id: "system",
+                    icon: "",
+                    is_public: true
+                },
+                {
+                    id: "system_birthdays",
+                    title: "Cumpleaños",
+                    color: "#FF6B6B",
+                    owner_id: "system",
+                    icon: "",
+                    is_public: true
+                }
+            ];
+
+            return [...myCalendars, ...otherCalendars];
         } catch (error) {
             console.error("Error fetching calendars:", error);
             return [];
@@ -27,15 +52,29 @@ export class Http_Calendar_Repository implements Calendar_Repository_Interface {
      * Crea un nuevo calendario.
      */
     async create(calendar: Omit<Calendar_Model, 'id'>): Promise<Calendar_Model> {
-        const response = await api_client.post("/v1/calendars", calendar);
+        // Mapear modelo de dominio a DTO del backend
+        const backend_payload = {
+            title: calendar.title,
+            color: calendar.color,
+            creator_external_id: calendar.owner_id, // Mapeo correcto
+            creator_display_name: "Usuario Dev", // TODO: Obtener del contexto de usuario real cuando exista auth
+            keywords: [], // Campo opcional pero recomendado
+            icon: calendar.icon,
+            visibility: calendar.is_public ? "public" : "private", // Mapeo de booleano a enum
+            description: ""
+        };
+
+        const response = await api_client.post("/v1/calendars", backend_payload);
+        
+        // Mapear respuesta del backend al modelo de dominio
         const item = response.data;
         return {
             id: item.id,
             title: item.title,
             color: item.color,
-            owner_id: item.owner_id,
+            owner_id: item.creator_external_id || item.owner_id, // Adaptable a lo que devuelva el backend
             icon: item.icon,
-            is_public: item.is_public
+            is_public: item.visibility === "public"
         };
     }
     

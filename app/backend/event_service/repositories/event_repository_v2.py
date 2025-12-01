@@ -57,9 +57,15 @@ class EventRepositoryV2(EventRepository):
                 else:
                     query["$and"].append({"calendar_id": calendar_id})
 
+            # DEBUG LOG
+            print(f"DEBUG SEARCH: Querying events with filter: {query}")
+            count = await self.collection.count_documents(query)
+            print(f"DEBUG SEARCH: Found {count} documents")
+
             cursor = self.collection.find(query)
             return await cursor.to_list(length=200)
-        except Exception:
+        except Exception as e:
+            print(f"DEBUG SEARCH ERROR: {e}")
             return []
 
     async def find_by_calendar(self, calendar_id: str) -> list[dict]:
