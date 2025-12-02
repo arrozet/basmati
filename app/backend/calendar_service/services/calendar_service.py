@@ -1,8 +1,10 @@
 """Lógica de negocio para calendarios"""
 from datetime import datetime, timezone
 from bson import ObjectId
+import httpx
 from schemas.calendar import CalendarCreate, CalendarUpdate, CalendarResponse, CalendarHierarchy
 from repositories.calendar_repository import CalendarRepository
+from core.config import settings
 
 
 class CalendarService:
@@ -296,3 +298,84 @@ class CalendarService:
             document["path"] = [str(obj_id) for obj_id in document.get("path", [])]
         
         return CalendarResponse(**document)
+
+    async def delete_calendar_recursive(self, calendar_id: str, event_service_url: str | None = None) -> dict:
+        """
+        Elimina un calendario y todos sus subcalendarios recursivamente,
+        junto con todos los eventos asociados.
+        
+        Orden de eliminación:
+        1. Obtener la jerarquía completa del calendario
+        2. Eliminar eventos de cada calendario (empezando por los hijos más profundos)
+        3. Eliminar subcalendarios (de hijos a padres)
+        4. Eliminar el calendario raíz
+        
+        Args:
+            calendar_id: ID del calendario a eliminar
+            event_service_url: URL del servicio de eventos (usa settings si no se proporciona)
+            
+        Returns:
+            dict: Resumen de la eliminación con contadores
+            
+        Raises:
+            ValueError: Si el calendario no existe
+        """
+        # Verificar que el calendario existe
+        calendar = await self.calendar_repository.find_by_id(calendar_id)
+        if not calendar:
+            raise ValueError(f"El calendario con ID '{calendar_id}' no existe")
+        
+        # URL del event service
+        event_url = event_service_url or settings.event_service_url
+        
+        # Obtener toda la jerarquía del calendario
+        all_calendars = await self.calendar_repository.find_hierarchy(calendar_id)
+        
+        # Contadores para el resumen
+        total_events_deleted = 0
+        calendars_deleted = 0
+        errors = []
+        
+        # Ordenar calendarios por profundidad (hijos primero) basándose en la longitud del path
+        # Los que tienen path más largo son los más profundos
+        all_calendars_sorted = sorted(
+            all_calendars, 
+            key=lambda c: len(c.get("path", [])), 
+            reverse=True
+        )
+        
+        # Eliminar eventos de cada calendario (usando el endpoint V2 del event_service)
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            for cal in all_calendars_sorted:
+                cal_id = str(cal["_id"])
+                try:
+                    # Llamar al endpoint V2 de event_service para eliminar eventos
+                    response = await client.delete(
+                        f"{event_url}/v2/events/by-calendar/{cal_id}"
+                    )
+                    if response.status_code == 200:
+                        result = response.json()
+                        total_events_deleted += result.get("deleted_count", 0)
+                    else:
+                        # Si el evento no existe o hay error, continuamos
+                        errors.append(f"Error eliminando eventos del calendario {cal_id}: {response.status_code}")
+                except Exception as exc:
+                    errors.append(f"Error de conexión al eliminar eventos del calendario {cal_id}: {str(exc)}")
+        
+        # Eliminar calendarios (de hijos a padres)
+        for cal in all_calendars_sorted:
+            cal_id = str(cal["_id"])
+            try:
+                deleted = await self.calendar_repository.delete(cal_id)
+                if deleted:
+                    calendars_deleted += 1
+            except Exception as exc:
+                errors.append(f"Error eliminando calendario {cal_id}: {str(exc)}")
+        
+        return {
+            "message": f"Calendario '{calendar.get('title', calendar_id)}' eliminado recursivamente",
+            "calendar_id": calendar_id,
+            "calendars_deleted": calendars_deleted,
+            "events_deleted": total_events_deleted,
+            "errors": errors if errors else None
+        }

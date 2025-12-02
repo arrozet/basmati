@@ -6,6 +6,7 @@ Los endpoints sin cambios deben usarse desde /v1/.
 Cambios en V2:
 - search_by_date_range: Añade filtro opcional por calendar_id
 - get_all_events: Nuevo endpoint para obtener todos los eventos
+- delete_events_by_calendar: Nuevo endpoint para eliminar eventos de un calendario
 """
 from datetime import datetime
 
@@ -90,6 +91,41 @@ Ejemplo de uso:
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=str(exc),
             ) from exc
+
+    @router.delete(
+        "/by-calendar/{calendar_id}",
+        response_model=dict,
+        summary="Eliminar eventos de un calendario",
+        description="""
+Elimina todos los eventos asociados a un calendario específico.
+
+**Nuevo en V2**: Este endpoint no existe en V1.
+Utilizado internamente por calendar_service para eliminar calendarios recursivamente.
+
+Ejemplo de uso:
+- `DELETE /v2/events/by-calendar/507f1f77bcf86cd799439011`
+        """,
+        responses={
+            200: {"description": "Eventos eliminados correctamente."},
+            500: {"description": "Error interno del servidor."}
+        }
+    )
+    async def delete_events_by_calendar(
+        calendar_id: str,
+        service: IEventService = Depends(get_service_dependency),
+    ):
+        """Elimina todos los eventos de un calendario.
+        
+        Este endpoint es utilizado por calendar_service para la eliminación
+        recursiva de calendarios y sus eventos.
+        """
+        # El servicio v2 tiene el método delete_events_by_calendar
+        deleted_count = await service.delete_events_by_calendar(calendar_id)
+        return {
+            "message": f"Eventos eliminados del calendario {calendar_id}",
+            "deleted_count": deleted_count,
+            "calendar_id": calendar_id
+        }
 
     return router
 

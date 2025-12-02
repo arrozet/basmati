@@ -53,3 +53,17 @@ class EventServiceV2(EventService):
             raise ValueError("El rango de fechas es inválido: 'end' debe ser posterior a 'start'")
         events = await self.event_repository.find_by_date_range(start, end, calendar_id)
         return [self._document_to_response(event) for event in events]
+
+    async def delete_events_by_calendar(self, calendar_id: str) -> int:
+        """Elimina todos los eventos de un calendario.
+        
+        Este método es utilizado por calendar_service para eliminar
+        recursivamente los eventos de un calendario y sus subcalendarios.
+        
+        Args:
+            calendar_id: ID del calendario cuyos eventos se eliminarán
+            
+        Returns:
+            int: Número de eventos eliminados
+        """
+        return await self.event_repository.delete_by_calendar_id(calendar_id)

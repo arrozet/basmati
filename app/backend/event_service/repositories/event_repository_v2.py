@@ -112,3 +112,32 @@ class EventRepositoryV2(EventRepository):
             return await cursor.to_list(length=limit)
         except Exception:
             return []
+
+    async def delete_by_calendar_id(self, calendar_id: str) -> int:
+        """Elimina todos los eventos de un calendario.
+        
+        Busca por ObjectId y String para compatibilidad con datos legacy.
+        
+        Args:
+            calendar_id: ID del calendario cuyos eventos se eliminarán
+            
+        Returns:
+            int: Número de eventos eliminados
+        """
+        try:
+            query = {}
+            if ObjectId.is_valid(calendar_id):
+                # Eliminar tanto por ObjectId como por String para compatibilidad con datos legacy
+                query = {
+                    "$or": [
+                        {"calendar_id": ObjectId(calendar_id)},
+                        {"calendar_id": calendar_id}
+                    ]
+                }
+            else:
+                query = {"calendar_id": calendar_id}
+
+            result = await self.collection.delete_many(query)
+            return result.deleted_count
+        except Exception:
+            return 0
