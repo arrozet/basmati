@@ -48,6 +48,61 @@ const get_first_day_of_month = (year: number, month: number) => {
     return day === 0 ? 6 : day - 1;
 };
 
+/**
+ * Representa un segmento de evento multi-día para renderizado en el grid mensual.
+ */
+interface Multi_Day_Event_Segment {
+    event: Event_Model;
+    /** Índice del slot (fila) donde se muestra el evento. */
+    slot_index: number;
+    /** Indica si este día es el inicio del evento. */
+    is_start: boolean;
+    /** Indica si este día es el fin del evento. */
+    is_end: boolean;
+    /** Número de días que el evento abarca desde este punto hasta el fin de la semana o del evento. */
+    span_days: number;
+}
+
+/**
+ * Obtiene la fecha sin hora para comparaciones de día.
+ * @param date - La fecha a normalizar.
+ * @returns Fecha con hora reseteada a 00:00:00.
+ */
+const get_date_only = (date: Date): Date => {
+    const d = new Date(date);
+    d.setHours(0, 0, 0, 0);
+    return d;
+};
+
+/**
+ * Comprueba si un evento ocurre en un día específico.
+ * @param event - El evento a verificar.
+ * @param day_date - La fecha del día a comprobar.
+ * @returns true si el evento ocurre en ese día.
+ */
+const event_occurs_on_day = (event: Event_Model, day_date: Date): boolean => {
+    const day_start = get_date_only(day_date);
+    const day_end = new Date(day_start);
+    day_end.setDate(day_end.getDate() + 1);
+    
+    const event_start = get_date_only(new Date(event.start_time));
+    const event_end = get_date_only(new Date(event.end_time));
+    
+    // El evento ocurre si el día está dentro del rango [start, end]
+    return day_start >= event_start && day_start <= event_end;
+};
+
+/**
+ * Determina si un evento abarca múltiples días.
+ * @param event - El evento a verificar.
+ * @returns true si el evento dura más de un día.
+ */
+const is_multi_day_event = (event: Event_Model): boolean => {
+    const start = get_date_only(new Date(event.start_time));
+    const end = get_date_only(new Date(event.end_time));
+    return start.getTime() !== end.getTime();
+};
+
 const CalendarGrid: React.FC<{ 
     currentDate: Date, 
     view: ViewType, 
@@ -124,69 +179,326 @@ const CalendarGrid: React.FC<{
     if (view === 'month') {
         const days_in_month = get_days_in_month(year, month);
         const first_day = get_first_day_of_month(year, month);
-        const days = [];
         
-        // Empty slots for previous month
-        for (let i = 0; i < first_day; i++) {
-            days.push(<div key={`empty-${i}`} className="bg-gray-50 border-3 border-transparent min-h-[100px] md:min-h-[120px]"></div>);
-        }
-
-        // Days of current month
-        for (let i = 1; i <= days_in_month; i++) {
-            const current_day_date = new Date(year, month, i);
-            const day_name = days_labels[current_day_date.getDay() === 0 ? 6 : current_day_date.getDay() - 1];
-            const day_events = events.filter(e => {
-                const e_date = new Date(e.start_time);
-                return e_date.getDate() === i && e_date.getMonth() === month && e_date.getFullYear() === year;
-            });
-
-            days.push(
-                <div 
-                    key={i} 
-                    className="bg-white border-3 border-basmati-black shadow-hard p-2 hover:-translate-y-1 hover:shadow-[6px_6px_0px_0px_rgba(26,26,26,1)] transition-all cursor-pointer relative min-h-[80px] md:min-h-[120px] overflow-hidden focus-within:ring-4 focus-within:ring-basmati-yellow"
-                    onClick={() => handle_day_click(current_day_date)}
-                    role="gridcell"
-                    tabIndex={0}
-                    onKeyDown={(e) => {
-                        if (e.key === 'Enter' || e.key === ' ') {
-                            e.preventDefault();
-                            handle_day_click(current_day_date);
+        // Construir array de todas las celdas del grid (incluyendo días vacíos al inicio)
+        const total_cells = first_day + days_in_month;
+        const total_rows = Math.ceil(total_cells / 7);
+        
+        // Calcular posiciones de eventos multi-día para cada semana
+        // Estructura: { [event_id]: slot_index } por cada semana
+        const week_event_slots: Map<string, number>[] = [];
+        
+        for (let row = 0; row < total_rows; row++) {
+            const slots_map = new Map<string, number>();
+            const row_start_cell = row * 7;
+            const row_end_cell = Math.min(row_start_cell + 7, total_cells);
+            
+            // Encontrar eventos que aparecen en esta semana
+            const events_in_week: { event: Event_Model; start_cell: number; end_cell: number }[] = [];
+            
+            for (let cell = row_start_cell; cell < row_end_cell; cell++) {
+                const day_index = cell - first_day + 1;
+                if (day_index >= 1 && day_index <= days_in_month) {
+                    const current_day = new Date(year, month, day_index);
+                    
+                    events.forEach(event => {
+                        if (event_occurs_on_day(event, current_day)) {
+                            const existing = events_in_week.find(e => e.event.id === event.id);
+                            if (existing) {
+                                existing.end_cell = cell;
+                            } else {
+                                events_in_week.push({
+                                    event,
+                                    start_cell: cell,
+                                    end_cell: cell
+                                });
+                            }
                         }
-                    }}
-                    aria-label={`${day_name} ${i}, ${day_events.length} evento${day_events.length !== 1 ? 's' : ''}`}
-                >
-                    <div className="flex justify-between items-start">
-                        <span className="md:hidden font-bold text-gray-500 text-xs uppercase">{day_name}</span>
-                        <time className="font-bold text-gray-800 absolute top-2 right-2" dateTime={current_day_date.toISOString()}>
-                            {i}
-                        </time>
+                    });
+                }
+            }
+            
+            // Ordenar eventos por duración (más largos primero) para asignar slots
+            events_in_week.sort((a, b) => {
+                const span_a = a.end_cell - a.start_cell;
+                const span_b = b.end_cell - b.start_cell;
+                if (span_b !== span_a) return span_b - span_a;
+                // Si misma duración, ordenar por fecha de inicio
+                return new Date(a.event.start_time).getTime() - new Date(b.event.start_time).getTime();
+            });
+            
+            // Asignar slots a eventos
+            const used_slots: boolean[][] = Array.from({ length: 7 }, () => []);
+            
+            events_in_week.forEach(({ event, start_cell, end_cell }) => {
+                const local_start = start_cell - row_start_cell;
+                const local_end = end_cell - row_start_cell;
+                
+                // Encontrar el primer slot libre para todas las celdas del evento
+                let slot = 0;
+                while (true) {
+                    let slot_free = true;
+                    for (let c = local_start; c <= local_end; c++) {
+                        if (used_slots[c][slot]) {
+                            slot_free = false;
+                            break;
+                        }
+                    }
+                    if (slot_free) break;
+                    slot++;
+                }
+                
+                // Marcar slot como usado
+                for (let c = local_start; c <= local_end; c++) {
+                    used_slots[c][slot] = true;
+                }
+                
+                slots_map.set(event.id, slot);
+            });
+            
+            week_event_slots.push(slots_map);
+        }
+        
+        // Renderizar las filas del calendario
+        const rows = [];
+        for (let row = 0; row < total_rows; row++) {
+            const row_start_cell = row * 7;
+            const slots_for_row = week_event_slots[row];
+            
+            // Calcular eventos que se renderizan en esta fila
+            const events_to_render: Multi_Day_Event_Segment[] = [];
+            
+            for (let col = 0; col < 7; col++) {
+                const cell = row_start_cell + col;
+                const day_index = cell - first_day + 1;
+                
+                if (day_index >= 1 && day_index <= days_in_month) {
+                    const current_day = new Date(year, month, day_index);
+                    
+                    events.forEach(event => {
+                        if (event_occurs_on_day(event, current_day)) {
+                            const event_start = get_date_only(new Date(event.start_time));
+                            const event_end = get_date_only(new Date(event.end_time));
+                            const current_day_normalized = get_date_only(current_day);
+                            
+                            // Determinar si debemos renderizar el evento desde este día
+                            // (solo si es el inicio del evento O el inicio de la semana)
+                            const is_event_start = current_day_normalized.getTime() === event_start.getTime();
+                            const is_row_start = col === 0;
+                            
+                            if (is_event_start || is_row_start) {
+                                // Calcular cuántos días debe abarcar la barra
+                                let span_days = 1;
+                                for (let future_col = col + 1; future_col < 7; future_col++) {
+                                    const future_cell = row_start_cell + future_col;
+                                    const future_day_index = future_cell - first_day + 1;
+                                    if (future_day_index >= 1 && future_day_index <= days_in_month) {
+                                        const future_day = new Date(year, month, future_day_index);
+                                        if (event_occurs_on_day(event, future_day)) {
+                                            span_days++;
+                                        } else {
+                                            break;
+                                        }
+                                    } else {
+                                        break;
+                                    }
+                                }
+                                
+                                const is_end = get_date_only(new Date(year, month, day_index + span_days - 1)).getTime() >= event_end.getTime();
+                                
+                                events_to_render.push({
+                                    event,
+                                    slot_index: slots_for_row.get(event.id) || 0,
+                                    is_start: is_event_start,
+                                    is_end,
+                                    span_days
+                                });
+                            }
+                        }
+                    });
+                }
+            }
+            
+            // Generar celdas de día para esta fila
+            const day_cells = [];
+            for (let col = 0; col < 7; col++) {
+                const cell = row_start_cell + col;
+                const day_index = cell - first_day + 1;
+                
+                if (day_index < 1 || day_index > days_in_month) {
+                    // Celda vacía
+                    day_cells.push(
+                        <div key={`empty-${cell}`} className="bg-gray-50 border-3 border-transparent min-h-[100px] md:min-h-[120px]"></div>
+                    );
+                } else {
+                    const current_day_date = new Date(year, month, day_index);
+                    const day_name = days_labels[current_day_date.getDay() === 0 ? 6 : current_day_date.getDay() - 1];
+                    const day_events = events.filter((e: Event_Model) => event_occurs_on_day(e, current_day_date));
+                    const day_events_count = day_events.length;
+                    
+                    day_cells.push(
+                        <div 
+                            key={day_index} 
+                            className="bg-white border-3 border-basmati-black shadow-hard hover:-translate-y-1 hover:shadow-[6px_6px_0px_0px_rgba(26,26,26,1)] transition-all cursor-pointer relative min-h-[100px] md:min-h-[120px] overflow-visible focus-within:ring-4 focus-within:ring-basmati-yellow"
+                            onClick={() => handle_day_click(current_day_date)}
+                            role="gridcell"
+                            tabIndex={0}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter' || e.key === ' ') {
+                                    e.preventDefault();
+                                    handle_day_click(current_day_date);
+                                }
+                            }}
+                            aria-label={`${day_name} ${day_index}, ${day_events_count} evento${day_events_count !== 1 ? 's' : ''}`}
+                        >
+                            <div className="flex justify-between items-start p-2">
+                                <span className="md:hidden font-bold text-gray-500 text-xs uppercase">{day_name}</span>
+                                <time className="font-bold text-gray-800 absolute top-2 right-2" dateTime={current_day_date.toISOString()}>
+                                    {day_index}
+                                </time>
+                            </div>
+                            {/* Eventos en móvil (lista simple) */}
+                            <div className="md:hidden mt-6 flex flex-col gap-1 px-1">
+                                {day_events.map((event: Event_Model) => {
+                                    const event_color = event.color || '#EBBE4D';
+                                    const multi_day = is_multi_day_event(event);
+                                    const event_start = get_date_only(new Date(event.start_time));
+                                    const event_end = get_date_only(new Date(event.end_time));
+                                    const current_normalized = get_date_only(current_day_date);
+                                    const is_start = current_normalized.getTime() === event_start.getTime();
+                                    const is_end = current_normalized.getTime() === event_end.getTime();
+                                    
+                                    return (
+                                        <div 
+                                            key={event.id}
+                                            className={`
+                                                p-1 pl-2 pr-6 text-xs font-bold truncate shadow-sm cursor-pointer group relative
+                                                border-t-2 border-b-2 border-basmati-black
+                                                ${is_start ? 'border-l-2 rounded-l' : ''}
+                                                ${is_end ? 'border-r-2 rounded-r' : ''}
+                                            `}
+                                            style={{ 
+                                                backgroundColor: event_color,
+                                            }}
+                                            title={event.title}
+                                            onClick={(e) => { e.stopPropagation(); handle_event_click(event.id); }}
+                                        >
+                                            {is_start && <span>{event.title}</span>}
+                                            {!is_start && multi_day && <span className="opacity-50">↳ {event.title}</span>}
+                                            <button
+                                                type="button"
+                                                className="absolute right-0.5 top-0 bottom-0 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity bg-basmati-red text-white px-1.5 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-basmati-red focus:opacity-100 z-10"
+                                                onClick={(e) => { 
+                                                    e.stopPropagation(); 
+                                                    onDeleteEvent(event.id);
+                                                }}
+                                                aria-label={`Eliminar evento ${event.title}`}
+                                                tabIndex={0}
+                                            >
+                                                <FontAwesomeIcon icon={faTrash} className="w-3 h-3" />
+                                            </button>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    );
+                }
+            }
+            
+            rows.push(
+                <div key={`row-${row}`} className="relative">
+                    {/* Grid de celdas de día */}
+                    <div className="grid grid-cols-1 md:grid-cols-7 gap-2 md:gap-4">
+                        {day_cells}
                     </div>
-                    <div className="mt-6 flex flex-col gap-1">
-                        {day_events.map(event => {
+                    
+                    {/* Capa de eventos multi-día superpuestos (solo en desktop) */}
+                    <div className="hidden md:block absolute top-8 left-0 right-0 pointer-events-none" style={{ zIndex: 5 }}>
+                        {events_to_render.map((segment, idx) => {
+                            const event = segment.event;
                             const event_color = event.color || '#EBBE4D';
+                            
+                            // Calcular posición y ancho
+                            // Encontrar la columna de inicio
+                            let start_col = -1;
+                            for (let col = 0; col < 7; col++) {
+                                const cell = row_start_cell + col;
+                                const day_index = cell - first_day + 1;
+                                if (day_index >= 1 && day_index <= days_in_month) {
+                                    const current_day = new Date(year, month, day_index);
+                                    const event_start = get_date_only(new Date(event.start_time));
+                                    const is_event_start = get_date_only(current_day).getTime() === event_start.getTime();
+                                    const is_row_start = col === 0;
+                                    
+                                    if (event_occurs_on_day(event, current_day) && (is_event_start || is_row_start)) {
+                                        start_col = col;
+                                        break;
+                                    }
+                                }
+                            }
+                            
+                            if (start_col === -1) return null;
+                            
+                            // Porcentaje de posición y ancho (cada columna es ~14.28% pero con gaps)
+                            const col_width = 100 / 7;
+                            const gap_adjustment = 0.5; // Pequeño ajuste para los gaps
+                            const left_percent = start_col * col_width + gap_adjustment;
+                            const width_percent = segment.span_days * col_width - gap_adjustment * 2;
+                            
+                            // Offset vertical basado en slot
+                            const top_offset = segment.slot_index * 24; // 24px por slot
+                            
                             return (
-                                <div 
-                                    key={event.id} 
-                                    className="border-2 border-basmati-black p-1 pl-2 pr-8 text-xs font-bold truncate shadow-sm cursor-pointer group relative" 
-                                    style={{ 
-                                        backgroundColor: event_color,
+                                <div
+                                    key={`${event.id}-${row}-${idx}`}
+                                    className="absolute pointer-events-auto cursor-pointer group"
+                                    style={{
+                                        left: `${left_percent}%`,
+                                        width: `${width_percent}%`,
+                                        top: `${top_offset}px`,
                                     }}
-                                    title={event.title}
                                     onClick={(e) => { e.stopPropagation(); handle_event_click(event.id); }}
+                                    title={event.title}
                                 >
-                                    <span>{event.title}</span>
-                                    <button
-                                        type="button"
-                                        className="absolute right-0.5 top-0 bottom-0 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity bg-basmati-red text-white px-1.5 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-basmati-red focus:opacity-100 z-10"
-                                        onClick={(e) => { 
-                                            e.stopPropagation(); 
-                                            onDeleteEvent(event.id);
+                                    <div 
+                                        className={`
+                                            flex items-center h-5 text-xs font-bold truncate shadow-sm relative
+                                            ${segment.is_start ? 'pl-2 rounded-l border-l-2' : 'pl-1'}
+                                            ${segment.is_end ? 'pr-6 rounded-r border-r-2' : 'pr-1'}
+                                            border-t-2 border-b-2 border-basmati-black
+                                        `}
+                                        style={{ 
+                                            backgroundColor: event_color,
+                                            borderLeftColor: segment.is_start ? '#1A1A1A' : 'transparent',
+                                            borderRightColor: segment.is_end ? '#1A1A1A' : 'transparent',
                                         }}
-                                        aria-label={`Eliminar evento ${event.title}`}
-                                        tabIndex={0}
                                     >
-                                        <FontAwesomeIcon icon={faTrash} className="w-3 h-3" />
-                                    </button>
+                                        {segment.is_start && (
+                                            <span className="truncate">
+                                                {!is_multi_day_event(event) && (
+                                                    <span className="mr-1 opacity-70">
+                                                        {new Date(event.start_time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                                                    </span>
+                                                )}
+                                                {event.title}
+                                            </span>
+                                        )}
+                                        {segment.is_end && (
+                                            <button
+                                                type="button"
+                                                className="absolute right-0.5 top-0 bottom-0 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity bg-basmati-red text-white px-1 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-basmati-red focus:opacity-100 z-10"
+                                                onClick={(e) => { 
+                                                    e.stopPropagation(); 
+                                                    onDeleteEvent(event.id);
+                                                }}
+                                                aria-label={`Eliminar evento ${event.title}`}
+                                                tabIndex={0}
+                                            >
+                                                <FontAwesomeIcon icon={faTrash} className="w-3 h-3" />
+                                            </button>
+                                        )}
+                                    </div>
                                 </div>
                             );
                         })}
@@ -202,8 +514,8 @@ const CalendarGrid: React.FC<{
                         <div key={day} className="text-center font-black text-xl uppercase" role="columnheader">{day}</div>
                     ))}
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-7 gap-2 md:gap-4" role="grid" aria-label="Días del mes">
-                    {days}
+                <div className="flex flex-col gap-2 md:gap-4" role="grid" aria-label="Días del mes">
+                    {rows}
                 </div>
             </section>
         );
