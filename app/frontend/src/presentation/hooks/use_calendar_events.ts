@@ -70,7 +70,15 @@ export const use_calendar_events = (
             }
 
             const result = await get_events_use_case.execute(start, end, target_calendar_ids);
-            set_events(result);
+            
+            // Enriquecer eventos con el color del calendario asociado
+            const calendar_color_map = new Map(calendars.map(c => [c.id, c.color]));
+            const enriched_events = result.map(event => ({
+                ...event,
+                color: calendar_color_map.get(event.calendar_id) || '#EBBE4D'
+            }));
+            
+            set_events(enriched_events);
         } catch (error) {
             console.error("Error fetching events:", error);
         } finally {

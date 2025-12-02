@@ -22,6 +22,20 @@ const CURRENT_USER_ID = 'user_dev_1';
 
 type ViewType = 'year' | 'month' | 'week' | 'day';
 
+/**
+ * Convierte un color HEX a rgba con opacidad.
+ * @param hex - Color en formato hexadecimal (#RRGGBB).
+ * @param opacity - Opacidad entre 0 y 1.
+ * @returns String rgba para usar en estilos CSS.
+ */
+const hex_to_rgba = (hex: string, opacity: number): string => {
+    const clean_hex = hex.replace('#', '');
+    const r = parseInt(clean_hex.substring(0, 2), 16);
+    const g = parseInt(clean_hex.substring(2, 4), 16);
+    const b = parseInt(clean_hex.substring(4, 6), 16);
+    return `rgba(${r}, ${g}, ${b}, ${opacity})`;
+};
+
 // Helper to get days in month
 const get_days_in_month = (year: number, month: number) => {
     return new Date(year, month + 1, 0).getDate();
@@ -148,28 +162,34 @@ const CalendarGrid: React.FC<{
                         </time>
                     </div>
                     <div className="mt-6 flex flex-col gap-1">
-                        {day_events.map(event => (
-                            <div 
-                                key={event.id} 
-                                className="bg-basmati-yellow border-2 border-basmati-black p-1 pl-2 pr-8 text-xs font-bold truncate shadow-sm hover:bg-basmati-yellow/80 cursor-pointer group relative" 
-                                title={event.title}
-                                onClick={(e) => { e.stopPropagation(); handle_event_click(event.id); }}
-                            >
-                                <span>{event.title}</span>
-                                <button
-                                    type="button"
-                                    className="absolute right-0.5 top-0 bottom-0 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity bg-basmati-red text-white px-1.5 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-basmati-red focus:opacity-100 z-10"
-                                    onClick={(e) => { 
-                                        e.stopPropagation(); 
-                                        onDeleteEvent(event.id);
+                        {day_events.map(event => {
+                            const event_color = event.color || '#EBBE4D';
+                            return (
+                                <div 
+                                    key={event.id} 
+                                    className="border-2 border-basmati-black p-1 pl-2 pr-8 text-xs font-bold truncate shadow-sm cursor-pointer group relative" 
+                                    style={{ 
+                                        backgroundColor: event_color,
                                     }}
-                                    aria-label={`Eliminar evento ${event.title}`}
-                                    tabIndex={0}
+                                    title={event.title}
+                                    onClick={(e) => { e.stopPropagation(); handle_event_click(event.id); }}
                                 >
-                                    <FontAwesomeIcon icon={faTrash} className="w-3 h-3" />
-                                </button>
-                            </div>
-                        ))}
+                                    <span>{event.title}</span>
+                                    <button
+                                        type="button"
+                                        className="absolute right-0.5 top-0 bottom-0 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity bg-basmati-red text-white px-1.5 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-basmati-red focus:opacity-100 z-10"
+                                        onClick={(e) => { 
+                                            e.stopPropagation(); 
+                                            onDeleteEvent(event.id);
+                                        }}
+                                        aria-label={`Eliminar evento ${event.title}`}
+                                        tabIndex={0}
+                                    >
+                                        <FontAwesomeIcon icon={faTrash} className="w-3 h-3" />
+                                    </button>
+                                </div>
+                            );
+                        })}
                     </div>
                 </div>
             );
@@ -228,29 +248,36 @@ const CalendarGrid: React.FC<{
                                 <time className="text-xl" dateTime={date.toISOString()}>{date.getDate()}</time>
                             </header>
                             <div className="flex-1 bg-gray-50 relative overflow-y-auto">
-                                {day_events.map(event => (
-                                    <div 
-                                        key={event.id} 
-                                        className="bg-basmati-blue/20 border-l-4 border-basmati-blue p-1 pl-2 pr-8 text-xs mb-1 cursor-pointer hover:bg-basmati-blue/30 group relative"
-                                        onClick={(e) => { e.stopPropagation(); handle_event_click(event.id); }}
-                                    >
-                                        <div className="truncate">
-                                            {new Date(event.start_time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} - {event.title}
-                                        </div>
-                                        <button
-                                            type="button"
-                                            className="absolute right-0.5 top-0 bottom-0 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity bg-basmati-red text-white px-1 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-basmati-red focus:opacity-100 z-10"
-                                            onClick={(e) => { 
-                                                e.stopPropagation(); 
-                                                onDeleteEvent(event.id);
+                                {day_events.map(event => {
+                                    const event_color = event.color || '#EBBE4D';
+                                    return (
+                                        <div 
+                                            key={event.id} 
+                                            className="border-l-4 p-1 pl-2 pr-8 text-xs mb-1 cursor-pointer group relative"
+                                            style={{ 
+                                                backgroundColor: hex_to_rgba(event_color, 0.2),
+                                                borderLeftColor: event_color
                                             }}
-                                            aria-label={`Eliminar evento ${event.title}`}
-                                            tabIndex={0}
+                                            onClick={(e) => { e.stopPropagation(); handle_event_click(event.id); }}
                                         >
-                                            <FontAwesomeIcon icon={faTrash} className="w-3 h-3" />
-                                        </button>
-                                    </div>
-                                ))}
+                                            <div className="truncate">
+                                                {new Date(event.start_time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} - {event.title}
+                                            </div>
+                                            <button
+                                                type="button"
+                                                className="absolute right-0.5 top-0 bottom-0 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity bg-basmati-red text-white px-1 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-basmati-red focus:opacity-100 z-10"
+                                                onClick={(e) => { 
+                                                    e.stopPropagation(); 
+                                                    onDeleteEvent(event.id);
+                                                }}
+                                                aria-label={`Eliminar evento ${event.title}`}
+                                                tabIndex={0}
+                                            >
+                                                <FontAwesomeIcon icon={faTrash} className="w-3 h-3" />
+                                            </button>
+                                        </div>
+                                    );
+                                })}
                             </div>
                         </article>
                     );
@@ -284,34 +311,43 @@ const CalendarGrid: React.FC<{
                     {day_events.length === 0 ? (
                         <p className="text-gray-500 italic">No hay eventos para este día. Haz click para crear uno.</p>
                     ) : (
-                        day_events.map(event => (
-                            <article 
-                                key={event.id} 
-                                className="flex gap-4 border-b border-gray-200 py-4 cursor-pointer hover:bg-gray-50 group relative"
-                                onClick={(e) => { e.stopPropagation(); handle_event_click(event.id); }}
-                            >
-                                <time className="w-20 font-bold text-gray-500" dateTime={event.start_time.toISOString()}>
-                                    {new Date(event.start_time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
-                                </time>
-                                <div className="flex-1 bg-basmati-yellow/20 border-l-4 border-basmati-yellow p-2 rounded">
-                                    <h4 className="font-bold">{event.title}</h4>
-                                    <p className="text-sm">{event.description}</p>
-                                </div>
-                                <button
-                                    type="button"
-                                    className="opacity-0 group-hover:opacity-100 transition-opacity self-center"
-                                    onClick={(e) => { 
-                                        e.stopPropagation(); 
-                                        onDeleteEvent(event.id);
-                                    }}
-                                    aria-label={`Eliminar evento ${event.title}`}
+                        day_events.map(event => {
+                            const event_color = event.color || '#EBBE4D';
+                            return (
+                                <article 
+                                    key={event.id} 
+                                    className="flex gap-4 border-b border-gray-200 py-4 cursor-pointer hover:bg-gray-50 group relative"
+                                    onClick={(e) => { e.stopPropagation(); handle_event_click(event.id); }}
                                 >
-                                    <Neo_Button variant="danger" className="py-1 px-3">
-                                        <FontAwesomeIcon icon={faTrash} />
-                                    </Neo_Button>
-                                </button>
-                            </article>
-                        ))
+                                    <time className="w-20 font-bold text-gray-500" dateTime={event.start_time.toISOString()}>
+                                        {new Date(event.start_time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                                    </time>
+                                    <div 
+                                        className="flex-1 border-l-4 p-2 rounded"
+                                        style={{ 
+                                            backgroundColor: hex_to_rgba(event_color, 0.2),
+                                            borderLeftColor: event_color
+                                        }}
+                                    >
+                                        <h4 className="font-bold">{event.title}</h4>
+                                        <p className="text-sm">{event.description}</p>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        className="opacity-0 group-hover:opacity-100 transition-opacity self-center"
+                                        onClick={(e) => { 
+                                            e.stopPropagation(); 
+                                            onDeleteEvent(event.id);
+                                        }}
+                                        aria-label={`Eliminar evento ${event.title}`}
+                                    >
+                                        <Neo_Button variant="danger" className="py-1 px-3">
+                                            <FontAwesomeIcon icon={faTrash} />
+                                        </Neo_Button>
+                                    </button>
+                                </article>
+                            );
+                        })
                     )}
                 </div>
             </section>
