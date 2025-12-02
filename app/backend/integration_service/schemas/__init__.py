@@ -5,10 +5,24 @@ from .integration import (
     ImportResponse,
     ImportedCalendar
 )
+from .openstreetmap import (
+    GeocodeRequest,
+    ReverseGeocodeRequest,
+    SearchPlaceRequest,
+    GeocodeResponse,
+    ReverseGeocodeResponse,
+    LocationResult
+)
 
 __all__ = [
     "GoogleCalendarImportRequest",
     "TeamupImportRequest",
     "ImportResponse",
-    "ImportedCalendar"
+    "ImportedCalendar",
+    "GeocodeRequest",
+    "ReverseGeocodeRequest",
+    "SearchPlaceRequest",
+    "GeocodeResponse",
+    "ReverseGeocodeResponse",
+    "LocationResult"
 ]

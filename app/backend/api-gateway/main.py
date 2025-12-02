@@ -248,3 +248,16 @@ async def integrations_google_v2_route(path: str, request: Request):
     """
     full_path = f"v2/google/{path}" if path else "v2/google"
     return await proxy_request("integrations", full_path, request)
+
+@app.api_route("/v2/osm/{path:path}", methods=["GET", "POST", "PUT", "DELETE"])
+async def integrations_osm_v2_route(path: str, request: Request):
+    """
+    Proxy para el Integration Service V2 (OpenStreetMap).
+    
+    Endpoints disponibles:
+        GET /v2/osm/geocode?address=...&limit=5 → Geocodificar dirección
+        GET /v2/osm/reverse-geocode?latitude=...&longitude=... → Geocodificación inversa
+        GET /v2/osm/search-places?query=...&limit=5 → Buscar lugares
+    """
+    full_path = f"v2/osm/{path}" if path else "v2/osm"
+    return await proxy_request("integrations", full_path, request)

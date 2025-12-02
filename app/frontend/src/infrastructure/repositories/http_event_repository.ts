@@ -35,17 +35,29 @@ export class Http_Event_Repository implements Event_Repository_Interface {
              calendar_id = "507f1f77bcf86cd799439011"; // Default mock ID
         }
 
-        // TODO: Hardcoded values for now as we don't have auth/calendar selection fully implemented
-        const payload = {
-            ...event,
+        // Construir payload con ubicación si existe
+        const payload: Record<string, any> = {
             calendar_id: calendar_id,
             calendar_title: "Personal",
             creator_external_id: "user_dev_1", // Mock user
+            title: event.title,
+            description: event.description,
             visibility: "private",
             // Explicitly format dates to ISO strings to ensure backend compatibility
             start_time: event.start_time instanceof Date ? event.start_time.toISOString() : event.start_time,
             end_time: event.end_time instanceof Date ? event.end_time.toISOString() : event.end_time,
         };
+
+        // Añadir ubicación si existe
+        if (event.location) {
+            payload.location = {
+                address: event.location.address,
+                latitude: event.location.latitude,
+                longitude: event.location.longitude,
+                place_name: event.location.place_name,
+                map_provider: event.location.map_provider
+            };
+        }
 
         console.log("Sending Create Event Payload:", payload);
 
@@ -59,7 +71,14 @@ export class Http_Event_Repository implements Event_Repository_Interface {
             start_time: new Date(item.start_time),
             end_time: new Date(item.end_time),
             description: item.description,
-            calendar_id: item.calendar_id
+            calendar_id: item.calendar_id,
+            location: item.location ? {
+                address: item.location.address,
+                latitude: item.location.latitude,
+                longitude: item.location.longitude,
+                place_name: item.location.place_name,
+                map_provider: item.location.map_provider
+            } : undefined
         };
     }
 
@@ -90,7 +109,14 @@ export class Http_Event_Repository implements Event_Repository_Interface {
             start_time: new Date(item.start_time),
             end_time: new Date(item.end_time),
             description: item.description,
-            calendar_id: item.calendar_id
+            calendar_id: item.calendar_id,
+            location: item.location ? {
+                address: item.location.address,
+                latitude: item.location.latitude,
+                longitude: item.location.longitude,
+                place_name: item.location.place_name,
+                map_provider: item.location.map_provider
+            } : undefined
         }));
     }
 
@@ -106,7 +132,14 @@ export class Http_Event_Repository implements Event_Repository_Interface {
             start_time: new Date(item.start_time),
             end_time: new Date(item.end_time),
             description: item.description,
-            calendar_id: item.calendar_id
+            calendar_id: item.calendar_id,
+            location: item.location ? {
+                address: item.location.address,
+                latitude: item.location.latitude,
+                longitude: item.location.longitude,
+                place_name: item.location.place_name,
+                map_provider: item.location.map_provider
+            } : undefined
         }));
     }
 
@@ -122,7 +155,14 @@ export class Http_Event_Repository implements Event_Repository_Interface {
             start_time: new Date(item.start_time),
             end_time: new Date(item.end_time),
             description: item.description,
-            calendar_id: item.calendar_id
+            calendar_id: item.calendar_id,
+            location: item.location ? {
+                address: item.location.address,
+                latitude: item.location.latitude,
+                longitude: item.location.longitude,
+                place_name: item.location.place_name,
+                map_provider: item.location.map_provider
+            } : undefined
         }));
     }
 
@@ -137,7 +177,14 @@ export class Http_Event_Repository implements Event_Repository_Interface {
                 start_time: new Date(item.start_time),
                 end_time: new Date(item.end_time),
                 description: item.description,
-                calendar_id: item.calendar_id
+                calendar_id: item.calendar_id,
+                location: item.location ? {
+                    address: item.location.address,
+                    latitude: item.location.latitude,
+                    longitude: item.location.longitude,
+                    place_name: item.location.place_name,
+                    map_provider: item.location.map_provider
+                } : undefined
             };
         } catch (error) {
             console.error("Error fetching event:", error);
@@ -146,13 +193,26 @@ export class Http_Event_Repository implements Event_Repository_Interface {
     }
 
     async update(event: Event_Model): Promise<Event_Model> {
-        const payload = {
+        const payload: Record<string, any> = {
             title: event.title,
             description: event.description,
             start_time: event.start_time.toISOString(),
             end_time: event.end_time.toISOString()
-            // Include other fields if necessary, but these are the main ones for update
         };
+
+        // Añadir ubicación si existe (puede ser null para eliminarla)
+        if (event.location) {
+            payload.location = {
+                address: event.location.address,
+                latitude: event.location.latitude,
+                longitude: event.location.longitude,
+                place_name: event.location.place_name,
+                map_provider: event.location.map_provider
+            };
+        } else {
+            // Enviar null explícitamente para eliminar la ubicación
+            payload.location = null;
+        }
 
         // Usar V1 para actualizar eventos (V2 no tiene endpoint PUT)
         const response = await api_client.put(`/v1/events/${event.id}`, payload);
@@ -164,7 +224,14 @@ export class Http_Event_Repository implements Event_Repository_Interface {
             start_time: new Date(item.start_time),
             end_time: new Date(item.end_time),
             description: item.description,
-            calendar_id: item.calendar_id
+            calendar_id: item.calendar_id,
+            location: item.location ? {
+                address: item.location.address,
+                latitude: item.location.latitude,
+                longitude: item.location.longitude,
+                place_name: item.location.place_name,
+                map_provider: item.location.map_provider
+            } : undefined
         };
     }
 
