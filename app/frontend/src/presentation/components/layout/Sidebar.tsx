@@ -2,11 +2,12 @@ import React, { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Neo_Button } from '../ui/Neo_Button';
 import { Neo_Card } from '../ui/Neo_Card';
+import { Neo_Modal } from '../ui/Neo_Modal';
 import { clsx } from 'clsx';
-import { use_user_calendars } from '../../hooks/use_user_calendars';
+import { use_calendars } from '../../hooks/use_calendars';
 import { Calendar_Model } from '../../domain/models/calendar_model';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faEye, faEyeSlash } from '@fortawesome/free-solid-svg-icons';
+import { faEye, faEyeSlash, faTrash } from '@fortawesome/free-solid-svg-icons';
 import { use_calendar_visibility } from '../../context/CalendarVisibilityContext';
 
 interface SidebarProps {
@@ -19,6 +20,7 @@ interface CalendarTreeItemProps {
     allCalendars: Calendar_Model[];
     activeCalendarId: string | null;
     onCalendarClick: (id: string) => void;
+    onDelete?: (calendar: Calendar_Model) => void;
     depth?: number;
 }
 
@@ -30,6 +32,7 @@ const CalendarTreeItem: React.FC<CalendarTreeItemProps> = ({
     allCalendars, 
     activeCalendarId, 
     onCalendarClick, 
+    onDelete,
     depth = 0 
 }) => {
     const [isExpanded, setIsExpanded] = useState(false);
@@ -50,10 +53,17 @@ const CalendarTreeItem: React.FC<CalendarTreeItemProps> = ({
         toggle_visibility(calendar.id);
     };
 
+    const handleDelete = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (onDelete) {
+            onDelete(calendar);
+        }
+    };
+
     return (
         <li className="w-full">
             <div className={clsx(
-                "flex items-center gap-2 w-full text-left rounded transition-all p-1",
+                "flex items-center gap-2 w-full text-left rounded transition-all p-1 group",
                 isActive ? "bg-basmati-yellow/20 font-bold border-r-4 border-basmati-yellow" : "hover:bg-white"
             )}
             style={{ paddingLeft: `${depth * 12 + 8}px` }} // Indentación dinámica
@@ -85,13 +95,25 @@ const CalendarTreeItem: React.FC<CalendarTreeItemProps> = ({
                     <span className="truncate text-sm">{calendar.title}</span>
                 </button>
 
-                <button
-                    onClick={handleVisibilityToggle}
-                    className="w-6 h-6 flex items-center justify-center hover:bg-gray-200 rounded transition-colors text-basmati-black"
-                    aria-label={visible ? "Ocultar calendario" : "Mostrar calendario"}
-                >
-                     <FontAwesomeIcon icon={visible ? faEye : faEyeSlash} className={visible ? "" : "opacity-50"} size="xs" />
-                </button>
+                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button
+                        onClick={handleVisibilityToggle}
+                        className="w-6 h-6 flex items-center justify-center hover:bg-gray-200 rounded transition-colors text-basmati-black"
+                        aria-label={visible ? "Ocultar calendario" : "Mostrar calendario"}
+                    >
+                         <FontAwesomeIcon icon={visible ? faEye : faEyeSlash} className={visible ? "" : "opacity-50"} size="xs" />
+                    </button>
+                    {onDelete && (
+                        <button
+                            onClick={handleDelete}
+                            className="w-6 h-6 flex items-center justify-center hover:bg-basmati-red/20 text-basmati-red rounded transition-colors"
+                            aria-label="Eliminar calendario"
+                            title="Eliminar calendario"
+                        >
+                            <FontAwesomeIcon icon={faTrash} size="xs" />
+                        </button>
+                    )}
+                </div>
             </div>
 
             {hasChildren && isExpanded && (
@@ -103,6 +125,7 @@ const CalendarTreeItem: React.FC<CalendarTreeItemProps> = ({
                             allCalendars={allCalendars}
                             activeCalendarId={activeCalendarId}
                             onCalendarClick={onCalendarClick}
+                            onDelete={onDelete}
                             depth={depth + 1}
                         />
                     ))}
@@ -118,11 +141,15 @@ const CalendarTreeItem: React.FC<CalendarTreeItemProps> = ({
  */
 export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
     // Hardcoded user_id for now as per AGENTS.md
-    const { calendars, loading } = use_user_calendars('user_dev_1');
+    const { calendars, loading, delete_calendar } = use_calendars('user_dev_1');
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
     const active_calendar_id = searchParams.get('calendar_id');
     const { toggle_visibility, is_visible } = use_calendar_visibility();
+    
+    // Estado para el modal de borrado
+    const [calendarToDelete, setCalendarToDelete] = useState<Calendar_Model | null>(null);
+    const [isDeleting, setIsDeleting] = useState(false);
 
     const myCalendars = calendars.filter(cal => cal.owner_id === 'user_dev_1');
     // Solo mostramos raíces en el nivel superior
@@ -133,6 +160,41 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
     const handle_calendar_click = (calendar_id: string) => {
         navigate(`/dashboard?calendar_id=${calendar_id}`);
         if (onClose) onClose();
+    };
+
+    // Abre el modal
+    const prompt_delete_calendar = (calendar: Calendar_Model) => {
+        setCalendarToDelete(calendar);
+    };
+
+    const confirm_delete_calendar = async () => {
+        if (!calendarToDelete) return;
+
+        setIsDeleting(true);
+        try {
+            // Delegamos la lógica de borrado recursivo al hook (Capa de Presentación/Controlador)
+            // Pasamos true para activar el borrado recursivo
+            await delete_calendar(calendarToDelete.id, true);
+
+            // Si el calendario borrado era el activo, navegar al dashboard general
+            // Verificamos si el activo es el borrado o alguno de sus hijos (aunque aquí ya no tenemos la lista de hijos fácilmente,
+            // si el calendario activo desaparece de la lista, deberíamos navegar.
+            // Simplificación: Si el ID activo es igual al borrado, navegamos. 
+            // Para los hijos, el comportamiento actual es aceptable (se quedará en una ruta de calendario que ya no existe, 
+            // lo cual debería manejarse en el Dashboard o aquí de forma más robusta si tuviéramos acceso a los hijos).
+            // Dado que movimos la lógica, asumiremos que si borramos el padre, navegamos al home por seguridad.
+            if (active_calendar_id === calendarToDelete.id) {
+                navigate('/dashboard');
+            }
+            
+            setCalendarToDelete(null);
+        } catch (error) {
+            console.error("Failed to delete calendar", error);
+            // Podríamos mostrar un toast de error aquí si existiera un sistema de notificaciones global
+            alert("Error al eliminar el calendario. Por favor intente nuevamente.");
+        } finally {
+            setIsDeleting(false);
+        }
     };
 
     const createEventLink = active_calendar_id 
@@ -202,6 +264,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
                                     allCalendars={myCalendars}
                                     activeCalendarId={active_calendar_id}
                                     onCalendarClick={handle_calendar_click}
+                                    onDelete={prompt_delete_calendar}
                                 />
                             ))}
                             {myCalendars.length === 0 && (
@@ -254,6 +317,28 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
                     </Neo_Card>
                 </div>
             </aside>
+
+            {/* Modal de confirmación de borrado */}
+            <Neo_Modal
+                is_open={!!calendarToDelete}
+                on_close={() => setCalendarToDelete(null)}
+                on_confirm={confirm_delete_calendar}
+                title="Eliminar Calendario"
+                confirm_text="Sí, eliminar"
+                variant="danger"
+                loading={isDeleting}
+            >
+                <div className="text-base">
+                    <p className="mb-2">¿Estás seguro de que deseas eliminar el calendario <strong>{calendarToDelete?.title}</strong>?</p>
+                    <p className="text-sm text-basmati-red font-bold">
+                        Esta acción no se puede deshacer. Se eliminarán permanentemente:
+                    </p>
+                    <ul className="list-disc pl-5 mt-1 text-sm text-gray-700">
+                        <li>Todos los eventos asociados.</li>
+                        <li>Todos los subcalendarios que pertenezcan a este calendario.</li>
+                    </ul>
+                </div>
+            </Neo_Modal>
         </>
     );
 };
