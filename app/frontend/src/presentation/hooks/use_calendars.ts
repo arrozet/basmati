@@ -73,18 +73,20 @@ export const use_calendars = (user_id: string) => {
 
     /**
      * Elimina un calendario por su ID.
-     * Si recursive es true, elimina también todos los subcalendarios descendientes.
+     * Si recursive es true, elimina también todos los subcalendarios descendientes y sus eventos.
+     * Utiliza el endpoint V2 del backend para eliminación recursiva eficiente.
      */
     const delete_calendar = async (id: string, recursive: boolean = false): Promise<void> => {
         try {
             // Pasamos la lista completa de calendarios al caso de uso si es recursivo
             // El Caso de Uso encapsula la lógica de "qué" se debe borrar.
+            // Con recursive=true, el backend V2 elimina subcalendarios y eventos automáticamente
             const context_calendars = recursive ? calendars : undefined;
             
-            const deleted_ids = await delete_calendar_use_case.execute(id, context_calendars);
+            const result = await delete_calendar_use_case.execute(id, context_calendars);
             
             // Actualizamos el estado local eliminando todos los IDs que el Caso de Uso nos reportó como borrados
-            set_calendars((prev: Calendar_Model[]) => prev.filter((c: Calendar_Model) => !deleted_ids.includes(c.id)));
+            set_calendars((prev: Calendar_Model[]) => prev.filter((c: Calendar_Model) => !result.deleted_ids.includes(c.id)));
         } catch (err: any) {
             console.error("Error deleting calendar:", err);
             throw err;

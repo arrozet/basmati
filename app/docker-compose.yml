@@ -67,6 +67,7 @@ services:
       - SERVICE_PORT=8002
       - DATABASE_NAME=basmati
       - USER_SERVICE_URL=http://user-service:8001
+      - EVENT_SERVICE_URL=http://event-service:8003
     depends_on:
       - user-service
     networks:

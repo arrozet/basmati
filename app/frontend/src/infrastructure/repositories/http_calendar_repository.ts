@@ -1,4 +1,4 @@
-import { Calendar_Repository_Interface } from "../../domain/repositories/calendar_repository_interface";
+import { Calendar_Repository_Interface, Delete_Recursive_Result } from "../../domain/repositories/calendar_repository_interface";
 import { Calendar_Model } from "../../domain/models/calendar_model";
 import { api_client } from "../api/axios_client";
 
@@ -105,6 +105,23 @@ export class Http_Calendar_Repository implements Calendar_Repository_Interface {
      */
     async delete(id: string): Promise<void> {
         await api_client.delete(`/v1/calendars/${id}`);
+    }
+    
+    /**
+     * Elimina un calendario recursivamente junto con todos sus subcalendarios y eventos.
+     * Utiliza el endpoint v2 del backend que maneja la eliminación en cascada.
+     * @param id - ID del calendario raíz a eliminar.
+     * @returns Promesa con el resultado de la eliminación.
+     */
+    async delete_recursive(id: string): Promise<Delete_Recursive_Result> {
+        const response = await api_client.delete(`/v2/calendars/${id}/recursive`);
+        return {
+            message: response.data.message,
+            calendar_id: response.data.calendar_id,
+            calendars_deleted: response.data.calendars_deleted,
+            events_deleted: response.data.events_deleted,
+            errors: response.data.errors
+        };
     }
     
     /**

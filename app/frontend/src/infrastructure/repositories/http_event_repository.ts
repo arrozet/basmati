@@ -49,7 +49,8 @@ export class Http_Event_Repository implements Event_Repository_Interface {
 
         console.log("Sending Create Event Payload:", payload);
 
-        const response = await api_client.post("/v2/events", payload);
+        // Usar V1 para crear eventos (V2 no tiene endpoint POST)
+        const response = await api_client.post("/v1/events", payload);
         
         const item = response.data;
         return {
@@ -94,7 +95,8 @@ export class Http_Event_Repository implements Event_Repository_Interface {
     }
 
     async search_events(query: string): Promise<Event_Model[]> {
-        const response = await api_client.get(`/v2/events/search/by-text`, {
+        // Usar V1 para búsqueda de texto (V2 no tiene este endpoint)
+        const response = await api_client.get(`/v1/events/search/by-text`, {
             params: { query }
         });
         
@@ -109,7 +111,8 @@ export class Http_Event_Repository implements Event_Repository_Interface {
     }
 
     async search_advanced(params: { title?: string; organizer?: string; keywords?: string }): Promise<Event_Model[]> {
-        const response = await api_client.get(`/v2/events/search/advanced`, {
+        // Usar V1 para búsqueda avanzada (V2 no tiene este endpoint)
+        const response = await api_client.get(`/v1/events/search/advanced`, {
             params
         });
         
@@ -125,7 +128,8 @@ export class Http_Event_Repository implements Event_Repository_Interface {
 
     async get_event(id: string): Promise<Event_Model | null> {
         try {
-            const response = await api_client.get(`/v2/events/${id}`);
+            // Usar V1 para obtener evento individual (V2 no tiene este endpoint)
+            const response = await api_client.get(`/v1/events/${id}`);
             const item = response.data;
             return {
                 id: item.id,
@@ -150,7 +154,8 @@ export class Http_Event_Repository implements Event_Repository_Interface {
             // Include other fields if necessary, but these are the main ones for update
         };
 
-        const response = await api_client.put(`/v2/events/${event.id}`, payload);
+        // Usar V1 para actualizar eventos (V2 no tiene endpoint PUT)
+        const response = await api_client.put(`/v1/events/${event.id}`, payload);
         const item = response.data;
         
         return {
@@ -165,7 +170,8 @@ export class Http_Event_Repository implements Event_Repository_Interface {
 
     async delete(id: string): Promise<boolean> {
         try {
-            await api_client.delete(`/v2/events/${id}`);
+            // Usar V1 para eliminar evento individual (V2 solo tiene delete by calendar)
+            await api_client.delete(`/v1/events/${id}`);
             return true;
         } catch (error) {
             console.error("Error deleting event:", error);

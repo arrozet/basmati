@@ -1,5 +1,22 @@
 import { Calendar_Model } from "../models/calendar_model";
 
+/**
+ * Resultado de la eliminación recursiva de un calendario.
+ * Contiene información sobre los calendarios y eventos eliminados.
+ */
+export interface Delete_Recursive_Result {
+    /** Mensaje descriptivo del resultado */
+    message: string;
+    /** ID del calendario raíz eliminado */
+    calendar_id: string;
+    /** Número de calendarios eliminados (incluyendo subcalendarios) */
+    calendars_deleted: number;
+    /** Número de eventos eliminados */
+    events_deleted: number;
+    /** Lista de errores si hubo problemas parciales */
+    errors?: string[];
+}
+
 export interface Calendar_Repository_Interface {
     /**
      * Obtiene todos los calendarios del sistema (usando el nuevo endpoint v2).
@@ -35,6 +52,14 @@ export interface Calendar_Repository_Interface {
      * @returns Promesa que se resuelve cuando se elimina correctamente.
      */
     delete(id: string): Promise<void>;
+    
+    /**
+     * Elimina un calendario recursivamente junto con todos sus subcalendarios y eventos.
+     * Utiliza el endpoint v2 del backend que maneja la eliminación en cascada.
+     * @param id - ID del calendario raíz a eliminar.
+     * @returns Promesa con el resultado de la eliminación (IDs eliminados y contadores).
+     */
+    delete_recursive(id: string): Promise<Delete_Recursive_Result>;
     
     /**
      * Obtiene un calendario específico por su ID.
