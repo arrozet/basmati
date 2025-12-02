@@ -533,67 +533,282 @@ const CalendarGrid: React.FC<{
             return d;
         });
 
-        return (
-            <section className="grid grid-cols-1 md:grid-cols-7 gap-4 h-auto md:h-[600px]" aria-label="Vista semanal del calendario">
-                {week_dates.map((date, idx) => {
-                    const day_events = events.filter(e => {
-                        const e_date = new Date(e.start_time);
-                        return e_date.getDate() === date.getDate() && e_date.getMonth() === date.getMonth() && e_date.getFullYear() === date.getFullYear();
-                    });
+        // Generar array de horas (0-23)
+        const hours = Array.from({ length: 24 }, (_, i) => i);
+        
+        // Altura de cada hora en píxeles (50px permite eventos legibles con scroll)
+        const hour_height = 50;
+        
+        /**
+         * Calcula la posición top en píxeles basada en la hora del evento.
+         * @param date - La fecha/hora del evento.
+         * @returns Posición top en píxeles.
+         */
+        const get_top_position = (date: Date): number => {
+            const hours = date.getHours();
+            const minutes = date.getMinutes();
+            return (hours * hour_height) + (minutes / 60 * hour_height);
+        };
+        
+        /**
+         * Calcula la altura en píxeles basada en la duración del evento.
+         * @param start - Fecha/hora de inicio.
+         * @param end - Fecha/hora de fin.
+         * @returns Altura en píxeles (mínimo 20px).
+         */
+        const get_event_height = (start: Date, end: Date): number => {
+            const duration_ms = end.getTime() - start.getTime();
+            const duration_hours = duration_ms / (1000 * 60 * 60);
+            return Math.max(20, duration_hours * hour_height);
+        };
 
-                    return (
-                        <article 
-                            key={idx} 
-                            className="border-3 border-basmati-black bg-white p-2 flex flex-col cursor-pointer hover:bg-gray-50 transition-colors"
-                            onClick={() => handle_day_click(date)}
-                            tabIndex={0}
-                            onKeyDown={(e) => {
-                                if (e.key === 'Enter' || e.key === ' ') {
-                                    e.preventDefault();
-                                    handle_day_click(date);
-                                }
-                            }}
-                            aria-label={`${days_labels[idx]}, ${date.getDate()}, ${day_events.length} evento${day_events.length !== 1 ? 's' : ''}`}
-                        >
-                            <header className="font-black text-center border-b-3 border-basmati-black pb-2 mb-2">
-                                <div className="text-xs uppercase text-gray-500">{days_labels[idx]}</div>
-                                <time className="text-xl" dateTime={date.toISOString()}>{date.getDate()}</time>
-                            </header>
-                            <div className="flex-1 bg-gray-50 relative overflow-y-auto">
-                                {day_events.map(event => {
-                                    const event_color = event.color || '#EBBE4D';
-                                    return (
+        // Separar eventos multi-día y eventos de un solo día
+        const all_day_events: Event_Model[] = [];
+        const timed_events: Event_Model[] = [];
+        
+        events.forEach((event: Event_Model) => {
+            if (is_multi_day_event(event)) {
+                all_day_events.push(event);
+            } else {
+                timed_events.push(event);
+            }
+        });
+
+        // Calcular slots para eventos multi-día (all-day events)
+        const all_day_slots = new Map<string, number>();
+        const all_day_in_week: { event: Event_Model; start_col: number; end_col: number }[] = [];
+        
+        for (let col = 0; col < 7; col++) {
+            const current_day = week_dates[col];
+            all_day_events.forEach(event => {
+                if (event_occurs_on_day(event, current_day)) {
+                    const existing = all_day_in_week.find(e => e.event.id === event.id);
+                    if (existing) {
+                        existing.end_col = col;
+                    } else {
+                        all_day_in_week.push({ event, start_col: col, end_col: col });
+                    }
+                }
+            });
+        }
+        
+        // Ordenar y asignar slots
+        all_day_in_week.sort((a, b) => (b.end_col - b.start_col) - (a.end_col - a.start_col));
+        const used_all_day_slots: boolean[][] = Array.from({ length: 7 }, () => []);
+        
+        all_day_in_week.forEach(({ event, start_col, end_col }) => {
+            let slot = 0;
+            while (true) {
+                let free = true;
+                for (let c = start_col; c <= end_col; c++) {
+                    if (used_all_day_slots[c][slot]) { free = false; break; }
+                }
+                if (free) break;
+                slot++;
+            }
+            for (let c = start_col; c <= end_col; c++) {
+                used_all_day_slots[c][slot] = true;
+            }
+            all_day_slots.set(event.id, slot);
+        });
+
+        const max_all_day_slots = Math.max(0, ...Array.from(all_day_slots.values())) + 1;
+        const all_day_section_height = all_day_in_week.length > 0 ? max_all_day_slots * 24 + 8 : 0;
+
+        return (
+            <section className="flex flex-col" aria-label="Vista semanal del calendario">
+                {/* Header con días de la semana */}
+                <div className="flex border-b-3 border-basmati-black bg-white sticky top-0 z-20">
+                    {/* Columna de hora vacía */}
+                    <div className="w-16 shrink-0 border-r-3 border-basmati-black"></div>
+                    {/* Días */}
+                    <div className="flex-1 grid grid-cols-7">
+                        {week_dates.map((date, idx) => {
+                            const is_today = get_date_only(date).getTime() === get_date_only(new Date()).getTime();
+                            return (
+                                <div 
+                                    key={idx} 
+                                    className={`text-center py-2 border-r border-gray-200 last:border-r-0 ${is_today ? 'bg-basmati-yellow/20' : ''}`}
+                                >
+                                    <div className="text-xs uppercase text-gray-500 font-bold">{days_labels[idx].substring(0, 3)}</div>
+                                    <time 
+                                        className={`text-2xl font-black ${is_today ? 'bg-basmati-blue text-white rounded-full w-10 h-10 flex items-center justify-center mx-auto' : ''}`}
+                                        dateTime={date.toISOString()}
+                                    >
+                                        {date.getDate()}
+                                    </time>
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+
+                {/* Sección de eventos multi-día (all-day) */}
+                {all_day_in_week.length > 0 && (
+                    <div className="flex border-b-3 border-basmati-black bg-gray-50">
+                        <div className="w-16 shrink-0 border-r-3 border-basmati-black flex items-center justify-center text-xs text-gray-500 font-bold">
+                            Todo el día
+                        </div>
+                        <div className="flex-1 grid grid-cols-7 relative" style={{ minHeight: `${all_day_section_height}px` }}>
+                            {/* Líneas de separación de columnas */}
+                            {week_dates.map((_, idx) => (
+                                <div key={idx} className="border-r border-gray-200 last:border-r-0"></div>
+                            ))}
+                            {/* Eventos multi-día */}
+                            {all_day_in_week.map(({ event, start_col, end_col }) => {
+                                const event_color = event.color || '#EBBE4D';
+                                const slot = all_day_slots.get(event.id) || 0;
+                                const col_width = 100 / 7;
+                                const left = start_col * col_width;
+                                const width = (end_col - start_col + 1) * col_width;
+                                const event_start = get_date_only(new Date(event.start_time));
+                                const event_end = get_date_only(new Date(event.end_time));
+                                const is_start = get_date_only(week_dates[start_col]).getTime() === event_start.getTime();
+                                const is_end = get_date_only(week_dates[end_col]).getTime() === event_end.getTime();
+                                
+                                return (
+                                    <div
+                                        key={event.id}
+                                        className="absolute cursor-pointer group"
+                                        style={{
+                                            left: `${left}%`,
+                                            width: `${width}%`,
+                                            top: `${4 + slot * 24}px`,
+                                            paddingLeft: '2px',
+                                            paddingRight: '2px',
+                                        }}
+                                        onClick={(e) => { e.stopPropagation(); handle_event_click(event.id); }}
+                                        title={event.title}
+                                    >
                                         <div 
-                                            key={event.id} 
-                                            className="border-l-4 p-1 pl-2 pr-8 text-xs mb-1 cursor-pointer group relative"
-                                            style={{ 
-                                                backgroundColor: hex_to_rgba(event_color, 0.2),
-                                                borderLeftColor: event_color
-                                            }}
-                                            onClick={(e) => { e.stopPropagation(); handle_event_click(event.id); }}
+                                            className={`
+                                                h-5 text-xs font-bold truncate px-2 pr-6 flex items-center relative
+                                                border-t-2 border-b-2 border-basmati-black
+                                                ${is_start ? 'border-l-2 rounded-l' : ''}
+                                                ${is_end ? 'border-r-2 rounded-r' : ''}
+                                            `}
+                                            style={{ backgroundColor: event_color }}
                                         >
-                                            <div className="truncate">
-                                                {new Date(event.start_time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} - {event.title}
-                                            </div>
-                                            <button
-                                                type="button"
-                                                className="absolute right-0.5 top-0 bottom-0 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity bg-basmati-red text-white px-1 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-basmati-red focus:opacity-100 z-10"
-                                                onClick={(e) => { 
-                                                    e.stopPropagation(); 
-                                                    onDeleteEvent(event.id);
-                                                }}
-                                                aria-label={`Eliminar evento ${event.title}`}
-                                                tabIndex={0}
-                                            >
-                                                <FontAwesomeIcon icon={faTrash} className="w-3 h-3" />
-                                            </button>
+                                            {is_start && event.title}
+                                            {is_end && (
+                                                <button
+                                                    type="button"
+                                                    className="absolute right-0.5 top-0 bottom-0 flex items-center opacity-0 group-hover:opacity-100 transition-opacity bg-basmati-red text-white px-1 hover:bg-red-700 focus:outline-none focus:opacity-100 z-10 rounded-r"
+                                                    onClick={(e) => { 
+                                                        e.stopPropagation(); 
+                                                        onDeleteEvent(event.id);
+                                                    }}
+                                                    aria-label={`Eliminar evento ${event.title}`}
+                                                    tabIndex={0}
+                                                >
+                                                    <FontAwesomeIcon icon={faTrash} className="w-2.5 h-2.5" />
+                                                </button>
+                                            )}
                                         </div>
-                                    );
-                                })}
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+                )}
+
+                {/* Grid principal con horas */}
+                <div className="flex flex-1 overflow-y-auto" style={{ maxHeight: 'calc(100vh - 200px)' }}>
+                    {/* Columna de horas */}
+                    <div 
+                        className="w-16 shrink-0 border-r-3 border-basmati-black bg-white"
+                        style={{ height: `${24 * hour_height}px` }}
+                    >
+                        {hours.map(hour => (
+                            <div 
+                                key={hour} 
+                                className="text-xs text-gray-500 text-right pr-2 font-medium relative"
+                                style={{ height: `${hour_height}px` }}
+                            >
+                                <span className="absolute -top-2 right-2">
+                                    {hour === 0 ? '' : `${hour}:00`}
+                                </span>
+                                <div className="absolute bottom-0 left-0 right-0 border-b border-gray-200"></div>
                             </div>
-                        </article>
-                    );
-                })}
+                        ))}
+                    </div>
+                    
+                    {/* Grid de días */}
+                    <div className="flex-1 grid grid-cols-7 relative">
+                        {/* Líneas horizontales de horas */}
+                        <div className="absolute inset-0 pointer-events-none">
+                            {hours.map(hour => (
+                                <div 
+                                    key={hour}
+                                    className="border-b border-gray-200"
+                                    style={{ height: `${hour_height}px` }}
+                                ></div>
+                            ))}
+                        </div>
+                        
+                        {/* Columnas de días */}
+                        {week_dates.map((date, col_idx) => {
+                            const is_today = get_date_only(date).getTime() === get_date_only(new Date()).getTime();
+                            // Filtrar eventos que ocurren en este día (solo eventos con hora, no multi-día)
+                            const day_timed_events = timed_events.filter((e: Event_Model) => event_occurs_on_day(e, date));
+                            
+                            return (
+                                <div 
+                                    key={col_idx}
+                                    className={`relative border-r border-gray-200 last:border-r-0 ${is_today ? 'bg-basmati-yellow/5' : ''}`}
+                                    style={{ height: `${24 * hour_height}px` }}
+                                    onClick={() => handle_day_click(date)}
+                                >
+                                    {/* Eventos posicionados por hora */}
+                                    {day_timed_events.map((event: Event_Model) => {
+                                        const event_color = event.color || '#EBBE4D';
+                                        const event_start = new Date(event.start_time);
+                                        const event_end = new Date(event.end_time);
+                                        
+                                        // Calcular posición y altura
+                                        const top = get_top_position(event_start);
+                                        const height = get_event_height(event_start, event_end);
+                                        
+                                        return (
+                                            <div
+                                                key={event.id}
+                                                className="absolute left-1 right-1 cursor-pointer group overflow-hidden border-2 border-basmati-black rounded shadow-sm hover:shadow-md transition-shadow z-10"
+                                                style={{
+                                                    top: `${top}px`,
+                                                    height: `${height}px`,
+                                                    backgroundColor: event_color,
+                                                }}
+                                                onClick={(e) => { e.stopPropagation(); handle_event_click(event.id); }}
+                                                title={`${event.title} - ${event_start.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} a ${event_end.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`}
+                                            >
+                                                    <div className="absolute inset-0 p-1 text-xs font-bold overflow-hidden">
+                                                    <div className="truncate leading-none">{event.title}</div>
+                                                    {height > 30 && (
+                                                        <div className="text-[10px] opacity-80 leading-none mt-0.5 truncate">
+                                                            {event_start.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} - {event_end.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                <button
+                                                    type="button"
+                                                    className="absolute right-0 top-0 bottom-0 flex items-center opacity-0 group-hover:opacity-100 transition-opacity bg-basmati-red text-white px-1.5 hover:bg-red-700 focus:outline-none focus:opacity-100 z-10 rounded-r"
+                                                    onClick={(e) => { 
+                                                        e.stopPropagation(); 
+                                                        onDeleteEvent(event.id);
+                                                    }}
+                                                    aria-label={`Eliminar evento ${event.title}`}
+                                                    tabIndex={0}
+                                                >
+                                                    <FontAwesomeIcon icon={faTrash} className="w-3 h-3" />
+                                                </button>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
             </section>
         );
     }
