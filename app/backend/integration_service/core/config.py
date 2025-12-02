@@ -17,6 +17,12 @@ class IntegrationServiceSettings(Settings):
     # URLs de otros servicios (necesarios para este servicio)
     CALENDAR_SERVICE_URL: str = "http://calendar-service:8002"
     EVENT_SERVICE_URL: str = "http://event-service:8003"
+    
+    # Configuración de AWS S3 para almacenamiento de imágenes
+    aws_access_key_id: str | None = None
+    aws_secret_access_key: str | None = None
+    aws_region: str = "us-east-1"
+    aws_s3_bucket_name: str | None = None
 
 # Instancia de configuración para este servicio
 settings = IntegrationServiceSettings()
