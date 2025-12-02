@@ -3,7 +3,11 @@ from fastapi import FastAPI
 from api.v1.router import api_router as api_router_v1
 from api.v2.router import api_router as api_router_v2
 from core.config import settings
-from core.database import connect_to_mongo, close_mongo_connection
+from core.database import (
+    connect_to_mongo, 
+    close_mongo_connection,
+    initialize_geocode_cache_indexes
+)
 
 app = FastAPI(title="Basmati Integration Service", version="1.0.0")
 app.include_router(api_router_v1, prefix="/v1")
@@ -11,8 +15,14 @@ app.include_router(api_router_v2, prefix="/v2")
 
 @app.on_event("startup")
 async def startup_event():
-    """Evento de inicio: conecta a MongoDB"""
+    """
+    Evento de inicio: conecta a MongoDB e inicializa índices.
+    
+    Inicializa los índices del caché de geocodificación para asegurar
+    que el TTL y las búsquedas funcionen correctamente.
+    """
     await connect_to_mongo()
+    await initialize_geocode_cache_indexes()
 
 @app.on_event("shutdown")
 async def shutdown_event():

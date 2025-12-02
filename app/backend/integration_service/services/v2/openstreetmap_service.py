@@ -1,4 +1,4 @@
-"""Servicio de integración con OpenStreetMap (Nominatim API) - V2"""
+"""Servicio de integración con OpenStreetMap (Nominatim API) - V2 con Caché"""
 import httpx
 from typing import Any
 from schemas.openstreetmap import (
@@ -9,6 +9,7 @@ from schemas.openstreetmap import (
     ReverseGeocodeResponse,
     LocationResult
 )
+from repositories.geocode_cache_repository import GeocodeCacheRepository
 
 
 class OpenStreetMapServiceV2:
@@ -22,6 +23,11 @@ class OpenStreetMapServiceV2:
     
     Utiliza la API pública de Nominatim (OpenStreetMap) que es gratuita
     con límite de 1 solicitud por segundo.
+    
+    Implementa un sistema de caché en MongoDB para:
+    - Evitar llamadas repetidas a la misma dirección/coordenadas
+    - Respetar los límites de uso del servicio
+    - Mejorar el rendimiento de la aplicación
     """
     
     # URL base de la API de Nominatim (OpenStreetMap)
@@ -30,20 +36,28 @@ class OpenStreetMapServiceV2:
     # User-Agent requerido por la política de uso de Nominatim
     USER_AGENT = "BasmatiCalendarApp/1.0 (contact@basmati.app)"
     
-    def __init__(self):
-        """Inicializa el servicio de OpenStreetMap."""
+    def __init__(self, cache_repository: GeocodeCacheRepository | None = None):
+        """
+        Inicializa el servicio de OpenStreetMap.
+        
+        Args:
+            cache_repository: Repository de caché (opcional). Si no se proporciona,
+                              el servicio funcionará sin caché.
+        """
         self.headers = {
             "User-Agent": self.USER_AGENT,
             "Accept": "application/json",
             "Accept-Language": "es,en"
         }
+        self.cache = cache_repository
     
     async def geocode(self, request: GeocodeRequest) -> GeocodeResponse:
         """
         Geocodifica una dirección convirtiéndola en coordenadas.
         
         Utiliza la API de Nominatim para buscar direcciones y devolver
-        sus coordenadas geográficas.
+        sus coordenadas geográficas. Los resultados se cachean para
+        evitar llamadas repetidas.
         
         Args:
             request: Datos de la solicitud (dirección, límite de resultados)
@@ -51,6 +65,20 @@ class OpenStreetMapServiceV2:
         Returns:
             GeocodeResponse: Respuesta con las ubicaciones encontradas
         """
+        # Parámetros para la clave de caché
+        cache_params = {
+            "address": request.address.lower().strip(),
+            "limit": request.limit
+        }
+        
+        # Intentar obtener del caché
+        if self.cache:
+            cached = await self.cache.get_or_none("geocode", cache_params)
+            if cached:
+                # Reconstruir respuesta desde caché
+                return GeocodeResponse(**cached)
+        
+        # Si no hay caché o no se encontró, llamar a la API
         try:
             async with httpx.AsyncClient(timeout=30.0) as client:
                 # Construir parámetros de búsqueda
@@ -80,13 +108,23 @@ class OpenStreetMapServiceV2:
                 data = response.json()
                 results = self._parse_nominatim_results(data)
                 
-                return GeocodeResponse(
+                geocode_response = GeocodeResponse(
                     success=True,
                     query=request.address,
                     results=results,
                     total_results=len(results),
                     message=None
                 )
+                
+                # Guardar en caché si está disponible
+                if self.cache:
+                    await self.cache.set(
+                        "geocode",
+                        cache_params,
+                        geocode_response.model_dump()
+                    )
+                
+                return geocode_response
                 
         except httpx.TimeoutException:
             return GeocodeResponse(
@@ -110,7 +148,7 @@ class OpenStreetMapServiceV2:
         Realiza geocodificación inversa: coordenadas a dirección.
         
         Convierte un par de coordenadas (latitud, longitud) en una
-        dirección legible.
+        dirección legible. Los resultados se cachean.
         
         Args:
             request: Coordenadas a consultar
@@ -118,6 +156,18 @@ class OpenStreetMapServiceV2:
         Returns:
             ReverseGeocodeResponse: Respuesta con la ubicación encontrada
         """
+        # Parámetros para la clave de caché (redondear coordenadas a 6 decimales)
+        cache_params = {
+            "latitude": round(request.latitude, 6),
+            "longitude": round(request.longitude, 6)
+        }
+        
+        # Intentar obtener del caché
+        if self.cache:
+            cached = await self.cache.get_or_none("reverse", cache_params)
+            if cached:
+                return ReverseGeocodeResponse(**cached)
+        
         try:
             async with httpx.AsyncClient(timeout=30.0) as client:
                 params = {
@@ -157,13 +207,23 @@ class OpenStreetMapServiceV2:
                 
                 location = self._parse_single_nominatim_result(data)
                 
-                return ReverseGeocodeResponse(
+                reverse_response = ReverseGeocodeResponse(
                     success=True,
                     latitude=request.latitude,
                     longitude=request.longitude,
                     location=location,
                     message=None
                 )
+                
+                # Guardar en caché si está disponible
+                if self.cache:
+                    await self.cache.set(
+                        "reverse",
+                        cache_params,
+                        reverse_response.model_dump()
+                    )
+                
+                return reverse_response
                 
         except httpx.TimeoutException:
             return ReverseGeocodeResponse(
@@ -188,6 +248,7 @@ class OpenStreetMapServiceV2:
         
         Permite buscar lugares específicos como universidades, restaurantes, etc.
         Opcionalmente puede priorizar resultados cercanos a unas coordenadas.
+        Los resultados se cachean.
         
         Args:
             request: Datos de búsqueda (query, coordenadas opcionales, límite)
@@ -195,6 +256,24 @@ class OpenStreetMapServiceV2:
         Returns:
             GeocodeResponse: Respuesta con los lugares encontrados
         """
+        # Parámetros para la clave de caché
+        cache_params: dict[str, Any] = {
+            "query": request.query.lower().strip(),
+            "limit": request.limit
+        }
+        
+        # Incluir coordenadas si se proporcionan (redondeadas)
+        if request.near_latitude is not None:
+            cache_params["near_latitude"] = round(request.near_latitude, 4)
+        if request.near_longitude is not None:
+            cache_params["near_longitude"] = round(request.near_longitude, 4)
+        
+        # Intentar obtener del caché
+        if self.cache:
+            cached = await self.cache.get_or_none("search", cache_params)
+            if cached:
+                return GeocodeResponse(**cached)
+        
         try:
             async with httpx.AsyncClient(timeout=30.0) as client:
                 params: dict[str, Any] = {
@@ -232,13 +311,23 @@ class OpenStreetMapServiceV2:
                 data = response.json()
                 results = self._parse_nominatim_results(data)
                 
-                return GeocodeResponse(
+                search_response = GeocodeResponse(
                     success=True,
                     query=request.query,
                     results=results,
                     total_results=len(results),
                     message=None
                 )
+                
+                # Guardar en caché si está disponible
+                if self.cache:
+                    await self.cache.set(
+                        "search",
+                        cache_params,
+                        search_response.model_dump()
+                    )
+                
+                return search_response
                 
         except httpx.TimeoutException:
             return GeocodeResponse(
@@ -325,3 +414,25 @@ class OpenStreetMapServiceV2:
             )
         except Exception:
             return None
+    
+    async def get_cache_stats(self) -> dict | None:
+        """
+        Obtiene estadísticas del caché de geocodificación.
+        
+        Returns:
+            dict: Estadísticas del caché o None si no hay caché configurado
+        """
+        if self.cache:
+            return await self.cache.get_stats()
+        return None
+    
+    async def clear_cache(self) -> int:
+        """
+        Limpia todo el caché de geocodificación.
+        
+        Returns:
+            int: Número de entradas eliminadas, 0 si no hay caché
+        """
+        if self.cache:
+            return await self.cache.clear_all()
+        return 0

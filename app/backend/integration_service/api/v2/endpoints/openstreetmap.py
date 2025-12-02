@@ -1,5 +1,5 @@
-"""Endpoints de OpenStreetMap V2 - Geocodificación y búsqueda de lugares"""
-from fastapi import APIRouter, HTTPException, status, Query
+"""Endpoints de OpenStreetMap V2 - Geocodificación y búsqueda de lugares con caché"""
+from fastapi import APIRouter, HTTPException, status, Query, Depends
 from schemas.openstreetmap import (
     GeocodeRequest,
     ReverseGeocodeRequest,
@@ -8,13 +8,25 @@ from schemas.openstreetmap import (
     ReverseGeocodeResponse
 )
 from services.v2.openstreetmap_service import OpenStreetMapServiceV2
+from repositories.geocode_cache_repository import GeocodeCacheRepository
+from core.database import get_database
 
 router = APIRouter()
 
 
 def get_osm_service() -> OpenStreetMapServiceV2:
-    """Crea una instancia del servicio de OpenStreetMap V2"""
-    return OpenStreetMapServiceV2()
+    """
+    Crea una instancia del servicio de OpenStreetMap V2 con caché.
+    
+    Inyecta el repositorio de caché conectado a MongoDB para
+    almacenar y recuperar resultados de geocodificación.
+    
+    Returns:
+        OpenStreetMapServiceV2: Servicio configurado con caché
+    """
+    database = get_database()
+    cache_repository = GeocodeCacheRepository(database)
+    return OpenStreetMapServiceV2(cache_repository=cache_repository)
 
 
 @router.get(
@@ -196,4 +208,74 @@ async def search_places(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error al buscar lugares: {str(e)}"
+        )
+
+
+@router.get(
+    "/cache/stats",
+    status_code=status.HTTP_200_OK,
+    summary="Estadísticas del caché de geocodificación",
+    description="Obtiene estadísticas del sistema de caché de geocodificación.",
+    responses={
+        200: {"description": "Estadísticas del caché."},
+        500: {"description": "Error interno del servidor."}
+    }
+)
+async def get_cache_stats():
+    """
+    Obtiene estadísticas del caché de geocodificación.
+    
+    Muestra información sobre:
+    - Total de entradas en caché
+    - Total de hits (accesos exitosos al caché)
+    - Estadísticas por tipo de consulta (geocode, reverse, search)
+    - Tiempo de vida configurado (TTL)
+    
+    Returns:
+        dict: Estadísticas del caché
+    """
+    try:
+        service = get_osm_service()
+        stats = await service.get_cache_stats()
+        if stats is None:
+            return {"message": "Caché no configurado", "enabled": False}
+        return {"enabled": True, **stats}
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error al obtener estadísticas del caché: {str(e)}"
+        )
+
+
+@router.delete(
+    "/cache",
+    status_code=status.HTTP_200_OK,
+    summary="Limpiar caché de geocodificación",
+    description="Elimina todas las entradas del caché de geocodificación.",
+    responses={
+        200: {"description": "Caché limpiado exitosamente."},
+        500: {"description": "Error interno del servidor."}
+    }
+)
+async def clear_cache():
+    """
+    Limpia todo el caché de geocodificación.
+    
+    Útil para forzar la recarga de datos frescos desde la API de Nominatim.
+    
+    Returns:
+        dict: Número de entradas eliminadas
+    """
+    try:
+        service = get_osm_service()
+        deleted_count = await service.clear_cache()
+        return {
+            "success": True,
+            "message": f"Caché limpiado exitosamente",
+            "deleted_entries": deleted_count
+        }
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error al limpiar caché: {str(e)}"
         )

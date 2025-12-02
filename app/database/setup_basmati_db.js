@@ -519,7 +519,87 @@ db.notifications.createIndex(
 print("  ✅ Colección 'notifications' creada con éxito\n");
 
 // ============================================================================
-// 5. DATOS DE EJEMPLO (SEED DATA)
+// 5. COLECCIÓN: geocode_cache
+// ============================================================================
+print("📦 Creando colección 'geocode_cache'...");
+
+db.createCollection("geocode_cache", {
+  validator: {
+    $jsonSchema: {
+      bsonType: "object",
+      required: ["cache_key", "query_type", "query_params", "response_data", "expires_at", "created_at", "schema_version"],
+      properties: {
+        _id: {
+          bsonType: "objectId",
+          description: "ID único generado por MongoDB"
+        },
+        cache_key: {
+          bsonType: "string",
+          description: "Clave única de la consulta (hash de parámetros)"
+        },
+        query_type: {
+          bsonType: "string",
+          enum: ["geocode", "reverse", "search"],
+          description: "Tipo de consulta de geocodificación"
+        },
+        query_params: {
+          bsonType: "object",
+          description: "Parámetros originales de la consulta"
+        },
+        response_data: {
+          bsonType: "object",
+          description: "Respuesta de la API cacheada"
+        },
+        created_at: {
+          bsonType: "date",
+          description: "Fecha de creación del registro"
+        },
+        expires_at: {
+          bsonType: "date",
+          description: "Fecha de expiración para TTL automático"
+        },
+        hit_count: {
+          bsonType: "int",
+          minimum: 0,
+          description: "Número de veces que se ha utilizado este caché"
+        },
+        last_accessed: {
+          bsonType: "date",
+          description: "Última vez que se accedió a este registro"
+        },
+        schema_version: {
+          bsonType: "int",
+          minimum: 1,
+          description: "Versión del esquema del documento"
+        }
+      },
+      additionalProperties: false
+    }
+  }
+});
+
+// Índices para geocode_cache
+print("  🔑 Creando índices para 'geocode_cache'...");
+// Índice único en cache_key para búsquedas rápidas O(1)
+db.geocode_cache.createIndex(
+  { "cache_key": 1 }, 
+  { unique: true, name: "idx_cache_key_unique" }
+);
+// Índice TTL para expiración automática (MongoDB elimina documentos expirados)
+db.geocode_cache.createIndex(
+  { "expires_at": 1 }, 
+  { expireAfterSeconds: 0, name: "idx_ttl_expiration" }
+);
+// Índice en query_type para estadísticas y consultas por tipo
+db.geocode_cache.createIndex(
+  { "query_type": 1 }, 
+  { name: "idx_query_type" }
+);
+
+print("  ✅ Colección 'geocode_cache' creada con éxito\n");
+
+// ============================================================================
+// 6. DATOS DE EJEMPLO (SEED DATA)
 // ============================================================================
 print("🌱 Insertando datos de ejemplo...\n");
 
@@ -621,13 +701,14 @@ const notificationResult = db.notifications.insertOne(exampleNotification);
 print(`  🔔 Notificación creada: ${notificationResult.insertedId}`);
 
 // ============================================================================
-// 6. VERIFICACIÓN FINAL
+// 7. VERIFICACIÓN FINAL
 // ============================================================================
 print("\n📊 Verificación de la base de datos:\n");
 print(`  👥 Usuarios: ${db.users.countDocuments()}`);
 print(`  📅 Calendarios: ${db.calendars.countDocuments()}`);
 print(`  📌 Eventos: ${db.events.countDocuments()}`);
 print(`  🔔 Notificaciones: ${db.notifications.countDocuments()}`);
+print(`  🗺️  Caché de geocodificación: ${db.geocode_cache.countDocuments()}`);
 
 print("\n✅ ¡Base de datos Basmati configurada exitosamente!\n");
 print("📝 Colecciones creadas:");
@@ -635,6 +716,7 @@ print("   - users (con validación de esquema e índices)");
 print("   - calendars (con validación de esquema e índices)");
 print("   - events (con validación de esquema e índices)");
 print("   - notifications (con validación de esquema, índices y TTL)");
+print("   - geocode_cache (con validación de esquema, índices y TTL)");
 print("\n💡 Próximos pasos:");
 print("   1. Conecta tu aplicación usando la URI de MongoDB Atlas");
 print("   2. Implementa los microservicios REST con FastAPI");

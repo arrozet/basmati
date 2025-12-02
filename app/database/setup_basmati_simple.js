@@ -154,4 +154,29 @@ db.notifications.createIndex({ "recipient_external_id": 1, "is_read": 1, "create
 db.notifications.createIndex({ "expires_at": 1 }, { expireAfterSeconds: 0 });
 db.notifications.createIndex({ "related_event_id": 1 }, { sparse: true });
 
-print("✅ Base de datos 'basmati' creada con 4 colecciones, validadores e índices");
+// geocode_cache
+db.createCollection("geocode_cache", {
+  validator: {
+    $jsonSchema: {
+      bsonType: "object",
+      required: ["cache_key", "query_type", "query_params", "response_data", "expires_at", "created_at", "schema_version"],
+      properties: {
+        cache_key: { bsonType: "string" },
+        query_type: { bsonType: "string", enum: ["geocode", "reverse", "search"] },
+        query_params: { bsonType: "object" },
+        response_data: { bsonType: "object" },
+        created_at: { bsonType: "date" },
+        expires_at: { bsonType: "date" },
+        hit_count: { bsonType: "int", minimum: 0 },
+        last_accessed: { bsonType: "date" },
+        schema_version: { bsonType: "int", minimum: 1 }
+      }
+    }
+  }
+});
+
+db.geocode_cache.createIndex({ "cache_key": 1 }, { unique: true });
+db.geocode_cache.createIndex({ "expires_at": 1 }, { expireAfterSeconds: 0 });
+db.geocode_cache.createIndex({ "query_type": 1 });
+
+print("✅ Base de datos 'basmati' creada con 5 colecciones, validadores e índices");
