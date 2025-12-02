@@ -21,6 +21,19 @@ class CalendarService:
         """
         self.calendar_repository = calendar_repository
     
+    async def get_all_calendars(self, limit: int = 200) -> list[CalendarResponse]:
+        """
+        Obtiene todos los calendarios del sistema.
+        
+        Args:
+            limit: Número máximo de calendarios a devolver
+            
+        Returns:
+            list[CalendarResponse]: Lista de todos los calendarios
+        """
+        calendars = await self.calendar_repository.find_all(limit)
+        return [self._document_to_response(calendar) for calendar in calendars]
+    
     async def create_calendar(self, calendar_data: CalendarCreate) -> CalendarResponse:
         """
         Crea un nuevo calendario.

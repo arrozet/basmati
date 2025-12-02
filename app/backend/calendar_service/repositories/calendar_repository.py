@@ -24,6 +24,23 @@ class CalendarRepository:
     
     # ==================== CRUD ====================
     
+    async def find_all(self, limit: int = 200) -> list[dict]:
+        """
+        Obtiene todos los calendarios de la BD.
+        
+        Args:
+            limit: Número máximo de calendarios a devolver
+            
+        Returns:
+            list[dict]: Lista de todos los calendarios
+        """
+        try:
+            cursor = self.collection.find({}).sort("created_at", -1)
+            calendars = await cursor.to_list(length=limit)
+            return calendars
+        except Exception:
+            return []
+    
     async def create(self, calendar_dict: dict) -> str:
         """
         Crea un nuevo calendario en la BD.

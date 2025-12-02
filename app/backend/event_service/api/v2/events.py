@@ -5,6 +5,7 @@ Los endpoints sin cambios deben usarse desde /v1/.
 
 Cambios en V2:
 - search_by_date_range: Añade filtro opcional por calendar_id
+- get_all_events: Nuevo endpoint para obtener todos los eventos
 """
 from datetime import datetime
 
@@ -26,6 +27,32 @@ def create_v2_events_router(get_service_dependency) -> APIRouter:
         APIRouter: Router con endpoints modificados en v2
     """
     router = APIRouter()
+
+    @router.get(
+        "",
+        response_model=list[EventResponse],
+        summary="Obtener todos los eventos",
+        description="""
+Obtiene todos los eventos del sistema.
+
+**Nuevo en V2**: Este endpoint no existe en V1.
+
+Ejemplo de uso:
+- `/v2/events` - Obtiene todos los eventos (máximo 200)
+- `/v2/events?limit=50` - Obtiene los primeros 50 eventos
+        """,
+        responses={
+            200: {"description": "Lista de eventos."},
+            500: {"description": "Error interno del servidor."}
+        }
+    )
+    async def get_all_events(
+        limit: int = Query(200, ge=1, le=1000, description="Número máximo de eventos a devolver"),
+        service: IEventService = Depends(get_service_dependency),
+    ):
+        """Obtiene todos los eventos del sistema."""
+        # El servicio v2 tiene el método get_all_events
+        return await service.get_all_events(limit)
 
     @router.get(
         "/search/by-date-range",

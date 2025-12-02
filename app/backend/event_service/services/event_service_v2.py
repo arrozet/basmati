@@ -16,6 +16,7 @@ class EventServiceV2(EventService):
     Mejoras respecto a V1:
     - Filtrado por calendar_id en búsqueda por fechas
     - Compatibilidad con datos legacy (ObjectId + String)
+    - Endpoint getAll para obtener todos los eventos
     """
 
     def __init__(self, event_repository: IEventRepository):
@@ -25,6 +26,18 @@ class EventServiceV2(EventService):
             event_repository: Repositorio V2 (implementa IEventRepository)
         """
         super().__init__(event_repository)
+
+    async def get_all_events(self, limit: int = 200) -> list[EventResponse]:
+        """Obtiene todos los eventos del sistema.
+        
+        Args:
+            limit: Número máximo de eventos a devolver
+            
+        Returns:
+            list[EventResponse]: Lista de todos los eventos
+        """
+        events = await self.event_repository.find_all(limit)
+        return [self._document_to_response(event) for event in events]
 
     async def search_by_date_range(
         self, 

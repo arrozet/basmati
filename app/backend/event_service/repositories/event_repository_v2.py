@@ -97,3 +97,18 @@ class EventRepositoryV2(EventRepository):
             return await cursor.to_list(length=200)
         except Exception:
             return []
+
+    async def find_all(self, limit: int = 200) -> list[dict]:
+        """Obtiene todos los eventos de la base de datos.
+        
+        Args:
+            limit: Número máximo de eventos a devolver
+            
+        Returns:
+            list[dict]: Lista de todos los eventos
+        """
+        try:
+            cursor = self.collection.find({}).sort("start_time", -1)
+            return await cursor.to_list(length=limit)
+        except Exception:
+            return []

@@ -225,6 +225,14 @@ async def events_v2_route(path: str, request: Request):
     full_path = f"v2/events/{path}" if path else "v2/events"
     return await proxy_request("events", full_path, request)
 
+@app.api_route("/v2/calendars/{path:path}", methods=["GET", "POST", "PUT", "DELETE"])
+async def calendars_v2_route(path: str, request: Request):
+    """
+    Proxy para el Calendar Service V2.
+    """
+    full_path = f"v2/calendars/{path}" if path else "v2/calendars"
+    return await proxy_request("calendars", full_path, request)
+
 @app.api_route("/v2/teamup/{path:path}", methods=["GET", "POST", "PUT", "DELETE"])
 async def integrations_teamup_v2_route(path: str, request: Request):
     """
