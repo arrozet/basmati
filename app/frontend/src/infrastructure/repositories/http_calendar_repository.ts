@@ -132,5 +132,28 @@ export class Http_Calendar_Repository implements Calendar_Repository_Interface {
             return null;
         }
     }
+
+    /**
+     * Busca calendarios por texto.
+     */
+    async search(query: string): Promise<Calendar_Model[]> {
+        try {
+            const response = await api_client.get(`/v1/calendars/search`, {
+                params: { query }
+            });
+            return response.data.map((item: any) => ({
+                id: item.id,
+                title: item.title,
+                color: item.color || '#EBBE4D',
+                owner_id: item.creator_external_id || item.owner_id || item.creator_id,
+                icon: item.icon,
+                is_public: item.is_public,
+                parent_id: item.parent_calendar_id
+            }));
+        } catch (error) {
+            console.error("Error searching calendars:", error);
+            return [];
+        }
+    }
 }
 
