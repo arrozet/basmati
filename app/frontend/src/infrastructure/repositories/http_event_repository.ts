@@ -3,8 +3,25 @@ import { Event_Model } from "../../domain/models/event_model";
 import { api_client } from "../api/axios_client";
 
 export class Http_Event_Repository implements Event_Repository_Interface {
-    async get_events(calendar_id: string): Promise<Event_Model[]> {
-         // Mock implementation for scaffolding
+    /**
+     * Obtiene todos los eventos del sistema usando el nuevo endpoint v2.
+     * Una sola petición en lugar de múltiples.
+     * @param limit Número máximo de eventos a devolver.
+     */
+    async get_all_events(limit: number = 200): Promise<Event_Model[]> {
+        try {
+            const response = await api_client.get(`/v2/events`, {
+                params: { limit }
+            });
+            return this.map_response(response.data);
+        } catch (error) {
+            console.error("Error fetching all events:", error);
+            return [];
+        }
+    }
+    
+    async get_events(_calendar_id: string): Promise<Event_Model[]> {
+         // Mock implementation for scaffolding (legacy method)
         return Promise.resolve([]);
     }
     async create(event: Omit<Event_Model, 'id'>): Promise<Event_Model> {
@@ -51,27 +68,18 @@ export class Http_Event_Repository implements Event_Repository_Interface {
             end: end.toISOString()
         };
 
+        // Una sola petición para obtener todos los eventos en el rango de fechas
+        const response = await api_client.get("/v2/events/search/by-date-range", { params: base_params });
+        const all_events = this.map_response(response.data);
+
+        // Si no hay filtro de calendarios, devolver todos
         if (!calendar_ids || calendar_ids.length === 0) {
-            // Fetch all events if no calendar specified
-            const response = await api_client.get("/v2/events/search/by-date-range", { params: base_params });
-            return this.map_response(response.data);
+            return all_events;
         }
 
-        // Parallel requests for each calendar
-        // Note: Optimization would be to send list to backend if supported, but we assume 1-by-1 for now as per current API spec
-        const promises = calendar_ids.map(id => 
-            api_client.get("/v2/events/search/by-date-range", { 
-                params: { ...base_params, calendar_id: id } 
-            })
-        );
-
-        const responses = await Promise.all(promises);
-        const all_events = responses.flatMap(r => this.map_response(r.data));
-        
-        // Deduplicate by ID (just in case)
-        const unique_events = Array.from(new Map(all_events.map(e => [e.id, e])).values());
-        
-        return unique_events;
+        // Filtrar en el cliente por los calendar_ids especificados
+        const calendar_id_set = new Set(calendar_ids);
+        return all_events.filter(event => calendar_id_set.has(event.calendar_id));
     }
 
     private map_response(data: any[]): Event_Model[] {

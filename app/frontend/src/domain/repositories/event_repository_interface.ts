@@ -1,6 +1,12 @@
 import { Event_Model } from "../models/event_model";
 
 export interface Event_Repository_Interface {
+    /**
+     * Obtiene todos los eventos del sistema.
+     * @param limit Número máximo de eventos a devolver.
+     */
+    get_all_events(limit?: number): Promise<Event_Model[]>;
+    
     get_events(calendar_id: string): Promise<Event_Model[]>;
     create(event: Omit<Event_Model, 'id'>): Promise<Event_Model>;
     

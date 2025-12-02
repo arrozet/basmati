@@ -2,6 +2,13 @@ import { Calendar_Model } from "../models/calendar_model";
 
 export interface Calendar_Repository_Interface {
     /**
+     * Obtiene todos los calendarios del sistema (usando el nuevo endpoint v2).
+     * @param limit Número máximo de calendarios a devolver.
+     * @returns Promesa con la lista de calendarios.
+     */
+    get_all_calendars(limit?: number): Promise<Calendar_Model[]>;
+    
+    /**
      * Obtiene todos los calendarios de un usuario.
      * @param user_id - ID del usuario propietario.
      * @returns Promesa con la lista de calendarios.

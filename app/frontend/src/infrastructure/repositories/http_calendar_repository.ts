@@ -4,56 +4,45 @@ import { api_client } from "../api/axios_client";
 
 export class Http_Calendar_Repository implements Calendar_Repository_Interface {
     /**
-     * Obtiene todos los calendarios del usuario.
+     * Obtiene todos los calendarios del sistema usando el nuevo endpoint v2.
+     * Una sola petición en lugar de múltiples.
+     * @param limit Número máximo de calendarios a devolver.
      */
-    async get_all(user_id: string): Promise<Calendar_Model[]> {
-        let myCalendars: Calendar_Model[] = [];
-        let otherCalendars: Calendar_Model[] = [];
-
+    async get_all_calendars(limit: number = 200): Promise<Calendar_Model[]> {
         try {
-            // 1. Obtener mis calendarios (creados por mi)
-            const response = await api_client.get(`/v1/calendars/search/by-creator?creator_external_id=${user_id}`);
-            myCalendars = response.data.map((item: any) => ({
+            const response = await api_client.get(`/v2/calendars`, {
+                params: { limit }
+            });
+            return response.data.map((item: any) => ({
                 id: item.id,
                 title: item.title,
                 color: item.color || '#EBBE4D',
-                // Ensure we map the owner_id back to the user_id we know if it matches, or keep backend value
-                // The backend might return creator_external_id OR creator_id
-                owner_id: item.creator_external_id || item.creator_id || item.owner_id || user_id, 
-                icon: item.icon,
-                is_public: item.is_public,
-                parent_id: item.parent_calendar_id
-            }));
-        } catch (error) {
-            console.error("Error fetching my calendars:", error);
-        }
-
-        try {
-            // 2. Obtener otros calendarios (seguidos/públicos pero no míos)
-            // Usamos el endpoint de visibilidad para traer todos los calendarios públicos
-            const response_others = await api_client.get(`/v1/calendars/search/by-visibility?visibility=public`);
-            
-            const allPublicCalendars = response_others.data.map((item: any) => ({
-                id: item.id,
-                title: item.title,
-                color: item.color || '#5496FF',
                 owner_id: item.creator_external_id || item.creator_id || item.owner_id,
                 icon: item.icon,
-                is_public: item.is_public,
+                is_public: item.visibility === 'public',
                 parent_id: item.parent_calendar_id
             }));
-
-            // Filtramos para que "otros" no incluya los "míos"
-            otherCalendars = allPublicCalendars.filter((cal: Calendar_Model) => 
-                cal.owner_id !== user_id && 
-                !myCalendars.some(my => my.id === cal.id)
-            );
-
         } catch (error) {
-            console.error("Error fetching other calendars:", error);
+            console.error("Error fetching all calendars:", error);
+            return [];
         }
-
-        return [...myCalendars, ...otherCalendars];
+    }
+    
+    /**
+     * Obtiene todos los calendarios del usuario (usa v2 getAll internamente).
+     * Solo hace UNA petición al backend.
+     */
+    async get_all(user_id: string): Promise<Calendar_Model[]> {
+        // Usar el nuevo endpoint v2 que obtiene todos los calendarios en una sola petición
+        const all_calendars = await this.get_all_calendars();
+        
+        // Separar calendarios propios y públicos de otros usuarios
+        const my_calendars = all_calendars.filter(cal => cal.owner_id === user_id);
+        const other_public_calendars = all_calendars.filter(cal => 
+            cal.owner_id !== user_id && cal.is_public
+        );
+        
+        return [...my_calendars, ...other_public_calendars];
     }
     
     /**
