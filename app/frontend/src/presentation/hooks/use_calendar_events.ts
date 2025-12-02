@@ -18,7 +18,12 @@ const get_all_descendant_ids = (rootId: string, allCalendars: Calendar_Model[]):
     return ids;
 };
 
-export const use_calendar_events = (currentDate: Date, view: 'year' | 'month' | 'week' | 'day', calendar_id?: string) => {
+export const use_calendar_events = (
+    currentDate: Date, 
+    view: 'year' | 'month' | 'week' | 'day', 
+    calendar_id?: string,
+    hidden_calendar_ids?: Set<string>
+) => {
     const [events, set_events] = useState<Event_Model[]>([]);
     const [loading, set_loading] = useState(false);
     
@@ -58,6 +63,10 @@ export const use_calendar_events = (currentDate: Date, view: 'year' | 'month' | 
             if (calendar_id) {
                 // If a specific calendar is selected, find it and all its descendants
                 target_calendar_ids = get_all_descendant_ids(calendar_id, calendars);
+            } else if (hidden_calendar_ids) {
+                target_calendar_ids = calendars
+                    .filter(c => !hidden_calendar_ids.has(c.id))
+                    .map(c => c.id);
             }
 
             const result = await get_events_use_case.execute(start, end, target_calendar_ids);
@@ -74,9 +83,11 @@ export const use_calendar_events = (currentDate: Date, view: 'year' | 'month' | 
         // If calendar_id is undefined (view all), we don't strictly need calendars list if backend handles "all"
         // But if calendar_id is defined, we definitely need calendars to find descendants.
         if (calendar_id && calendars.length === 0) return;
+        // If we are filtering by hidden_ids, we also need calendars loaded.
+        if (!calendar_id && hidden_calendar_ids && calendars.length === 0) return;
 
         fetch_events();
-    }, [currentDate, view, calendar_id, calendars]); // Add calendars to dependency to re-fetch when they load
+    }, [currentDate, view, calendar_id, calendars, hidden_calendar_ids]); // Add calendars to dependency to re-fetch when they load
 
     return { events, loading, refresh: fetch_events };
 };

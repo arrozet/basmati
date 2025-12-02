@@ -5,6 +5,9 @@ import { Neo_Card } from '../ui/Neo_Card';
 import { clsx } from 'clsx';
 import { use_user_calendars } from '../../hooks/use_user_calendars';
 import { Calendar_Model } from '../../domain/models/calendar_model';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faEye, faEyeSlash } from '@fortawesome/free-solid-svg-icons';
+import { use_calendar_visibility } from '../../context/CalendarVisibilityContext';
 
 interface SidebarProps {
     isOpen?: boolean;
@@ -30,14 +33,21 @@ const CalendarTreeItem: React.FC<CalendarTreeItemProps> = ({
     depth = 0 
 }) => {
     const [isExpanded, setIsExpanded] = useState(false);
+    const { toggle_visibility, is_visible } = use_calendar_visibility();
     
     const children = allCalendars.filter(c => c.parent_id === calendar.id);
     const hasChildren = children.length > 0;
     const isActive = activeCalendarId === calendar.id;
+    const visible = is_visible(calendar.id);
 
     const handleToggle = (e: React.MouseEvent) => {
         e.stopPropagation();
         setIsExpanded(!isExpanded);
+    };
+
+    const handleVisibilityToggle = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        toggle_visibility(calendar.id);
     };
 
     return (
@@ -74,6 +84,14 @@ const CalendarTreeItem: React.FC<CalendarTreeItemProps> = ({
                     ></div>
                     <span className="truncate text-sm">{calendar.title}</span>
                 </button>
+
+                <button
+                    onClick={handleVisibilityToggle}
+                    className="w-6 h-6 flex items-center justify-center hover:bg-gray-200 rounded transition-colors text-basmati-black"
+                    aria-label={visible ? "Ocultar calendario" : "Mostrar calendario"}
+                >
+                     <FontAwesomeIcon icon={visible ? faEye : faEyeSlash} className={visible ? "" : "opacity-50"} size="xs" />
+                </button>
             </div>
 
             {hasChildren && isExpanded && (
@@ -104,6 +122,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
     const active_calendar_id = searchParams.get('calendar_id');
+    const { toggle_visibility, is_visible } = use_calendar_visibility();
 
     const myCalendars = calendars.filter(cal => cal.owner_id === 'user_dev_1');
     // Solo mostramos raíces en el nivel superior
@@ -195,12 +214,14 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
                 <nav aria-label="Otros calendarios">
                     <h2 className="font-bold text-lg mb-2">Otros calendarios</h2>
                     <ul className="flex flex-col gap-2 list-none p-0">
-                        {otherCalendars.map((cal) => (
-                            <li key={cal.id}>
+                        {otherCalendars.map((cal) => {
+                            const visible = is_visible(cal.id);
+                            return (
+                            <li key={cal.id} className="flex items-center">
                                 <button 
                                     type="button"
                                     className={clsx(
-                                        "flex items-center gap-2 w-full text-left cursor-pointer hover:translate-x-1 transition-transform focus:outline-none focus:ring-2 focus:ring-basmati-yellow p-2 rounded",
+                                        "flex items-center gap-2 flex-1 text-left cursor-pointer hover:translate-x-1 transition-transform focus:outline-none focus:ring-2 focus:ring-basmati-yellow p-2 rounded",
                                         active_calendar_id === cal.id ? "bg-basmati-yellow/20 font-bold border-r-4 border-basmati-yellow" : "hover:bg-white"
                                     )}
                                     aria-label={`Ver calendario ${cal.title}`}
@@ -213,8 +234,16 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
                                     ></div>
                                     <span className="font-medium">{cal.title}</span>
                                 </button>
+                                <button
+                                    onClick={(e) => { e.stopPropagation(); toggle_visibility(cal.id); }}
+                                    className="w-6 h-6 flex items-center justify-center hover:bg-gray-200 rounded transition-colors text-basmati-black ml-1"
+                                    aria-label={visible ? "Ocultar calendario" : "Mostrar calendario"}
+                                >
+                                     <FontAwesomeIcon icon={visible ? faEye : faEyeSlash} className={visible ? "" : "opacity-50"} size="xs" />
+                                </button>
                             </li>
-                        ))}
+                            );
+                        })}
                     </ul>
                 </nav>
 

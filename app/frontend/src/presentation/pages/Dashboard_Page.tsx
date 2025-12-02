@@ -7,6 +7,7 @@ import { Neo_Modal } from '../components/ui/Neo_Modal';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faChevronLeft, faChevronRight, faTrash, faFilter } from '@fortawesome/free-solid-svg-icons';
 import { use_calendar_events } from '../hooks/use_calendar_events';
+import { use_calendar_visibility } from '../context/CalendarVisibilityContext';
 import { Event_Model } from '../../domain/models/event_model';
 import { Delete_Event_Use_Case } from '../../application/event/delete_event_use_case';
 import { Http_Event_Repository } from '../../infrastructure/repositories/http_event_repository';
@@ -323,10 +324,11 @@ const CalendarGrid: React.FC<{
 export const Dashboard_Page = () => {
     const [searchParams, setSearchParams] = useSearchParams();
     const calendar_id = searchParams.get('calendar_id') || undefined;
+    const { hidden_calendar_ids } = use_calendar_visibility();
     
     const [current_date, set_current_date] = useState(new Date());
     const [view, set_view] = useState<ViewType>('month');
-    const { events, loading, refresh } = use_calendar_events(current_date, view, calendar_id);
+    const { events, loading, refresh } = use_calendar_events(current_date, view, calendar_id, hidden_calendar_ids);
     
     // Modal de confirmación para borrar
     const [delete_modal_open, set_delete_modal_open] = useState(false);
