@@ -1,4 +1,8 @@
-"""Repository para eventos V2 - Acceso a MongoDB"""
+"""Repository para eventos V2 - Acceso a MongoDB.
+
+Extiende EventRepository añadiendo compatibilidad con datos legacy.
+Implementa la interfaz IEventRepository del patrón Abstract Factory.
+"""
 from datetime import datetime, timezone
 from typing import Any
 from bson import ObjectId
@@ -10,8 +14,14 @@ from models.event import (
 )
 from repositories.event_repository import EventRepository
 
+
 class EventRepositoryV2(EventRepository):
-    """Gestor de operaciones de base de datos para eventos (V2)"""
+    """Gestor de operaciones de base de datos para eventos (V2).
+    
+    Mejoras respecto a V1:
+    - Compatibilidad con datos legacy (busca por ObjectId Y String)
+    - Filtrado por calendar_id en búsqueda por fechas
+    """
 
     async def create(self, event_dict: dict) -> str:
         """Crea un nuevo evento en la base de datos (V2 - Asegura ObjectId)."""

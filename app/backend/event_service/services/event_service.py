@@ -1,11 +1,14 @@
-"""Lógica de negocio para eventos"""
+"""Lógica de negocio para eventos.
+
+Implementa la interfaz IEventService del patrón Abstract Factory.
+"""
 from datetime import datetime, timezone
 
 import httpx
 from bson import ObjectId
 
 from core.config import settings
-from repositories.event_repository import EventRepository
+from core.interface import IEventService, IEventRepository
 from schemas.event import (
     EventCreate,
     EventUpdate,
@@ -18,18 +21,22 @@ from schemas.event import (
 )
 
 
-class EventService:
-    """Servicio de dominio encargado de gestionar eventos"""
+class EventService(IEventService):
+    """Servicio de dominio encargado de gestionar eventos (V1).
+    
+    Implementa la interfaz IEventService para garantizar compatibilidad
+    con el patrón Abstract Factory.
+    """
 
     def __init__(
         self,
-        event_repository: EventRepository,
+        event_repository: IEventRepository,
         notification_service_url: str | None = None,
     ) -> None:
         """Inicializa el servicio de eventos.
 
         Args:
-            event_repository: Repositorio de eventos
+            event_repository: Repositorio de eventos (implementa IEventRepository)
             notification_service_url: URL del NotificationService
         """
         self.event_repository = event_repository
@@ -171,10 +178,20 @@ class EventService:
         events = await self.event_repository.find_by_calendar(calendar_id)
         return [self._document_to_response(event) for event in events]
 
-    async def search_by_date_range(self, start: datetime, end: datetime) -> list[EventResponse]:
-        """Busca eventos dentro de un rango de fechas (parametrized query 2)."""
+    async def search_by_date_range(
+        self, 
+        start: datetime, 
+        end: datetime, 
+        calendar_id: str | None = None
+    ) -> list[EventResponse]:
+        """Busca eventos dentro de un rango de fechas (parametrized query 2).
+        
+        En V1, el parámetro calendar_id es ignorado.
+        En V2, permite filtrar por calendario.
+        """
         if end <= start:
             raise ValueError("El rango de fechas es inválido: 'end' debe ser posterior a 'start'")
+        # V1 ignora calendar_id para mantener compatibilidad hacia atrás
         events = await self.event_repository.find_by_date_range(start, end)
         return [self._document_to_response(event) for event in events]
 

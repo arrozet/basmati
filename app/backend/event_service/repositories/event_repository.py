@@ -1,4 +1,7 @@
-"""Repository para eventos - Acceso a MongoDB"""
+"""Repository para eventos - Acceso a MongoDB.
+
+Implementa la interfaz IEventRepository del patrón Abstract Factory.
+"""
 from datetime import datetime, timezone
 from typing import Any
 from bson import ObjectId
@@ -8,10 +11,15 @@ from models.event import (
     EventCommentModel,
     EventAttachmentModel,
 )
+from core.interface import IEventRepository
 
 
-class EventRepository:
-    """Gestor de operaciones de base de datos para eventos"""
+class EventRepository(IEventRepository):
+    """Gestor de operaciones de base de datos para eventos (V1).
+    
+    Implementa la interfaz IEventRepository para garantizar compatibilidad
+    con el patrón Abstract Factory.
+    """
 
     def __init__(self, database: Any):
         """Inicializa el repository con la colección de eventos.
@@ -203,8 +211,16 @@ class EventRepository:
         except Exception:
             return []
 
-    async def find_by_date_range(self, start: datetime, end: datetime) -> list[dict]:
-        """Busca eventos que ocurren dentro de un rango de fechas (parametrized query 2)."""
+    async def find_by_date_range(
+        self, 
+        start: datetime, 
+        end: datetime, 
+        calendar_id: str | None = None
+    ) -> list[dict]:
+        """Busca eventos que ocurren dentro de un rango de fechas (parametrized query 2).
+        
+        Nota: En V1 el parámetro calendar_id es ignorado.
+        """
         try:
             cursor = self.collection.find(
                 {
