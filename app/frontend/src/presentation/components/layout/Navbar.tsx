@@ -47,10 +47,13 @@ export const Navbar: React.FC<NavbarProps> = ({ onMenuClick }) => {
                 </button>
                 <Link 
                     to="/dashboard" 
-                    className="text-xl md:text-2xl font-black tracking-tighter uppercase hover:text-basmati-yellow transition-colors focus:outline-none focus:ring-4 focus:ring-basmati-yellow focus:ring-offset-2"
+                    className="flex items-center gap-2 focus:outline-none focus:ring-4 focus:ring-basmati-yellow focus:ring-offset-2 p-1 rounded-sm group"
                     aria-label="Ir a página principal de Basmati"
                 >
-                    Basmati
+                    <img src="/favicon.webp" alt="" className="h-6 w-6 md:h-8 md:w-8 object-contain" />
+                    <span className="text-lg md:text-xl font-bold tracking-tight hover:text-basmati-yellow transition-colors lowercase">
+                        basmati
+                    </span>
                 </Link>
             </div>
 
