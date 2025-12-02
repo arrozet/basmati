@@ -35,5 +35,12 @@ export interface Calendar_Repository_Interface {
      * @returns Promesa con el calendario o null si no existe.
      */
     get_by_id(id: string): Promise<Calendar_Model | null>;
+
+    /**
+     * Busca calendarios por texto.
+     * @param query - Texto a buscar.
+     * @returns Promesa con la lista de calendarios encontrados.
+     */
+    search(query: string): Promise<Calendar_Model[]>;
 }
 

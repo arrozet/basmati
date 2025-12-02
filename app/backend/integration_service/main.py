@@ -1,11 +1,13 @@
 """IntegrationService - Puerto: 8006"""
 from fastapi import FastAPI
-from api.v1.router import api_router
+from api.v1.router import api_router as api_router_v1
+from api.v2.router import api_router as api_router_v2
 from core.config import settings
 from core.database import connect_to_mongo, close_mongo_connection
 
 app = FastAPI(title="Basmati Integration Service", version="1.0.0")
-app.include_router(api_router, prefix="/v1")
+app.include_router(api_router_v1, prefix="/v1")
+app.include_router(api_router_v2, prefix="/v2")
 
 @app.on_event("startup")
 async def startup_event():

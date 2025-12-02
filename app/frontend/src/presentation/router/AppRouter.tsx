@@ -8,6 +8,7 @@ import { Search_Page } from '../pages/Search_Page';
 import { Create_Calendar_Page } from '../pages/Create_Calendar_Page';
 import { Edit_Calendar_Page } from '../pages/Edit_Calendar_Page';
 import { Settings_Page } from '../pages/Settings_Page';
+import { Import_Calendar_Page } from '../pages/Import_Calendar_Page';
 
 const AppRouter = () => {
     return (
@@ -17,6 +18,7 @@ const AppRouter = () => {
             <Route path="/events/new" element={<Create_Event_Page />} />
             <Route path="/events/edit/:id" element={<Edit_Event_Page />} />
             <Route path="/calendars/new" element={<Create_Calendar_Page />} />
+            <Route path="/calendars/import" element={<Import_Calendar_Page />} />
             <Route path="/calendars/edit/:id" element={<Edit_Calendar_Page />} />
             <Route path="/search" element={<Search_Page />} />
             <Route path="/settings" element={<Settings_Page />} />

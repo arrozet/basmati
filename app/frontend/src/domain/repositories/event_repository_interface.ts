@@ -8,8 +8,9 @@ export interface Event_Repository_Interface {
      * Obtiene eventos en un rango de fechas.
      * @param start Fecha inicio.
      * @param end Fecha fin.
+     * @param calendar_ids Lista de IDs de calendario para filtrar (opcional).
      */
-    get_events_by_date_range(start: Date, end: Date): Promise<Event_Model[]>;
+    get_events_by_date_range(start: Date, end: Date, calendar_ids?: string[]): Promise<Event_Model[]>;
 
     /**
      * Busca eventos por texto.
@@ -34,5 +35,11 @@ export interface Event_Repository_Interface {
      * @param event Evento con los datos actualizados.
      */
     update(event: Event_Model): Promise<Event_Model>;
+
+    /**
+     * Elimina un evento por su ID.
+     * @param id ID del evento a eliminar.
+     */
+    delete(id: string): Promise<boolean>;
 }
 

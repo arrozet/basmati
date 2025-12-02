@@ -57,7 +57,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onMenuClick }) => {
             <div className="flex-1 max-w-xl mx-4 hidden md:block">
                 <form onSubmit={handle_search} role="search" aria-label="Buscar eventos y calendarios">
                     <Neo_Input 
-                        placeholder="Buscar eventos, calendarios..." 
+                        placeholder="Buscar evento..." 
                         className="w-full h-10"
                         value={search_query}
                         onChange={(e) => set_search_query(e.target.value)}

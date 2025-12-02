@@ -1,13 +1,24 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { MainLayout } from '../components/layout/MainLayout';
 import { Neo_Card } from '../components/ui/Neo_Card';
 import { Neo_Button } from '../components/ui/Neo_Button';
 import { Neo_Modal } from '../components/ui/Neo_Modal';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faChevronLeft, faChevronRight, faTrash } from '@fortawesome/free-solid-svg-icons';
+import { faChevronLeft, faChevronRight, faTrash, faFilter } from '@fortawesome/free-solid-svg-icons';
 import { use_calendar_events } from '../hooks/use_calendar_events';
+import { use_calendar_visibility } from '../context/CalendarVisibilityContext';
 import { Event_Model } from '../../domain/models/event_model';
+import { Delete_Event_Use_Case } from '../../application/event/delete_event_use_case';
+import { Http_Event_Repository } from '../../infrastructure/repositories/http_event_repository';
+import { Http_Calendar_Repository } from '../../infrastructure/repositories/http_calendar_repository';
+
+const event_repository = new Http_Event_Repository();
+const calendar_repository = new Http_Calendar_Repository();
+const delete_event_use_case = new Delete_Event_Use_Case(event_repository, calendar_repository);
+
+// Mock user ID (En producción vendría del contexto de autenticación)
+const CURRENT_USER_ID = 'user_dev_1';
 
 type ViewType = 'year' | 'month' | 'week' | 'day';
 
@@ -27,10 +38,11 @@ const CalendarGrid: React.FC<{
     currentDate: Date, 
     view: ViewType, 
     events: Event_Model[],
+    calendar_id?: string,
     onViewChange: (view: ViewType) => void,
     onDateChange: (date: Date) => void,
     onDeleteEvent: (event_id: string) => void
-}> = ({ currentDate, view, events, onViewChange, onDateChange, onDeleteEvent }) => {
+}> = ({ currentDate, view, events, calendar_id, onViewChange, onDateChange, onDeleteEvent }) => {
     const navigate = useNavigate();
     const year = currentDate.getFullYear();
     const month = currentDate.getMonth();
@@ -48,7 +60,13 @@ const CalendarGrid: React.FC<{
         const month = String(date.getMonth() + 1).padStart(2, '0');
         const day = String(date.getDate()).padStart(2, '0');
         const dateStr = `${year}-${month}-${day}`;
-        navigate(`/events/new?date=${dateStr}`);
+        
+        const params = new URLSearchParams();
+        params.append('date', dateStr);
+        if (calendar_id) {
+            params.append('calendar_id', calendar_id);
+        }
+        navigate(`/events/new?${params.toString()}`);
     };
 
     if (view === 'year') {
@@ -304,20 +322,26 @@ const CalendarGrid: React.FC<{
 };
 
 export const Dashboard_Page = () => {
+    const [searchParams, setSearchParams] = useSearchParams();
+    const calendar_id = searchParams.get('calendar_id') || undefined;
+    const { hidden_calendar_ids } = use_calendar_visibility();
+    
     const [current_date, set_current_date] = useState(new Date());
     const [view, set_view] = useState<ViewType>('month');
-    const { events, loading } = use_calendar_events(current_date, view);
+    const { events, loading, refresh } = use_calendar_events(current_date, view, calendar_id, hidden_calendar_ids);
     
     // Modal de confirmación para borrar
     const [delete_modal_open, set_delete_modal_open] = useState(false);
     const [event_to_delete, set_event_to_delete] = useState<{ id: string, title: string } | null>(null);
     const [deleting, set_deleting] = useState(false);
+    const [error, set_error] = useState<string | null>(null);
 
     const handle_delete_request = (event_id: string) => {
         const event = events.find(e => e.id === event_id);
         if (event) {
             set_event_to_delete({ id: event.id, title: event.title });
             set_delete_modal_open(true);
+            set_error(null);
         }
     };
 
@@ -325,21 +349,19 @@ export const Dashboard_Page = () => {
         if (!event_to_delete) return;
         
         set_deleting(true);
+        set_error(null);
         try {
-            // Simular borrado (no conectado al backend)
-            console.log(`Evento ${event_to_delete.id} eliminado visualmente`);
-            
-            // Esperar un poco para simular la llamada
-            await new Promise(resolve => setTimeout(resolve, 500));
+            await delete_event_use_case.execute(event_to_delete.id, CURRENT_USER_ID);
             
             // Cerrar modal
             set_delete_modal_open(false);
             set_event_to_delete(null);
             
-            // Aquí normalmente recargarías los eventos o los eliminarías del estado
-            // Por ahora solo mostramos feedback visual
-        } catch (error) {
+            // Recargar eventos
+            refresh();
+        } catch (error: any) {
             console.error('Error al eliminar evento:', error);
+            set_error(error.message || "Error desconocido al eliminar el evento");
         } finally {
             set_deleting(false);
         }
@@ -349,6 +371,7 @@ export const Dashboard_Page = () => {
         if (!deleting) {
             set_delete_modal_open(false);
             set_event_to_delete(null);
+            set_error(null);
         }
     };
 
@@ -386,6 +409,12 @@ export const Dashboard_Page = () => {
         if (view === 'day') return `${current_date.getDate()} de ${months[current_date.getMonth()]} ${current_date.getFullYear()}`;
     };
 
+    const clear_calendar_filter = () => {
+        const newParams = new URLSearchParams(searchParams);
+        newParams.delete('calendar_id');
+        setSearchParams(newParams);
+    };
+
     return (
         <MainLayout>
             <header className="flex flex-col md:flex-row justify-between items-start md:items-end mb-8 gap-4">
@@ -410,7 +439,20 @@ export const Dashboard_Page = () => {
                     </nav>
                     <div>
                         <h1 className="text-3xl md:text-4xl font-black uppercase mb-1">{get_header_title()}</h1>
-                        <p className="font-medium text-gray-600">La vida es eso que pasa mientras haces otros planes.</p>
+                        <div className="flex items-center gap-2">
+                            <p className="font-medium text-gray-600">La vida es eso que pasa mientras haces otros planes.</p>
+                            {calendar_id && (
+                                <button 
+                                    onClick={clear_calendar_filter}
+                                    className="text-xs bg-basmati-blue text-white px-2 py-1 rounded-full flex items-center gap-1 hover:bg-blue-600 transition-colors"
+                                    title="Quitar filtro de calendario"
+                                >
+                                    <FontAwesomeIcon icon={faFilter} />
+                                    Filtro activo
+                                    <span className="ml-1 font-bold">×</span>
+                                </button>
+                            )}
+                        </div>
                     </div>
                 </div>
                 <div className="grid grid-cols-2 md:flex gap-2 w-full md:w-auto" role="group" aria-label="Seleccionar vista del calendario">
@@ -464,6 +506,7 @@ export const Dashboard_Page = () => {
                         currentDate={current_date} 
                         view={view} 
                         events={events} 
+                        calendar_id={calendar_id}
                         onViewChange={set_view}
                         onDateChange={set_current_date}
                         onDeleteEvent={handle_delete_request}
@@ -486,6 +529,11 @@ export const Dashboard_Page = () => {
                         <p className="text-sm text-gray-600 mt-2">
                             Esta acción no se puede deshacer.
                         </p>
+                        {error && (
+                            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-2 rounded mt-4" role="alert">
+                                <span className="block sm:inline">{error}</span>
+                            </div>
+                        )}
                     </Neo_Modal>
                 </>
             )}

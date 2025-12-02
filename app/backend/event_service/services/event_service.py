@@ -298,6 +298,16 @@ class EventService:
         doc["id"] = str(doc.get("_id"))
         doc.pop("_id", None)
 
+        # Ensure datetimes are timezone-aware (UTC) to avoid frontend shifts
+        if doc.get("start_time") and isinstance(doc["start_time"], datetime) and doc["start_time"].tzinfo is None:
+            doc["start_time"] = doc["start_time"].replace(tzinfo=timezone.utc)
+        if doc.get("end_time") and isinstance(doc["end_time"], datetime) and doc["end_time"].tzinfo is None:
+            doc["end_time"] = doc["end_time"].replace(tzinfo=timezone.utc)
+        if doc.get("created_at") and isinstance(doc["created_at"], datetime) and doc["created_at"].tzinfo is None:
+            doc["created_at"] = doc["created_at"].replace(tzinfo=timezone.utc)
+        if doc.get("updated_at") and isinstance(doc["updated_at"], datetime) and doc["updated_at"].tzinfo is None:
+            doc["updated_at"] = doc["updated_at"].replace(tzinfo=timezone.utc)
+
         calendar_id = doc.get("calendar_id")
         doc["calendar_id"] = str(calendar_id) if calendar_id else None
 

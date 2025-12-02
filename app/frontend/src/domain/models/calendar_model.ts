@@ -5,5 +5,6 @@ export interface Calendar_Model {
     owner_id: string;
     icon?: string;
     is_public: boolean;
+    parent_id?: string;
 }
 
