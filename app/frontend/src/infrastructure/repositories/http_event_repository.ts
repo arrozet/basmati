@@ -45,19 +45,37 @@ export class Http_Event_Repository implements Event_Repository_Interface {
         };
     }
 
-    async get_events_by_date_range(start: Date, end: Date, calendar_id?: string): Promise<Event_Model[]> {
-        const params: any = {
+    async get_events_by_date_range(start: Date, end: Date, calendar_ids?: string[]): Promise<Event_Model[]> {
+        const base_params = {
             start: start.toISOString(),
             end: end.toISOString()
         };
 
-        if (calendar_id && calendar_id.trim() !== "") {
-            params.calendar_id = calendar_id;
+        if (!calendar_ids || calendar_ids.length === 0) {
+            // Fetch all events if no calendar specified
+            const response = await api_client.get("/v2/events/search/by-date-range", { params: base_params });
+            return this.map_response(response.data);
         }
 
-        const response = await api_client.get("/v2/events/search/by-date-range", { params });
+        // Parallel requests for each calendar
+        // Note: Optimization would be to send list to backend if supported, but we assume 1-by-1 for now as per current API spec
+        const promises = calendar_ids.map(id => 
+            api_client.get("/v2/events/search/by-date-range", { 
+                params: { ...base_params, calendar_id: id } 
+            })
+        );
 
-        return response.data.map((item: any) => ({
+        const responses = await Promise.all(promises);
+        const all_events = responses.flatMap(r => this.map_response(r.data));
+        
+        // Deduplicate by ID (just in case)
+        const unique_events = Array.from(new Map(all_events.map(e => [e.id, e])).values());
+        
+        return unique_events;
+    }
+
+    private map_response(data: any[]): Event_Model[] {
+        return data.map((item: any) => ({
             id: item.id,
             title: item.title,
             start_time: new Date(item.start_time),

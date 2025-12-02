@@ -6,9 +6,22 @@ import { Neo_Input } from '../components/ui/Neo_Input';
 import { Neo_Button } from '../components/ui/Neo_Button';
 import { Neo_Modal } from '../components/ui/Neo_Modal';
 import { Http_Event_Repository } from '../../infrastructure/repositories/http_event_repository';
+import { Http_Calendar_Repository } from '../../infrastructure/repositories/http_calendar_repository';
 import { Event_Model } from '../../domain/models/event_model';
+import { Update_Event_Use_Case } from '../../application/event/update_event_use_case';
+import { Get_Event_Use_Case } from '../../application/event/get_event_use_case';
+import { Delete_Event_Use_Case } from '../../application/event/delete_event_use_case';
 
-const repository = new Http_Event_Repository();
+// Dependencies
+const event_repository = new Http_Event_Repository();
+const calendar_repository = new Http_Calendar_Repository();
+
+const get_event_use_case = new Get_Event_Use_Case(event_repository);
+const update_event_use_case = new Update_Event_Use_Case(event_repository, calendar_repository);
+const delete_event_use_case = new Delete_Event_Use_Case(event_repository, calendar_repository);
+
+// Mock user ID (En producción vendría del contexto de autenticación)
+const CURRENT_USER_ID = 'user_dev_1';
 
 /**
  * Página de edición de evento accesible.
@@ -21,6 +34,7 @@ export const Edit_Event_Page = () => {
     const [saving, set_saving] = useState(false);
     const [error, set_error] = useState<string | null>(null);
     const [event, set_event] = useState<Event_Model | null>(null);
+    const [calendar_info, set_calendar_info] = useState<{title: string, color: string} | null>(null);
     
     // Modal de confirmación para borrar
     const [delete_modal_open, set_delete_modal_open] = useState(false);
@@ -39,7 +53,7 @@ export const Edit_Event_Page = () => {
         const fetch_event = async () => {
             if (!id) return;
             try {
-                const fetched_event = await repository.get_event(id);
+                const fetched_event = await get_event_use_case.execute(id);
                 if (fetched_event) {
                     set_event(fetched_event);
                     
@@ -70,6 +84,19 @@ export const Edit_Event_Page = () => {
                         end_time: format_time(end),
                         description: fetched_event.description || ''
                     });
+
+                    // Fetch calendar info
+                    try {
+                        const calendar = await calendar_repository.get_by_id(fetched_event.calendar_id);
+                        if (calendar) {
+                            set_calendar_info({
+                                title: calendar.title,
+                                color: calendar.color
+                            });
+                        }
+                    } catch (cal_err) {
+                        console.error("Error al cargar info del calendario", cal_err);
+                    }
                 } else {
                     set_error("Evento no encontrado");
                 }
@@ -102,11 +129,15 @@ export const Edit_Event_Page = () => {
                 end_time: end_iso
             };
 
-            await repository.update(updated_event);
+            await update_event_use_case.execute(updated_event, CURRENT_USER_ID);
             navigate('/dashboard');
-        } catch (err) {
+        } catch (err: any) {
             console.error(err);
-            set_error("Error al guardar los cambios");
+            if (err.response && err.response.data) {
+                set_error(`Error del servidor: ${JSON.stringify(err.response.data.detail || err.response.data)}`);
+            } else {
+                set_error(err.message || "Error al guardar los cambios");
+            }
         } finally {
             set_saving(false);
         }
@@ -121,17 +152,12 @@ export const Edit_Event_Page = () => {
         
         set_deleting(true);
         try {
-            // Simular borrado (no conectado al backend)
-            console.log(`Evento ${event.id} eliminado visualmente`);
-            
-            // Esperar un poco para simular la llamada
-            await new Promise(resolve => setTimeout(resolve, 500));
-            
-            // Redirigir al dashboard
+            await delete_event_use_case.execute(event.id, CURRENT_USER_ID);
             navigate('/dashboard');
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error al eliminar evento:', error);
-            set_error("Error al eliminar el evento");
+            set_error(error.message || "Error al eliminar el evento");
+            set_delete_modal_open(false); // Close modal if error to show message
         } finally {
             set_deleting(false);
         }
@@ -153,7 +179,7 @@ export const Edit_Event_Page = () => {
         );
     }
 
-    if (error) {
+    if (error && !event) { // Only show full page error if event not loaded
         return (
             <MainLayout>
                 <div className="flex justify-center items-center h-64 flex-col">
@@ -183,6 +209,18 @@ export const Edit_Event_Page = () => {
                     </header>
 
                     <form onSubmit={handle_submit} className="space-y-6" aria-label="Formulario de edición de evento">
+                        {calendar_info && (
+                            <div className="flex items-center gap-2 bg-gray-100 p-2 rounded border-2 border-gray-200">
+                                <span className="text-sm font-bold text-gray-600">Calendario:</span>
+                                <div 
+                                    className="w-3 h-3 border-2 border-basmati-black" 
+                                    style={{ backgroundColor: calendar_info.color }}
+                                    aria-hidden="true"
+                                ></div>
+                                <span className="text-sm font-medium">{calendar_info.title}</span>
+                            </div>
+                        )}
+
                         <fieldset className="border-0 p-0 m-0">
                             <legend className="sr-only">Información básica del evento</legend>
                             <Neo_Input
@@ -255,7 +293,17 @@ export const Edit_Event_Page = () => {
                             />
                         </fieldset>
 
-                        <div className="flex justify-end space-x-4 pt-4 border-t-3 border-gray-200">
+                        {error && (
+                            <div 
+                                className="bg-basmati-red text-white p-3 font-bold border-3 border-basmati-black mt-4" 
+                                role="alert"
+                                aria-live="assertive"
+                            >
+                                {error}
+                            </div>
+                        )}
+
+                        <div className="flex justify-end space-x-4 pt-4 border-t-3 border-gray-200 mt-4">
                             <Neo_Button 
                                 type="button" 
                                 variant="secondary" 

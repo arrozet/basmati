@@ -1,14 +1,98 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Neo_Button } from '../ui/Neo_Button';
 import { Neo_Card } from '../ui/Neo_Card';
 import { clsx } from 'clsx';
 import { use_user_calendars } from '../../hooks/use_user_calendars';
+import { Calendar_Model } from '../../domain/models/calendar_model';
 
 interface SidebarProps {
     isOpen?: boolean;
     onClose?: () => void;
 }
+
+interface CalendarTreeItemProps {
+    calendar: Calendar_Model;
+    allCalendars: Calendar_Model[];
+    activeCalendarId: string | null;
+    onCalendarClick: (id: string) => void;
+    depth?: number;
+}
+
+/**
+ * Componente recursivo para renderizar items del árbol de calendarios.
+ */
+const CalendarTreeItem: React.FC<CalendarTreeItemProps> = ({ 
+    calendar, 
+    allCalendars, 
+    activeCalendarId, 
+    onCalendarClick, 
+    depth = 0 
+}) => {
+    const [isExpanded, setIsExpanded] = useState(false);
+    
+    const children = allCalendars.filter(c => c.parent_id === calendar.id);
+    const hasChildren = children.length > 0;
+    const isActive = activeCalendarId === calendar.id;
+
+    const handleToggle = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        setIsExpanded(!isExpanded);
+    };
+
+    return (
+        <li className="w-full">
+            <div className={clsx(
+                "flex items-center gap-2 w-full text-left rounded transition-all p-1",
+                isActive ? "bg-basmati-yellow/20 font-bold border-r-4 border-basmati-yellow" : "hover:bg-white"
+            )}
+            style={{ paddingLeft: `${depth * 12 + 8}px` }} // Indentación dinámica
+            >
+                {hasChildren ? (
+                    <button 
+                        onClick={handleToggle}
+                        className="w-4 h-4 flex items-center justify-center hover:bg-basmati-yellow/50 rounded-sm transition-colors"
+                        aria-label={isExpanded ? "Colapsar" : "Expandir"}
+                    >
+                        <span className="text-xs font-bold">{isExpanded ? '▼' : '▶'}</span>
+                    </button>
+                ) : (
+                    // Spacer for alignment
+                    <div className="w-4 h-4" />
+                )}
+                
+                <button 
+                    type="button"
+                    className="flex items-center gap-2 flex-1 min-w-0 text-left focus:outline-none"
+                    onClick={() => onCalendarClick(calendar.id)}
+                    aria-label={`Ver calendario ${calendar.title}`}
+                >
+                    <div 
+                        className="w-3 h-3 border-2 border-basmati-black shrink-0" 
+                        style={{ backgroundColor: calendar.color || '#EBBE4D' }}
+                        aria-hidden="true"
+                    ></div>
+                    <span className="truncate text-sm">{calendar.title}</span>
+                </button>
+            </div>
+
+            {hasChildren && isExpanded && (
+                <ul className="flex flex-col gap-1 list-none p-0 mt-1">
+                    {children.map(child => (
+                        <CalendarTreeItem
+                            key={child.id}
+                            calendar={child}
+                            allCalendars={allCalendars}
+                            activeCalendarId={activeCalendarId}
+                            onCalendarClick={onCalendarClick}
+                            depth={depth + 1}
+                        />
+                    ))}
+                </ul>
+            )}
+        </li>
+    );
+};
 
 /**
  * Barra lateral de navegación con listado de calendarios.
@@ -22,6 +106,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
     const active_calendar_id = searchParams.get('calendar_id');
 
     const myCalendars = calendars.filter(cal => cal.owner_id === 'user_dev_1');
+    // Solo mostramos raíces en el nivel superior
+    const myRootCalendars = myCalendars.filter(cal => !cal.parent_id);
+    
     const otherCalendars = calendars.filter(cal => cal.owner_id !== 'user_dev_1');
 
     const handle_calendar_click = (calendar_id: string) => {
@@ -89,25 +176,14 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
                         <div className="text-sm text-gray-500">Cargando...</div>
                     ) : (
                         <ul className="flex flex-col gap-2 list-none p-0">
-                            {myCalendars.map((cal) => (
-                                <li key={cal.id}>
-                                    <button 
-                                        type="button"
-                                        className={clsx(
-                                            "flex items-center gap-2 w-full text-left cursor-pointer hover:translate-x-1 transition-transform focus:outline-none focus:ring-2 focus:ring-basmati-yellow p-2 rounded",
-                                            active_calendar_id === cal.id ? "bg-basmati-yellow/20 font-bold border-r-4 border-basmati-yellow" : "hover:bg-white"
-                                        )}
-                                        aria-label={`Ver calendario ${cal.title}`}
-                                        onClick={() => handle_calendar_click(cal.id)}
-                                    >
-                                        <div 
-                                            className="w-4 h-4 border-3 border-basmati-black" 
-                                            style={{ backgroundColor: cal.color || '#EBBE4D' }}
-                                            aria-hidden="true"
-                                        ></div>
-                                        <span className="font-medium truncate">{cal.title}</span>
-                                    </button>
-                                </li>
+                            {myRootCalendars.map((cal) => (
+                                <CalendarTreeItem
+                                    key={cal.id}
+                                    calendar={cal}
+                                    allCalendars={myCalendars}
+                                    activeCalendarId={active_calendar_id}
+                                    onCalendarClick={handle_calendar_click}
+                                />
                             ))}
                             {myCalendars.length === 0 && (
                                 <li className="text-sm text-gray-500 italic">No tienes calendarios.</li>

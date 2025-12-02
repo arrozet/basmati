@@ -8,8 +8,9 @@ export interface Event_Repository_Interface {
      * Obtiene eventos en un rango de fechas.
      * @param start Fecha inicio.
      * @param end Fecha fin.
+     * @param calendar_ids Lista de IDs de calendario para filtrar (opcional).
      */
-    get_events_by_date_range(start: Date, end: Date, calendar_id?: string): Promise<Event_Model[]>;
+    get_events_by_date_range(start: Date, end: Date, calendar_ids?: string[]): Promise<Event_Model[]>;
 
     /**
      * Busca eventos por texto.

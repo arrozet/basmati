@@ -10,9 +10,14 @@ import { use_calendar_events } from '../hooks/use_calendar_events';
 import { Event_Model } from '../../domain/models/event_model';
 import { Delete_Event_Use_Case } from '../../application/event/delete_event_use_case';
 import { Http_Event_Repository } from '../../infrastructure/repositories/http_event_repository';
+import { Http_Calendar_Repository } from '../../infrastructure/repositories/http_calendar_repository';
 
-const repository = new Http_Event_Repository();
-const delete_event_use_case = new Delete_Event_Use_Case(repository);
+const event_repository = new Http_Event_Repository();
+const calendar_repository = new Http_Calendar_Repository();
+const delete_event_use_case = new Delete_Event_Use_Case(event_repository, calendar_repository);
+
+// Mock user ID (En producción vendría del contexto de autenticación)
+const CURRENT_USER_ID = 'user_dev_1';
 
 type ViewType = 'year' | 'month' | 'week' | 'day';
 
@@ -55,14 +60,6 @@ const CalendarGrid: React.FC<{
         const day = String(date.getDate()).padStart(2, '0');
         const dateStr = `${year}-${month}-${day}`;
         
-        // Get calendar_id from URL params if exists (using window.location or passing it as prop)
-        // Since we are inside CalendarGrid, we don't have direct access to searchParams unless passed
-        // But we can use the hook again or just pass it down.
-        // Actually, CalendarGrid is a component inside Dashboard_Page which has searchParams.
-        // Let's pass calendar_id to CalendarGrid.
-        
-        // Wait, I need to update the component signature first.
-        // For now, let's just use the prop I will add.
         const params = new URLSearchParams();
         params.append('date', dateStr);
         if (calendar_id) {
@@ -335,12 +332,14 @@ export const Dashboard_Page = () => {
     const [delete_modal_open, set_delete_modal_open] = useState(false);
     const [event_to_delete, set_event_to_delete] = useState<{ id: string, title: string } | null>(null);
     const [deleting, set_deleting] = useState(false);
+    const [error, set_error] = useState<string | null>(null);
 
     const handle_delete_request = (event_id: string) => {
         const event = events.find(e => e.id === event_id);
         if (event) {
             set_event_to_delete({ id: event.id, title: event.title });
             set_delete_modal_open(true);
+            set_error(null);
         }
     };
 
@@ -348,8 +347,9 @@ export const Dashboard_Page = () => {
         if (!event_to_delete) return;
         
         set_deleting(true);
+        set_error(null);
         try {
-            await delete_event_use_case.execute(event_to_delete.id);
+            await delete_event_use_case.execute(event_to_delete.id, CURRENT_USER_ID);
             
             // Cerrar modal
             set_delete_modal_open(false);
@@ -357,8 +357,9 @@ export const Dashboard_Page = () => {
             
             // Recargar eventos
             refresh();
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error al eliminar evento:', error);
+            set_error(error.message || "Error desconocido al eliminar el evento");
         } finally {
             set_deleting(false);
         }
@@ -368,6 +369,7 @@ export const Dashboard_Page = () => {
         if (!deleting) {
             set_delete_modal_open(false);
             set_event_to_delete(null);
+            set_error(null);
         }
     };
 
@@ -525,6 +527,11 @@ export const Dashboard_Page = () => {
                         <p className="text-sm text-gray-600 mt-2">
                             Esta acción no se puede deshacer.
                         </p>
+                        {error && (
+                            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-2 rounded mt-4" role="alert">
+                                <span className="block sm:inline">{error}</span>
+                            </div>
+                        )}
                     </Neo_Modal>
                 </>
             )}

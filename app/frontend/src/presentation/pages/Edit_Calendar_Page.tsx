@@ -17,7 +17,7 @@ const CURRENT_USER_ID = 'user_dev_1';
 export const Edit_Calendar_Page = () => {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
-    const { update_calendar, delete_calendar, get_calendar_by_id } = use_calendars(CURRENT_USER_ID);
+    const { calendars, update_calendar, delete_calendar, get_calendar_by_id } = use_calendars(CURRENT_USER_ID);
     const [loading, set_loading] = useState(true);
     const [saving, set_saving] = useState(false);
     const [deleting, set_deleting] = useState(false);
@@ -29,7 +29,8 @@ export const Edit_Calendar_Page = () => {
         color: '#EBBE4D',
         owner_id: CURRENT_USER_ID,
         icon: '',
-        is_public: false
+        is_public: false,
+        parent_id: ''
     });
 
     useEffect(() => {
@@ -44,7 +45,8 @@ export const Edit_Calendar_Page = () => {
                         color: fetched_calendar.color,
                         owner_id: fetched_calendar.owner_id,
                         icon: fetched_calendar.icon || '',
-                        is_public: fetched_calendar.is_public
+                        is_public: fetched_calendar.is_public,
+                        parent_id: fetched_calendar.parent_id || ''
                     });
                 } else {
                     set_error("Calendario no encontrado");
@@ -59,7 +61,7 @@ export const Edit_Calendar_Page = () => {
         fetch_calendar();
     }, [id]);
 
-    const handle_change = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const handle_change = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         const { name, value, type } = e.target;
         const checked = (e.target as HTMLInputElement).checked;
         
@@ -83,7 +85,8 @@ export const Edit_Calendar_Page = () => {
                 color: form_data.color,
                 owner_id: form_data.owner_id,
                 icon: form_data.icon,
-                is_public: form_data.is_public
+                is_public: form_data.is_public,
+                parent_id: form_data.parent_id || undefined
             });
             navigate('/dashboard');
         } catch (err: any) {
@@ -215,6 +218,28 @@ export const Edit_Calendar_Page = () => {
                                 />
                             </div>
                         </fieldset>
+
+                        <div className="flex flex-col gap-1">
+                            <label htmlFor="parent-calendar" className="font-bold text-sm text-basmati-black">
+                                Subcalendario de (Opcional)
+                            </label>
+                            <select
+                                id="parent-calendar"
+                                name="parent_id"
+                                value={form_data.parent_id}
+                                onChange={handle_change}
+                                className="border-3 border-basmati-black px-3 py-2 focus:outline-none focus:ring-4 focus:ring-basmati-yellow ring-offset-2 transition-all bg-white"
+                            >
+                                <option value="">Ninguno (Calendario principal)</option>
+                                {calendars
+                                    .filter(c => c.owner_id === CURRENT_USER_ID && c.id !== calendar?.id)
+                                    .map(cal => (
+                                    <option key={cal.id} value={cal.id}>
+                                        {cal.title}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
 
                         <Neo_Input 
                             label="Organizador" 

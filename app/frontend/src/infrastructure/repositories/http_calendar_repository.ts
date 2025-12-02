@@ -17,7 +17,8 @@ export class Http_Calendar_Repository implements Calendar_Repository_Interface {
                 // The backend might return creator_external_id OR creator_id
                 owner_id: item.creator_external_id || item.creator_id || item.owner_id || user_id, 
                 icon: item.icon,
-                is_public: item.is_public
+                is_public: item.is_public,
+                parent_id: item.parent_calendar_id
             }));
 
             // TODO: Implement fetch for followed/subscribed calendars from backend
@@ -61,7 +62,8 @@ export class Http_Calendar_Repository implements Calendar_Repository_Interface {
             keywords: [], // Campo opcional pero recomendado
             icon: calendar.icon,
             visibility: calendar.is_public ? "public" : "private", // Mapeo de booleano a enum
-            description: ""
+            description: "",
+            parent_calendar_id: calendar.parent_id
         };
 
         const response = await api_client.post("/v1/calendars", backend_payload);
@@ -74,7 +76,8 @@ export class Http_Calendar_Repository implements Calendar_Repository_Interface {
             color: item.color,
             owner_id: item.creator_external_id || item.owner_id, // Adaptable a lo que devuelva el backend
             icon: item.icon,
-            is_public: item.visibility === "public"
+            is_public: item.visibility === "public",
+            parent_id: item.parent_calendar_id
         };
     }
     
@@ -86,7 +89,8 @@ export class Http_Calendar_Repository implements Calendar_Repository_Interface {
             title: calendar.title,
             color: calendar.color,
             icon: calendar.icon,
-            is_public: calendar.is_public
+            is_public: calendar.is_public,
+            parent_calendar_id: calendar.parent_id
         });
         const item = response.data;
         return {
@@ -95,7 +99,8 @@ export class Http_Calendar_Repository implements Calendar_Repository_Interface {
             color: item.color,
             owner_id: item.owner_id,
             icon: item.icon,
-            is_public: item.is_public
+            is_public: item.is_public,
+            parent_id: item.parent_calendar_id
         };
     }
     
@@ -117,9 +122,10 @@ export class Http_Calendar_Repository implements Calendar_Repository_Interface {
                 id: item.id,
                 title: item.title,
                 color: item.color,
-                owner_id: item.owner_id,
+                owner_id: item.creator_external_id || item.owner_id || item.creator_id,
                 icon: item.icon,
-                is_public: item.is_public
+                is_public: item.is_public,
+                parent_id: item.parent_calendar_id
             };
         } catch (error) {
             console.error("Error fetching calendar:", error);

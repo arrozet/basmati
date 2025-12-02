@@ -6,10 +6,12 @@ import { Neo_Input } from '../components/ui/Neo_Input';
 import { Neo_Button } from '../components/ui/Neo_Button';
 import { Create_Event_Use_Case } from '../../application/event/create_event_use_case';
 import { Http_Event_Repository } from '../../infrastructure/repositories/http_event_repository';
+import { Http_Calendar_Repository } from '../../infrastructure/repositories/http_calendar_repository';
 import { use_calendars } from '../hooks/use_calendars';
 
-const repository = new Http_Event_Repository();
-const create_event_use_case = new Create_Event_Use_Case(repository);
+const event_repository = new Http_Event_Repository();
+const calendar_repository = new Http_Calendar_Repository();
+const create_event_use_case = new Create_Event_Use_Case(event_repository, calendar_repository);
 
 // Mock user ID (En producción vendría del contexto de autenticación)
 const CURRENT_USER_ID = 'user_dev_1';
@@ -84,7 +86,7 @@ export const Create_Event_Page = () => {
                 end_time: new Date(form_data.end_time),
                 description: form_data.description,
                 calendar_id: form_data.calendar_id
-            });
+            }, CURRENT_USER_ID);
             navigate('/dashboard');
         } catch (err: any) {
             console.error("Error completo:", err);
