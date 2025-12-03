@@ -1,5 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { 
+    faPencil, 
+    faArrowLeft, 
+    faClock, 
+    faAlignLeft, 
+    faMapMarkerAlt, 
+    faExternalLinkAlt, 
+    faPaperclip, 
+    faFileAlt 
+} from '@fortawesome/free-solid-svg-icons';
 import { MainLayout } from '../components/layout/MainLayout';
 import { Neo_Card } from '../components/ui/Neo_Card';
 import { Neo_Button } from '../components/ui/Neo_Button';
@@ -21,7 +32,7 @@ const add_comment_use_case = new Add_Comment_Use_Case(event_repository);
 const CURRENT_USER_ID = 'user_dev_1'; // Mock ID
 
 export const Event_Detail_Page = () => {
-    use_page_title('Detalle del evento');
+    use_page_title('Event details');
     const { id } = useParams();
     const navigate = useNavigate();
     
@@ -97,7 +108,7 @@ export const Event_Detail_Page = () => {
                         {error || "Evento no encontrado"}
                     </div>
                     <Neo_Button onClick={() => navigate('/dashboard')} variant="secondary">
-                        <i className="fas fa-arrow-left mr-2"></i> Volver al Dashboard
+                        <FontAwesomeIcon icon={faArrowLeft} className="mr-2" /> Volver al Dashboard
                     </Neo_Button>
                 </div>
             </MainLayout>
@@ -150,7 +161,7 @@ export const Event_Detail_Page = () => {
                                 size="sm"
                                 className="text-xs"
                             >
-                                <i className="fas fa-pencil-alt mr-2"></i> Editar
+                                <FontAwesomeIcon icon={faPencil} className="mr-2" /> Editar
                             </Neo_Button>
                         </div>
 
@@ -178,7 +189,7 @@ export const Event_Detail_Page = () => {
                                     {format_weekday(event.start_time)}
                                 </div>
                                 <div className="flex items-center gap-2 text-gray-700 font-medium text-lg">
-                                    <i className="far fa-clock"></i>
+                                    <FontAwesomeIcon icon={faClock} />
                                     <span>{format_time(event.start_time)} - {format_time(event.end_time)}</span>
                                 </div>
                             </div>
@@ -189,7 +200,7 @@ export const Event_Detail_Page = () => {
                         {/* Descripción */}
                         <div className="mb-8">
                             <h3 className="font-black text-lg mb-3 flex items-center gap-2 uppercase tracking-wide text-gray-400">
-                                <i className="fas fa-align-left"></i> Detalles
+                                <FontAwesomeIcon icon={faAlignLeft} /> Detalles
                             </h3>
                             <div className="prose prose-lg max-w-none text-basmati-black bg-gray-50 p-4 rounded-sm border-l-4 border-basmati-yellow">
                                 {event.description ? event.description : <span className="italic text-gray-400">Sin descripción.</span>}
@@ -200,7 +211,7 @@ export const Event_Detail_Page = () => {
                         {event.location && (
                             <div className="mb-8">
                                 <h3 className="font-black text-lg mb-3 flex items-center gap-2 uppercase tracking-wide text-gray-400">
-                                    <i className="fas fa-map-marker-alt"></i> Ubicación
+                                    <FontAwesomeIcon icon={faMapMarkerAlt} /> Ubicación
                                 </h3>
                                 <div className="bg-white border-3 border-basmati-black rounded-sm p-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
                                     <p className="font-bold text-lg">{event.location.place_name || "Ubicación"}</p>
@@ -225,7 +236,7 @@ export const Event_Detail_Page = () => {
                                             rel="noopener noreferrer"
                                             className="text-xs font-bold text-basmati-blue hover:underline flex items-center justify-end gap-1"
                                         >
-                                            Ver mapa completo <i className="fas fa-external-link-alt"></i>
+                                            Ver mapa completo <FontAwesomeIcon icon={faExternalLinkAlt} />
                                         </a>
                                     </div>
                                 </div>
@@ -236,7 +247,7 @@ export const Event_Detail_Page = () => {
                         {event.attachments && event.attachments.length > 0 && (
                             <div className="mb-4">
                                 <h3 className="font-black text-lg mb-3 flex items-center gap-2 uppercase tracking-wide text-gray-400">
-                                    <i className="fas fa-paperclip"></i> Adjuntos ({event.attachments.length})
+                                    <FontAwesomeIcon icon={faPaperclip} /> Adjuntos ({event.attachments.length})
                                 </h3>
                                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                                     {event.attachments.map(att => (
@@ -255,7 +266,7 @@ export const Event_Detail_Page = () => {
                                                 />
                                             ) : (
                                                 <div className="w-full h-full flex flex-col items-center justify-center bg-gray-50 text-gray-500 p-2 text-center">
-                                                    <i className="fas fa-file-alt text-3xl mb-2"></i>
+                                                    <FontAwesomeIcon icon={faFileAlt} className="text-3xl mb-2" />
                                                     <span className="text-xs font-bold truncate w-full">{att.filename}</span>
                                                 </div>
                                             )}

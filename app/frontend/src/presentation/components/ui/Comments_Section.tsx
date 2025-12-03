@@ -1,4 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faComments, faSpinner, faPaperPlane } from '@fortawesome/free-solid-svg-icons';
 import { Event_Comment } from '../../../domain/models/event_model';
 import { Neo_Button } from './Neo_Button';
 
@@ -59,8 +61,8 @@ export const Comments_Section: React.FC<CommentsSectionProps> = ({
             {/* Header de Comentarios */}
             <div className="bg-basmati-bg p-4 border-b-3 border-basmati-black flex justify-between items-center">
                 <h3 className="font-black text-lg flex items-center gap-2">
-                    <i className="fas fa-comments text-basmati-blue"></i>
-                    Chat
+                    <FontAwesomeIcon icon={faComments} className="text-basmati-blue" />
+                    Comentarios
                 </h3>
                 <span className="bg-basmati-black text-white text-xs font-bold px-2 py-1 rounded-full">
                     {comments.length}
@@ -71,7 +73,7 @@ export const Comments_Section: React.FC<CommentsSectionProps> = ({
             <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50">
                 {comments.length === 0 ? (
                     <div className="h-full flex flex-col items-center justify-center text-center opacity-50 p-4">
-                        <i className="far fa-comments text-4xl mb-2 text-gray-400"></i>
+                        <FontAwesomeIcon icon={faComments} className="text-4xl mb-2 text-gray-400" />
                         <p className="text-sm font-bold text-gray-500">Aún no hay comentarios.</p>
                         <p className="text-xs text-gray-400">¡Sé el primero en decir algo!</p>
                     </div>
@@ -136,9 +138,9 @@ export const Comments_Section: React.FC<CommentsSectionProps> = ({
                         aria-label="Enviar"
                     >
                         {submitting ? (
-                            <i className="fas fa-spinner fa-spin"></i>
+                            <FontAwesomeIcon icon={faSpinner} spin />
                         ) : (
-                            <i className="fas fa-paper-plane"></i>
+                            <FontAwesomeIcon icon={faPaperPlane} />
                         )}
                     </button>
                 </form>
