@@ -21,7 +21,7 @@ class IntegrationServiceSettings(Settings):
     # Configuración de AWS S3 para almacenamiento de imágenes
     aws_access_key_id: str | None = None
     aws_secret_access_key: str | None = None
-    aws_region: str = "us-east-1"
+    aws_region: str = "eu-north-1"
     aws_s3_bucket_name: str | None = None
 
 # Instancia de configuración para este servicio
