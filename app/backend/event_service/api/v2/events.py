@@ -7,13 +7,14 @@ Cambios en V2:
 - search_by_date_range: Añade filtro opcional por calendar_id
 - get_all_events: Nuevo endpoint para obtener todos los eventos
 - delete_events_by_calendar: Nuevo endpoint para eliminar eventos de un calendario
+- add_comment: Simplificado, solo requiere user_id y text
 """
 from datetime import datetime
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Path, Body, status
 
 from core.interface import IEventService
-from schemas.event import EventResponse
+from schemas.event import EventResponse, EventComment, CommentCreateV2, CommentCreate
 
 
 def create_v2_events_router(get_service_dependency) -> APIRouter:
@@ -126,6 +127,70 @@ Ejemplo de uso:
             "deleted_count": deleted_count,
             "calendar_id": calendar_id
         }
+
+    @router.post(
+        "/{event_id}/comments",
+        response_model=EventComment,
+        status_code=status.HTTP_201_CREATED,
+        summary="Agregar comentario a un evento (V2)",
+        description="""
+Agrega un comentario a un evento.
+
+**Mejora en V2**: Solo requiere `user_id` y `text`. El backend obtiene el display_name
+automáticamente o usa un valor por defecto.
+
+Ejemplo de uso:
+```json
+{
+    "user_id": "user_dev_1",
+    "text": "¿Podemos mover el evento 30 minutos más tarde?"
+}
+```
+        """,
+        responses={
+            201: {"description": "Comentario agregado exitosamente."},
+            400: {"description": "Error de validación en los datos del comentario."},
+            404: {"description": "El evento con el ID especificado no existe."},
+            500: {"description": "Error interno del servidor."}
+        }
+    )
+    async def add_comment(
+        event_id: str = Path(..., description="ID único del evento"),
+        comment: CommentCreateV2 = Body(..., description="Datos del comentario"),
+        service: IEventService = Depends(get_service_dependency),
+    ):
+        """Agrega un comentario a un evento (versión simplificada).
+        
+        Esta versión no requiere display_name, el backend lo infiere o usa un valor por defecto.
+        """
+        # Convertir CommentCreateV2 a CommentCreate con display_name por defecto
+        # En producción, aquí se haría una llamada al User Service para obtener el nombre
+        display_name = f"Usuario {comment.user_id[-4:]}"  # Fallback simple
+        
+        # Intentar obtener el nombre real del usuario (mock por ahora)
+        if comment.user_id == "user_dev_1":
+            display_name = "Developer User"
+        
+        full_comment = CommentCreate(
+            author_external_id=comment.user_id,
+            author_display_name=display_name,
+            text=comment.text
+        )
+        
+        try:
+            new_comment = await service.add_comment(event_id, full_comment)
+        except ValueError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=str(exc),
+            ) from exc
+
+        if not new_comment:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Evento no encontrado",
+            )
+        return new_comment
 
     return router
 

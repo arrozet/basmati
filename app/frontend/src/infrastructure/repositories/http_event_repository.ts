@@ -239,11 +239,12 @@ export class Http_Event_Repository implements Event_Repository_Interface {
 
     async add_comment(event_id: string, text: string, user_id: string): Promise<Event_Comment> {
         const payload = {
-            text: text,
-            user_id: user_id // Note: Backend usually infers this from auth token, but we send it as per instructions
+            user_id: user_id,
+            text: text
         };
         
-        const response = await api_client.post(`/v1/events/${event_id}/comments`, payload);
+        // Usar V2 para comentarios simplificados (no requiere display_name)
+        const response = await api_client.post(`/v2/events/${event_id}/comments`, payload);
         const item = response.data;
         
         return {

@@ -80,6 +80,25 @@ class CommentCreate(BaseModel):
 	)
 
 
+class CommentCreateV2(BaseModel):
+	"""Payload simplificado para crear un comentario (V2).
+	
+	No requiere display_name, el backend lo obtendrá o usará un valor por defecto.
+	"""
+
+	user_id: str = Field(..., description="ID externo del usuario que comenta")
+	text: str = Field(..., min_length=1, description="Texto del comentario")
+
+	model_config = ConfigDict(
+		json_schema_extra={
+			"example": {
+				"user_id": "user_dev_1",
+				"text": "¿Podemos mover el evento 30 minutos más tarde?"
+			}
+		}
+	)
+
+
 class AttachmentCreate(BaseModel):
 	"""Payload para añadir un adjunto"""
 
