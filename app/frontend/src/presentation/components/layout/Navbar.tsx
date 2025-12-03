@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faSearch, faBars } from '@fortawesome/free-solid-svg-icons';
 import { Neo_Button } from '../ui/Neo_Button';
 import { Neo_Input } from '../ui/Neo_Input';
 
@@ -43,10 +45,10 @@ export const Navbar: React.FC<NavbarProps> = ({ onMenuClick }) => {
                     aria-expanded={menu_open}
                     aria-controls="sidebar-menu"
                 >
-                    <span aria-hidden="true">☰</span>
+                    <FontAwesomeIcon icon={faBars} className="text-xl" />
                 </button>
                 <Link 
-                    to="/dashboard" 
+                    to="/dashboard"
                     className="flex items-center gap-2 focus:outline-none focus:ring-4 focus:ring-basmati-yellow focus:ring-offset-2 p-1 rounded-sm group"
                     aria-label="Ir a página principal de Basmati"
                 >
@@ -77,7 +79,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onMenuClick }) => {
                 onClick={() => navigate('/search')}
                 aria-label="Ir a página de búsqueda"
             >
-                <span aria-hidden="true">🔍</span>
+                <FontAwesomeIcon icon={faSearch} className="text-xl" />
             </button>
 
             <div className="flex items-center gap-2 md:gap-4">
