@@ -81,14 +81,16 @@ class S3ImageService:
     
     def _compress_image(self, image_data: bytes, content_type: str) -> tuple[bytes, str]:
         """
-        Comprime una imagen para reducir su tamaño manteniendo calidad aceptable.
+        Comprime una imagen convirtiéndola a WebP para máxima eficiencia.
+        
+        WebP ofrece ~30% mejor compresión que JPEG manteniendo calidad,
+        y soporta transparencia (a diferencia de JPEG).
         
         Optimizaciones aplicadas:
-        - Redimensiona si excede MAX_IMAGE_SIZE (mantiene aspect ratio)
-        - Comprime JPEG con calidad configurable
-        - Optimiza PNG
-        - Convierte GIF/BMP a JPEG si no tienen transparencia
-        - SVG no se modifica (ya es vectorial)
+        - Convierte a WebP (formato más eficiente)
+        - Redimensiona si excede MAX_IMAGE_SIZE
+        - Corrige orientación EXIF (fotos de móviles)
+        - Preserva GIFs animados y SVGs sin modificar
         
         Args:
             image_data: Bytes de la imagen original
@@ -101,81 +103,83 @@ class S3ImageService:
         if content_type == "image/svg+xml":
             return image_data, content_type
         
+        # GIF animado: no modificar para preservar animación
+        if content_type == "image/gif":
+            try:
+                image = Image.open(io.BytesIO(image_data))
+                try:
+                    image.seek(1)
+                    print("📸 GIF animado detectado, preservando sin modificar")
+                    return image_data, content_type
+                except EOFError:
+                    pass  # Solo tiene 1 frame, se puede procesar
+            except Exception:
+                return image_data, content_type
+        
         try:
             # Abrir imagen con Pillow
             image = Image.open(io.BytesIO(image_data))
             
-            # Convertir RGBA a RGB si no hay transparencia real
-            # (para poder guardar como JPEG que es más eficiente)
-            if image.mode == 'RGBA':
-                # Verificar si hay transparencia real
-                if image.getextrema()[-1] == (255, 255):  # Canal alpha todo opaco
-                    background = Image.new('RGB', image.size, (255, 255, 255))
-                    background.paste(image, mask=image.split()[-1])
-                    image = background
+            # Corregir orientación según metadatos EXIF (fotos de móviles)
+            try:
+                from PIL import ImageOps
+                image = ImageOps.exif_transpose(image)
+            except Exception:
+                pass
             
-            # Convertir a RGB si es necesario (para JPEG)
-            if image.mode not in ('RGB', 'RGBA', 'L'):
-                image = image.convert('RGB')
-            
-            # Redimensionar si excede el tamaño máximo (manteniendo aspect ratio)
+            # Redimensionar si excede el tamaño máximo
             if image.width > self.MAX_IMAGE_SIZE[0] or image.height > self.MAX_IMAGE_SIZE[1]:
                 image.thumbnail(self.MAX_IMAGE_SIZE, Image.Resampling.LANCZOS)
             
-            # Comprimir según el formato
-            output = io.BytesIO()
+            # Determinar si tiene transparencia
+            has_transparency = False
+            if image.mode == 'RGBA':
+                extrema = image.getextrema()
+                if len(extrema) >= 4:
+                    alpha_min, _ = extrema[3]
+                    has_transparency = alpha_min < 255
+            elif image.mode == 'P' and 'transparency' in image.info:
+                has_transparency = True
             
-            if content_type == "image/png" and image.mode == 'RGBA':
-                # PNG con transparencia: optimizar compresión
-                image.save(
-                    output, 
-                    format='PNG', 
-                    optimize=True, 
-                    compress_level=self.PNG_COMPRESS_LEVEL
-                )
-                final_content_type = "image/png"
-            
-            elif content_type == "image/webp":
-                # WebP: formato moderno con buena compresión
-                image.save(
-                    output, 
-                    format='WEBP', 
-                    quality=self.JPEG_QUALITY, 
-                    method=6
-                )
-                final_content_type = "image/webp"
-            
+            # Convertir a modo apropiado para WebP
+            if has_transparency:
+                if image.mode != 'RGBA':
+                    image = image.convert('RGBA')
             else:
-                # Por defecto convertir a JPEG (mejor compresión)
-                if image.mode == 'RGBA':
-                    background = Image.new('RGB', image.size, (255, 255, 255))
-                    background.paste(image, mask=image.split()[-1])
-                    image = background
-                elif image.mode != 'RGB':
-                    image = image.convert('RGB')
-                
-                image.save(
-                    output, 
-                    format='JPEG', 
-                    quality=self.JPEG_QUALITY, 
-                    optimize=True
-                )
-                final_content_type = "image/jpeg"
+                if image.mode != 'RGB':
+                    if image.mode == 'RGBA':
+                        background = Image.new('RGB', image.size, (255, 255, 255))
+                        background.paste(image, mask=image.split()[3])
+                        image = background
+                    else:
+                        image = image.convert('RGB')
             
+            # Comprimir a WebP (el formato más eficiente)
+            output = io.BytesIO()
+            image.save(
+                output,
+                format='WEBP',
+                quality=82,  # Buen balance calidad/tamaño
+                method=6,    # Máxima compresión (más lento pero mejor)
+            )
             compressed_data = output.getvalue()
+            final_content_type = "image/webp"
             
-            # Log de compresión
             original_size = len(image_data)
             compressed_size = len(compressed_data)
-            reduction = ((original_size - compressed_size) / original_size) * 100
             
-            print(f"📸 Compresión: {original_size/1024:.1f}KB → {compressed_size/1024:.1f}KB ({reduction:.1f}% reducción)")
+            # WebP casi siempre es más pequeño, pero verificamos por si acaso
+            if compressed_size >= original_size:
+                print(f"📸 WebP no redujo tamaño ({original_size/1024:.1f}KB → {compressed_size/1024:.1f}KB), usando original")
+                return image_data, content_type
+            
+            reduction = ((original_size - compressed_size) / original_size) * 100
+            print(f"📸 Convertido a WebP: {original_size/1024:.1f}KB → {compressed_size/1024:.1f}KB ({reduction:.1f}% reducción)")
             
             return compressed_data, final_content_type
             
         except Exception as e:
-            print(f"⚠️ Error al comprimir imagen, usando original: {str(e)}")
-            # Si falla la compresión, devolver imagen original
+            print(f"⚠️ Error al comprimir imagen: {str(e)}, usando original")
             return image_data, content_type
     
     def _generate_unique_key(self, filename: str, folder: str | None = None) -> str:
@@ -201,6 +205,46 @@ class S3ImageService:
         if folder:
             return f"{folder}/{unique_id}_{clean_filename}"
         return f"{unique_id}_{clean_filename}"
+    
+    def _update_filename_extension(self, filename: str, content_type: str) -> str:
+        """
+        Actualiza la extensión del archivo según el content_type.
+        
+        Importante para que la URL refleje el formato real de la imagen
+        después de la compresión/conversión.
+        
+        Args:
+            filename: Nombre original del archivo
+            content_type: Tipo MIME del contenido
+            
+        Returns:
+            str: Filename con la extensión correcta
+        """
+        # Mapeo de content_type a extensión
+        extension_map = {
+            "image/webp": ".webp",
+            "image/jpeg": ".jpg",
+            "image/png": ".png",
+            "image/gif": ".gif",
+            "image/svg+xml": ".svg",
+            "image/bmp": ".bmp"
+        }
+        
+        new_extension = extension_map.get(content_type)
+        if not new_extension:
+            return filename
+        
+        # Quitar extensión actual y añadir la nueva
+        # Buscar la última extensión de imagen conocida
+        known_extensions = [".jpg", ".jpeg", ".png", ".gif", ".webp", ".svg", ".bmp"]
+        filename_lower = filename.lower()
+        
+        for ext in known_extensions:
+            if filename_lower.endswith(ext):
+                return filename[:-len(ext)] + new_extension
+        
+        # Si no tiene extensión conocida, simplemente añadir la nueva
+        return filename + new_extension
     
     def _get_public_url(self, key: str) -> str:
         """
@@ -266,6 +310,9 @@ class S3ImageService:
         # Comprimir imagen si está habilitado
         if compress:
             image_data, content_type = self._compress_image(image_data, content_type)
+        
+        # Actualizar la extensión del filename según el content_type final
+        filename = self._update_filename_extension(filename, content_type)
         
         # Generar key única
         image_key = self._generate_unique_key(filename, folder)
