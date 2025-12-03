@@ -88,7 +88,7 @@ export const Notification_Bell: React.FC<Notification_Bell_Props> = ({ external_
         // Navegar al evento relacionado si existe
         if (notification.related_event_id) {
             set_is_open(false);
-            navigate(`/event/${notification.related_event_id}`);
+            navigate(`/events/${notification.related_event_id}`);
         }
     };
 

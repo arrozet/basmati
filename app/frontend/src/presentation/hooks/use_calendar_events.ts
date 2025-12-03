@@ -22,13 +22,14 @@ export const use_calendar_events = (
     currentDate: Date, 
     view: 'year' | 'month' | 'week' | 'day', 
     calendar_id?: string,
-    hidden_calendar_ids?: Set<string>
+    hidden_calendar_ids?: Set<string>,
+    user_id?: string
 ) => {
     const [events, set_events] = useState<Event_Model[]>([]);
     const [loading, set_loading] = useState(false);
     
-    // We need the full calendar list to resolve hierarchy
-    const { calendars } = use_user_calendars('user_dev_1'); // Hardcoded for now, consistent with other parts
+    // We need the full calendar list to resolve hierarchy - use provided user_id or fallback
+    const { calendars } = use_user_calendars(user_id || 'user_dev_1');
 
     const fetch_events = async () => {
         set_loading(true);
@@ -95,7 +96,7 @@ export const use_calendar_events = (
         if (!calendar_id && hidden_calendar_ids && calendars.length === 0) return;
 
         fetch_events();
-    }, [currentDate, view, calendar_id, calendars, hidden_calendar_ids]); // Add calendars to dependency to re-fetch when they load
+    }, [currentDate, view, calendar_id, calendars, hidden_calendar_ids, user_id]); // Add calendars and user_id to dependency to re-fetch when they load
 
     return { events, loading, refresh: fetch_events };
 };

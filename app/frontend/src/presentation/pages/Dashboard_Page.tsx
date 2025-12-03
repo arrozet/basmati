@@ -912,7 +912,7 @@ export const Dashboard_Page = () => {
     
     const [current_date, set_current_date] = useState(new Date());
     const [view, set_view] = useState<ViewType>('month');
-    const { events, loading, refresh } = use_calendar_events(current_date, view, calendar_id, hidden_calendar_ids);
+    const { events, loading, refresh } = use_calendar_events(current_date, view, calendar_id, hidden_calendar_ids, current_user_id);
     
     // Modal de confirmación para borrar
     const [delete_modal_open, set_delete_modal_open] = useState(false);
