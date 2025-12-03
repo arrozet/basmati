@@ -137,8 +137,20 @@ class EventServiceV2(EventService):
         if not creator_id or creator_id == author_id:
             return
 
-        # Obtener información del calendario para el email
-        calendar_title = event_doc.get("calendar_title", "Tu calendario")
+        # Obtener el nombre real del calendario desde calendar_service
+        calendar_title = "Calendario"
+        calendar_id = event_doc.get("calendar_id")
+        if calendar_id:
+            try:
+                async with httpx.AsyncClient(timeout=5.0) as client:
+                    cal_response = await client.get(
+                        f"{settings.calendar_service_url}/v1/calendars/{str(calendar_id)}"
+                    )
+                    if cal_response.status_code == 200:
+                        cal_data = cal_response.json()
+                        calendar_title = cal_data.get("title", "Calendario")
+            except Exception as exc:
+                print(f"Error obteniendo nombre del calendario: {str(exc)}")
 
         # Obtener preferencias del usuario creador del evento
         user_prefs = await self._get_user_preferences(creator_id)

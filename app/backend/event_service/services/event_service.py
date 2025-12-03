@@ -291,17 +291,33 @@ class EventService(IEventService):
         if not creator_id or creator_id == author_id:
             return
 
+        # Obtener el nombre del calendario desde calendar_service
+        calendar_title = "Calendario"
+        calendar_id = event_doc.get("calendar_id")
+        if calendar_id:
+            try:
+                async with httpx.AsyncClient(timeout=5.0) as client:
+                    cal_response = await client.get(
+                        f"{settings.calendar_service_url}/v1/calendars/{str(calendar_id)}"
+                    )
+                    if cal_response.status_code == 200:
+                        cal_data = cal_response.json()
+                        calendar_title = cal_data.get("title", "Calendario")
+            except Exception as exc:
+                print(f"Error obteniendo nombre del calendario: {str(exc)}")
+
         # 1. Crear notificación in-app
         payload = {
             "recipient_external_id": creator_id,
             "type": "NEW_COMMENT",
-            "title": f"Nuevo comentario en '{event_doc.get('title', 'evento')}'",
+            "title": "Nuevo comentario",
             "message": (
-                f"{comment_doc.get('author_display_name', 'Un usuario')} comentó: "
-                f"{comment_doc.get('text', '')}"
+                f"{comment_doc.get('author_display_name', 'Un usuario')} ha comentado en el evento "
+                f"\"{event_doc.get('title', 'evento')}\" del calendario \"{calendar_title}\":\n\n"
+                f"\"{comment_doc.get('text', '')}\""
             ),
             "related_event_id": str(event_doc.get("_id")),
-            "related_calendar_id": str(event_doc.get("calendar_id")),
+            "related_calendar_id": str(calendar_id) if calendar_id else None,
         }
 
         try:
@@ -348,7 +364,7 @@ class EventService(IEventService):
                 email_payload = {
                     "to_email": user_email,
                     "event_title": event_doc.get("title", "Evento"),
-                    "calendar_title": event_doc.get("calendar_title", "Calendario"),
+                    "calendar_title": calendar_title,
                     "commenter_name": comment_doc.get("author_display_name", "Alguien"),
                     "comment_text": comment_doc.get("text", ""),
                     "event_id": str(event_doc.get("_id"))
