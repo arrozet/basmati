@@ -7,7 +7,7 @@ import { clsx } from 'clsx';
 import { use_calendars } from '../../hooks/use_calendars';
 import { Calendar_Model } from '../../domain/models/calendar_model';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faEye, faEyeSlash, faTrash, faPlus, faCalendarPlus, faFileImport } from '@fortawesome/free-solid-svg-icons';
+import { faEye, faEyeSlash, faTrash, faPlus, faCalendarPlus, faFileImport, faChevronRight, faChevronDown } from '@fortawesome/free-solid-svg-icons';
 import { use_calendar_visibility } from '../../context/CalendarVisibilityContext';
 
 interface SidebarProps {
@@ -71,10 +71,10 @@ const CalendarTreeItem: React.FC<CalendarTreeItemProps> = ({
                 {hasChildren ? (
                     <button 
                         onClick={handleToggle}
-                        className="w-4 h-4 flex items-center justify-center hover:bg-basmati-yellow/50 rounded-sm transition-colors"
+                        className="w-4 h-4 flex items-center justify-center hover:bg-gray-100 rounded-sm transition-colors text-basmati-black"
                         aria-label={isExpanded ? "Colapsar" : "Expandir"}
                     >
-                        <span className="text-xs font-bold">{isExpanded ? '▼' : '▶'}</span>
+                        <FontAwesomeIcon icon={isExpanded ? faChevronDown : faChevronRight} size="xs" />
                     </button>
                 ) : (
                     // Spacer for alignment

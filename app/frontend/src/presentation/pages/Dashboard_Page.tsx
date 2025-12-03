@@ -388,7 +388,7 @@ const CalendarGrid: React.FC<{
                                             {!is_start && multi_day && <span className="opacity-50">↳ {event.title}</span>}
                                             <button
                                                 type="button"
-                                                className="absolute right-0.5 top-0 bottom-0 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity bg-basmati-red text-white px-1.5 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-basmati-red focus:opacity-100 z-10"
+                                                className="absolute right-0.5 top-0 bottom-0 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity text-basmati-red px-1.5 hover:bg-basmati-red/20 focus:outline-none focus:ring-2 focus:ring-basmati-red focus:opacity-100 z-10"
                                                 onClick={(e) => { 
                                                     e.stopPropagation(); 
                                                     onDeleteEvent(event.id);
