@@ -59,28 +59,52 @@ def update_schema_refs(obj: Any, schema_mapping: Dict[str, str]) -> Any:
         return obj
 
 
-async def fetch_service_openapi(service_name: str, service_url: str) -> Optional[Dict[str, Any]]:
+async def fetch_service_openapi(
+    service_name: str, 
+    service_url: str,
+    max_retries: int = 5,
+    initial_delay: float = 1.0
+) -> Optional[Dict[str, Any]]:
     """
-    Obtiene la especificación OpenAPI de un servicio backend.
+    Obtiene la especificación OpenAPI de un servicio backend con reintentos.
+
+    Implementa exponential backoff para manejar servicios que aún no están
+    listos durante el arranque.
 
     Args:
         service_name: Nombre del servicio
         service_url: URL base del servicio
+        max_retries: Número máximo de reintentos (default: 5)
+        initial_delay: Delay inicial en segundos entre reintentos (default: 1.0)
 
     Returns:
-        Dict con la especificación OpenAPI o None si falla
+        Dict con la especificación OpenAPI o None si falla tras todos los reintentos
     """
-    try:
-        async with httpx.AsyncClient(timeout=10.0) as client:
-            response = await client.get(f"{service_url}/openapi.json")
-            if response.status_code == 200:
-                return response.json()
+    import asyncio
+    
+    delay = initial_delay
+    
+    for attempt in range(max_retries):
+        try:
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                response = await client.get(f"{service_url}/openapi.json")
+                if response.status_code == 200:
+                    if attempt > 0:
+                        logger.info(f"Successfully fetched OpenAPI from {service_name} after {attempt + 1} attempts")
+                    return response.json()
+                else:
+                    logger.warning(f"Service {service_name} returned status {response.status_code} for OpenAPI spec")
+                    return None
+        except Exception as e:
+            if attempt < max_retries - 1:
+                logger.info(f"Attempt {attempt + 1}/{max_retries} failed for {service_name}, retrying in {delay:.1f}s...")
+                await asyncio.sleep(delay)
+                delay *= 2  # Exponential backoff
             else:
-                logger.warning(f"Service {service_name} returned status {response.status_code} for OpenAPI spec")
+                logger.warning(f"Failed to fetch OpenAPI spec from {service_name} after {max_retries} attempts: {e}")
                 return None
-    except Exception as e:
-        logger.warning(f"Failed to fetch OpenAPI spec from {service_name}: {e}")
-        return None
+    
+    return None
 
 
 async def aggregate_openapi_specs(force_refresh: bool = False) -> Dict[str, Any]:
