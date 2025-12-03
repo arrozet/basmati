@@ -9,7 +9,27 @@ from core.database import (
     initialize_geocode_cache_indexes
 )
 
-app = FastAPI(title="Basmati Integration Service", version="1.0.0")
+# Metadata de tags para organizar la documentación
+tags_metadata = [
+    {
+        "name": "Integration: General",
+        "description": "Importación de calendarios desde servicios externos (Google Calendar, Teamup).",
+    },
+    {
+        "name": "Integration: OpenStreetMap",
+        "description": "Geocodificación y búsqueda de lugares usando OpenStreetMap/Nominatim con caché.",
+    },
+    {
+        "name": "Integration: S3 Images",
+        "description": "Gestión de imágenes en AWS S3 con compresión automática.",
+    },
+]
+
+app = FastAPI(
+    title="Basmati Integration Service",
+    version="1.0.0",
+    openapi_tags=tags_metadata
+)
 app.include_router(api_router_v1, prefix="/v1")
 app.include_router(api_router_v2, prefix="/v2")
 
