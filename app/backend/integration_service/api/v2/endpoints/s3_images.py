@@ -2,9 +2,12 @@
 Endpoints de imágenes AWS S3 (V2).
 
 CRUD completo para gestión de imágenes almacenadas en S3.
+Incluye compresión automática para optimizar almacenamiento.
 """
-from fastapi import APIRouter, HTTPException, status, Query, Body
+import base64
+from fastapi import APIRouter, HTTPException, status, Query, Body, File, UploadFile
 from schemas.s3 import (
+    ImageUploadDirectRequest,
     ImageUploadRequest,
     ImageUploadResponse,
     ImageMetadata,
@@ -52,6 +55,106 @@ def get_s3_service() -> S3ImageService:
 
 
 # ==================== CREATE ====================
+
+@router.post(
+    "/upload-direct",
+    response_model=ImageMetadata,
+    status_code=status.HTTP_201_CREATED,
+    summary="Subir imagen directamente (con compresión)",
+    description="""
+Sube una imagen directamente al backend con compresión automática.
+
+**Ventajas de este método:**
+- ✅ Compresión automática de imágenes (ahorra espacio y ancho de banda)
+- ✅ Redimensiona imágenes grandes automáticamente
+- ✅ Optimiza JPEG/PNG para web
+- ✅ Convierte formatos pesados a más eficientes
+
+**Optimizaciones aplicadas:**
+- Redimensiona a máximo 1920x1080 (mantiene aspect ratio)
+- Comprime JPEG con calidad 85%
+- Optimiza PNG
+- Convierte GIF/BMP a JPEG si no tienen transparencia
+
+**Formatos soportados:**
+- image/jpeg, image/png, image/gif, image/webp, image/svg+xml, image/bmp
+
+**Uso recomendado:**
+- Para imágenes subidas por usuarios (avatares, fotos de eventos, etc.)
+- Cuando el cliente no puede comprimir la imagen
+- Cuando se quiere garantizar tamaño optimizado
+""",
+    responses={
+        201: {"description": "Imagen subida y comprimida exitosamente."},
+        400: {"description": "Archivo inválido o tipo no permitido."},
+        413: {"description": "Archivo demasiado grande (máx 10MB)."},
+        503: {"description": "Servicio S3 no disponible."}
+    }
+)
+async def upload_image_direct(
+    file: UploadFile = File(..., description="Archivo de imagen a subir"),
+    folder: str | None = Query(None, description="Carpeta en S3 (ej: 'events', 'avatars')"),
+    compress: bool = Query(True, description="Si True, comprime la imagen automáticamente")
+):
+    """
+    Sube una imagen directamente con compresión automática.
+    
+    El backend recibe la imagen, la comprime y la sube a S3.
+    Esto optimiza el almacenamiento y reduce costos.
+    
+    Args:
+        file: Archivo de imagen (multipart/form-data)
+        folder: Carpeta opcional en S3
+        compress: Activar compresión automática
+        
+    Returns:
+        ImageMetadata: Metadatos de la imagen subida
+    """
+    try:
+        # Validar que sea un archivo de imagen
+        if not file.content_type or not file.content_type.startswith('image/'):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"El archivo debe ser una imagen. Tipo recibido: {file.content_type}"
+            )
+        
+        # Leer contenido del archivo
+        image_data = await file.read()
+        
+        # Validar tamaño máximo (10MB)
+        max_size = 10 * 1024 * 1024  # 10MB
+        if len(image_data) > max_size:
+            raise HTTPException(
+                status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+                detail=f"Archivo demasiado grande. Máximo: 10MB, recibido: {len(image_data)/1024/1024:.1f}MB"
+            )
+        
+        service = get_s3_service()
+        
+        # Subir con compresión
+        metadata = await service.upload_image_direct(
+            image_data=image_data,
+            filename=file.filename or "imagen.jpg",
+            content_type=file.content_type,
+            folder=folder,
+            compress=compress
+        )
+        
+        return metadata
+        
+    except HTTPException:
+        raise
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error al subir imagen: {str(e)}"
+        )
+
 
 @router.post(
     "/upload",

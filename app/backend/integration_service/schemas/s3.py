@@ -3,6 +3,39 @@ from pydantic import BaseModel, ConfigDict, Field
 from datetime import datetime
 
 
+class ImageUploadDirectRequest(BaseModel):
+    """
+    Schema para subida directa de imagen con compresión automática.
+    
+    La imagen se envía como base64 en el body del request,
+    el backend la comprime y la sube a S3.
+    """
+    filename: str = Field(..., description="Nombre del archivo")
+    content_type: str = Field(
+        default="image/jpeg",
+        description="Tipo MIME del archivo original"
+    )
+    folder: str | None = Field(
+        default=None,
+        description="Carpeta opcional en S3 (ej: 'events', 'avatars')"
+    )
+    compress: bool = Field(
+        default=True,
+        description="Si True, comprime la imagen automáticamente"
+    )
+    
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "filename": "evento_navidad.jpg",
+                "content_type": "image/jpeg",
+                "folder": "events",
+                "compress": True
+            }
+        }
+    )
+
+
 class ImageUploadRequest(BaseModel):
     """
     Schema para solicitar URL de subida presigned a S3.

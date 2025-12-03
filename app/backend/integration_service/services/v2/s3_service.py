@@ -2,11 +2,14 @@
 Servicio para gestión de imágenes en AWS S3 (V2).
 
 Proporciona operaciones CRUD para imágenes almacenadas en un bucket de S3.
+Incluye compresión automática de imágenes para optimizar almacenamiento.
 """
 import uuid
+import io
 import boto3
 from botocore.exceptions import ClientError, NoCredentialsError
 from datetime import datetime
+from PIL import Image
 from schemas.s3 import (
     ImageUploadRequest,
     ImageUploadResponse,
@@ -23,9 +26,11 @@ class S3ImageService:
     Servicio para gestión de imágenes en AWS S3.
     
     Proporciona operaciones CRUD:
-    - Create: Generar URLs presigned para subir imágenes
+    - Create: Generar URLs presigned para subir imágenes + compresión automática
     - Read: Obtener URLs de descarga y listar imágenes
     - Delete: Eliminar imágenes individuales o en lote
+    
+    Las imágenes se comprimen automáticamente al subirlas para optimizar espacio.
     """
     
     # Tipos MIME permitidos para imágenes
@@ -40,6 +45,12 @@ class S3ImageService:
     
     # Tiempo de expiración por defecto para URLs presigned (1 hora)
     DEFAULT_EXPIRATION = 3600
+    
+    # Configuración de compresión
+    MAX_IMAGE_SIZE = (1920, 1080)  # Máximo ancho x alto
+    JPEG_QUALITY = 85  # Calidad de compresión JPEG (0-100)
+    PNG_COMPRESS_LEVEL = 6  # Nivel de compresión PNG (0-9)
+    MAX_FILE_SIZE_MB = 5  # Tamaño máximo sin compresión agresiva
     
     def __init__(
         self,
@@ -67,6 +78,105 @@ class S3ImageService:
             aws_secret_access_key=aws_secret_access_key,
             region_name=aws_region
         )
+    
+    def _compress_image(self, image_data: bytes, content_type: str) -> tuple[bytes, str]:
+        """
+        Comprime una imagen para reducir su tamaño manteniendo calidad aceptable.
+        
+        Optimizaciones aplicadas:
+        - Redimensiona si excede MAX_IMAGE_SIZE (mantiene aspect ratio)
+        - Comprime JPEG con calidad configurable
+        - Optimiza PNG
+        - Convierte GIF/BMP a JPEG si no tienen transparencia
+        - SVG no se modifica (ya es vectorial)
+        
+        Args:
+            image_data: Bytes de la imagen original
+            content_type: Tipo MIME de la imagen
+            
+        Returns:
+            tuple[bytes, str]: Imagen comprimida y tipo MIME final
+        """
+        # SVG no necesita compresión (es vectorial)
+        if content_type == "image/svg+xml":
+            return image_data, content_type
+        
+        try:
+            # Abrir imagen con Pillow
+            image = Image.open(io.BytesIO(image_data))
+            
+            # Convertir RGBA a RGB si no hay transparencia real
+            # (para poder guardar como JPEG que es más eficiente)
+            if image.mode == 'RGBA':
+                # Verificar si hay transparencia real
+                if image.getextrema()[-1] == (255, 255):  # Canal alpha todo opaco
+                    background = Image.new('RGB', image.size, (255, 255, 255))
+                    background.paste(image, mask=image.split()[-1])
+                    image = background
+            
+            # Convertir a RGB si es necesario (para JPEG)
+            if image.mode not in ('RGB', 'RGBA', 'L'):
+                image = image.convert('RGB')
+            
+            # Redimensionar si excede el tamaño máximo (manteniendo aspect ratio)
+            if image.width > self.MAX_IMAGE_SIZE[0] or image.height > self.MAX_IMAGE_SIZE[1]:
+                image.thumbnail(self.MAX_IMAGE_SIZE, Image.Resampling.LANCZOS)
+            
+            # Comprimir según el formato
+            output = io.BytesIO()
+            
+            if content_type == "image/png" and image.mode == 'RGBA':
+                # PNG con transparencia: optimizar compresión
+                image.save(
+                    output, 
+                    format='PNG', 
+                    optimize=True, 
+                    compress_level=self.PNG_COMPRESS_LEVEL
+                )
+                final_content_type = "image/png"
+            
+            elif content_type == "image/webp":
+                # WebP: formato moderno con buena compresión
+                image.save(
+                    output, 
+                    format='WEBP', 
+                    quality=self.JPEG_QUALITY, 
+                    method=6
+                )
+                final_content_type = "image/webp"
+            
+            else:
+                # Por defecto convertir a JPEG (mejor compresión)
+                if image.mode == 'RGBA':
+                    background = Image.new('RGB', image.size, (255, 255, 255))
+                    background.paste(image, mask=image.split()[-1])
+                    image = background
+                elif image.mode != 'RGB':
+                    image = image.convert('RGB')
+                
+                image.save(
+                    output, 
+                    format='JPEG', 
+                    quality=self.JPEG_QUALITY, 
+                    optimize=True
+                )
+                final_content_type = "image/jpeg"
+            
+            compressed_data = output.getvalue()
+            
+            # Log de compresión
+            original_size = len(image_data)
+            compressed_size = len(compressed_data)
+            reduction = ((original_size - compressed_size) / original_size) * 100
+            
+            print(f"📸 Compresión: {original_size/1024:.1f}KB → {compressed_size/1024:.1f}KB ({reduction:.1f}% reducción)")
+            
+            return compressed_data, final_content_type
+            
+        except Exception as e:
+            print(f"⚠️ Error al comprimir imagen, usando original: {str(e)}")
+            # Si falla la compresión, devolver imagen original
+            return image_data, content_type
     
     def _generate_unique_key(self, filename: str, folder: str | None = None) -> str:
         """
@@ -117,6 +227,69 @@ class S3ImageService:
         return content_type in self.ALLOWED_CONTENT_TYPES
     
     # ==================== CREATE ====================
+    
+    async def upload_image_direct(
+        self,
+        image_data: bytes,
+        filename: str,
+        content_type: str,
+        folder: str | None = None,
+        compress: bool = True
+    ) -> ImageMetadata:
+        """
+        Sube una imagen directamente a S3 con compresión automática.
+        
+        Este método recibe la imagen en el backend y la comprime antes
+        de subirla a S3, optimizando el almacenamiento.
+        
+        Args:
+            image_data: Bytes de la imagen
+            filename: Nombre del archivo
+            content_type: Tipo MIME original
+            folder: Carpeta opcional en S3
+            compress: Si True, comprime la imagen automáticamente
+            
+        Returns:
+            ImageMetadata: Metadatos de la imagen subida
+            
+        Raises:
+            ValueError: Si el tipo de contenido no es válido
+            Exception: Si hay error en la subida
+        """
+        # Validar tipo de contenido
+        if not self._validate_content_type(content_type):
+            raise ValueError(
+                f"Tipo de contenido no permitido: {content_type}. "
+                f"Tipos permitidos: {', '.join(self.ALLOWED_CONTENT_TYPES)}"
+            )
+        
+        # Comprimir imagen si está habilitado
+        if compress:
+            image_data, content_type = self._compress_image(image_data, content_type)
+        
+        # Generar key única
+        image_key = self._generate_unique_key(filename, folder)
+        
+        try:
+            # Subir a S3
+            self.s3_client.put_object(
+                Bucket=self.bucket_name,
+                Key=image_key,
+                Body=image_data,
+                ContentType=content_type,
+                CacheControl='max-age=31536000',  # Cache de 1 año
+            )
+            
+            # Obtener metadatos de la imagen subida
+            metadata = await self.get_image_metadata(image_key)
+            
+            if not metadata:
+                raise Exception("Error al obtener metadatos después de subir")
+            
+            return metadata
+            
+        except ClientError as e:
+            raise Exception(f"Error al subir imagen a S3: {str(e)}")
     
     async def generate_upload_url(
         self, 
