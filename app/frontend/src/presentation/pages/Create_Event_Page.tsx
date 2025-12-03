@@ -10,6 +10,7 @@ import { Create_Event_Use_Case } from '../../application/event/create_event_use_
 import { Http_Event_Repository } from '../../infrastructure/repositories/http_event_repository';
 import { Http_Calendar_Repository } from '../../infrastructure/repositories/http_calendar_repository';
 import { use_calendars } from '../hooks/use_calendars';
+import { use_page_title } from '../hooks/use_page_title';
 import { Event_Location } from '../../domain/models/integration_models';
 import { Event_Attachment } from '../../domain/models/event_model';
 
@@ -25,6 +26,7 @@ const CURRENT_USER_ID = 'user_dev_1';
  * Usa formulario semántico con labels asociados, aria-live para mensajes de error.
  */
 export const Create_Event_Page = () => {
+    use_page_title('Create event');
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
     const { calendars, loading: loading_calendars } = use_calendars(CURRENT_USER_ID);

@@ -3,12 +3,14 @@ import { useNavigate } from 'react-router-dom';
 import { Neo_Button } from '../components/ui/Neo_Button';
 import { Neo_Card } from '../components/ui/Neo_Card';
 import { Neo_Input } from '../components/ui/Neo_Input';
+import { use_page_title } from '../hooks/use_page_title';
 
 /**
  * Página de inicio de sesión accesible.
  * Usa formulario semántico con labels asociados y autocomplete.
  */
 export const Login_Page = () => {
+    use_page_title('Login');
     const navigate = useNavigate();
     const [username, set_username] = useState('user_dev_1');
     const [password, set_password] = useState('');

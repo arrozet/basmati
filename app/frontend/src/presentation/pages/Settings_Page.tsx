@@ -6,8 +6,9 @@ import { Neo_Card } from '../components/ui/Neo_Card';
 // TODO BACKEND: Descomentar cuando el backend esté listo
 // import { use_user_profile } from '../hooks/use_user_profile';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faUser, faBell, faArrowLeft, faCheck } from '@fortawesome/free-solid-svg-icons';
+import { faUser, faBell, faArrowLeft, faCheck, faExclamationCircle } from '@fortawesome/free-solid-svg-icons';
 import { useNavigate } from 'react-router-dom';
+import { use_page_title } from '../hooks/use_page_title';
 
 type SettingsTab = 'profile' | 'notifications';
 type NotificationFrequency = 'instant' | 'daily';
@@ -46,6 +47,7 @@ const MOCK_USER_DATA = {
  * ============================================================================
  */
 export const Settings_Page: React.FC = () => {
+    use_page_title('Settings');
     const navigate = useNavigate();
     
     // TODO BACKEND: Descomentar estas líneas cuando el backend esté listo

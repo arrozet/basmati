@@ -12,6 +12,7 @@ import { Event_Model } from '../../domain/models/event_model';
 import { Delete_Event_Use_Case } from '../../application/event/delete_event_use_case';
 import { Http_Event_Repository } from '../../infrastructure/repositories/http_event_repository';
 import { Http_Calendar_Repository } from '../../infrastructure/repositories/http_calendar_repository';
+import { use_page_title } from '../hooks/use_page_title';
 
 const event_repository = new Http_Event_Repository();
 const calendar_repository = new Http_Calendar_Repository();
@@ -885,6 +886,7 @@ const CalendarGrid: React.FC<{
 };
 
 export const Dashboard_Page = () => {
+    use_page_title('Dashboard');
     const [searchParams, setSearchParams] = useSearchParams();
     const calendar_id = searchParams.get('calendar_id') || undefined;
     const { hidden_calendar_ids } = use_calendar_visibility();

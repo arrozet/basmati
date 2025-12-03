@@ -7,12 +7,14 @@ import { Http_Integration_Repository } from '../../infrastructure/repositories/h
 import { Import_Google_Calendar_Use_Case } from '../../application/integration/import_google_calendar_use_case';
 import { Import_Teamup_Calendar_Use_Case } from '../../application/integration/import_teamup_calendar_use_case';
 import { useNavigate } from 'react-router-dom';
+import { use_page_title } from '../hooks/use_page_title';
 
 const repository = new Http_Integration_Repository();
 const import_google_use_case = new Import_Google_Calendar_Use_Case(repository);
 const import_teamup_use_case = new Import_Teamup_Calendar_Use_Case(repository);
 
 export const Import_Calendar_Page = () => {
+    use_page_title('Import calendar');
     const navigate = useNavigate();
     const [active_tab, set_active_tab] = useState<'google' | 'teamup'>('google');
     const [loading, set_loading] = useState(false);

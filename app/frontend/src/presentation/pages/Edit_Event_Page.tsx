@@ -14,6 +14,7 @@ import { Event_Location } from '../../domain/models/integration_models';
 import { Update_Event_Use_Case } from '../../application/event/update_event_use_case';
 import { Get_Event_Use_Case } from '../../application/event/get_event_use_case';
 import { Delete_Event_Use_Case } from '../../application/event/delete_event_use_case';
+import { use_page_title } from '../hooks/use_page_title';
 
 // Dependencies
 const event_repository = new Http_Event_Repository();
@@ -31,6 +32,7 @@ const CURRENT_USER_ID = 'user_dev_1';
  * Formulario con labels asociados, botones semánticos y aria-labels.
  */
 export const Edit_Event_Page = () => {
+    use_page_title('Edit event');
     const { id } = useParams();
     const navigate = useNavigate();
     const [loading, set_loading] = useState(true);

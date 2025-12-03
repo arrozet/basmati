@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useSearchParams, Link, useNavigate } from "react-router-dom";
 import { use_global_search } from "../hooks/use_global_search";
+import { use_page_title } from "../hooks/use_page_title";
 import { Neo_Card } from "../components/ui/Neo_Card";
 import { Neo_Input } from "../components/ui/Neo_Input";
 import { Neo_Button } from "../components/ui/Neo_Button";
@@ -9,6 +10,7 @@ import { Neo_Button } from "../components/ui/Neo_Button";
  * Página de búsqueda unificada (Calendarios + Eventos).
  */
 export const Search_Page: React.FC = () => {
+    use_page_title('Search');
     const [search_params] = useSearchParams();
     const navigate = useNavigate();
     

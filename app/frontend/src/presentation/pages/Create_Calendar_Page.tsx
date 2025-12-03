@@ -5,6 +5,7 @@ import { Neo_Card } from '../components/ui/Neo_Card';
 import { Neo_Input } from '../components/ui/Neo_Input';
 import { Neo_Button } from '../components/ui/Neo_Button';
 import { use_calendars } from '../hooks/use_calendars';
+import { use_page_title } from '../hooks/use_page_title';
 
 // Mock user ID (En producción vendría del contexto de autenticación)
 const CURRENT_USER_ID = 'user_dev_1';
@@ -14,6 +15,7 @@ const CURRENT_USER_ID = 'user_dev_1';
  * Formulario accesible basado en los bocetos con HTML semántico.
  */
 export const Create_Calendar_Page = () => {
+    use_page_title('Create calendar');
     const navigate = useNavigate();
     const { create_calendar, calendars } = use_calendars(CURRENT_USER_ID);
     const [loading, set_loading] = useState(false);
