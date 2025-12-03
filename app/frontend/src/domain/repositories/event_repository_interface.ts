@@ -1,4 +1,4 @@
-import { Event_Model } from "../models/event_model";
+import { Event_Model, Event_Attachment } from "../models/event_model";
 
 export interface Event_Repository_Interface {
     /**
@@ -47,5 +47,11 @@ export interface Event_Repository_Interface {
      * @param id ID del evento a eliminar.
      */
     delete(id: string): Promise<boolean>;
-}
 
+    /**
+     * Añade un adjunto a un evento existente.
+     * @param event_id ID del evento.
+     * @param attachment Datos del adjunto (url, filename, etc.)
+     */
+    add_attachment(event_id: string, attachment: Event_Attachment): Promise<Event_Attachment>;
+}

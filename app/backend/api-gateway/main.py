@@ -261,3 +261,84 @@ async def integrations_osm_v2_route(path: str, request: Request):
     """
     full_path = f"v2/osm/{path}" if path else "v2/osm"
     return await proxy_request("integrations", full_path, request)
+
+
+@app.api_route("/v2/s3/{path:path}", methods=["GET", "POST", "PUT", "DELETE"])
+async def integrations_s3_v2_route(path: str, request: Request):
+    """
+    Proxy para el Integration Service V2 (S3 Images).
+    
+    Endpoints disponibles:
+        POST /v2/s3/upload-direct → Subir imagen con compresión automática
+        POST /v2/s3/upload → Obtener URL presigned para subir
+        GET /v2/s3/images → Listar imágenes
+        GET /v2/s3/images/{key} → Obtener metadatos de imagen
+        DELETE /v2/s3/images/{key} → Eliminar imagen
+    """
+    full_path = f"v2/s3/{path}" if path else "v2/s3"
+    return await proxy_request_multipart("integrations", full_path, request)
+
+
+async def proxy_request_multipart(service_name: str, path: str, request: Request):
+    """
+    Proxifica una petición multipart/form-data al servicio backend.
+    
+    Necesario para subir archivos ya que el proxy normal no maneja
+    correctamente el content-type multipart.
+    
+    Args:
+        service_name: Nombre del servicio destino
+        path: Ruta dentro del servicio
+        request: Petición original del cliente
+        
+    Returns:
+        JSONResponse: Respuesta del servicio backend
+    """
+    if service_name not in SERVICES:
+        raise HTTPException(status_code=404, detail=f"Servicio {service_name} no encontrado")
+    
+    service_url = SERVICES[service_name]
+    full_url = f"{service_url}/{path}"
+    
+    # Agregar query parameters si existen
+    if request.url.query:
+        full_url = f"{full_url}?{request.url.query}"
+    
+    try:
+        # Filtrar headers problemáticos para el proxy
+        headers = {}
+        for key, value in request.headers.items():
+            # Excluir headers que pueden causar problemas
+            if key.lower() not in ['host', 'content-length']:
+                headers[key] = value
+        
+        async with httpx.AsyncClient(timeout=60.0) as client:
+            response = await client.request(
+                method=request.method,
+                url=full_url,
+                headers=headers,
+                content=await request.body()
+            )
+            
+            # Intentar parsear como JSON, si falla devolver texto
+            try:
+                content = response.json() if response.text else {}
+            except Exception:
+                content = {"raw": response.text}
+            
+            return JSONResponse(
+                status_code=response.status_code,
+                content=content
+            )
+    except httpx.TimeoutException:
+        raise HTTPException(
+            status_code=504,
+            detail=f"Timeout al conectar con {service_name}"
+        )
+    except httpx.ConnectError:
+        raise HTTPException(
+            status_code=503,
+            detail=f"No se pudo conectar con {service_name}"
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

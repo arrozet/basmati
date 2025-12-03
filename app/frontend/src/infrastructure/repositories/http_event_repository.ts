@@ -1,5 +1,5 @@
 import { Event_Repository_Interface } from "../../domain/repositories/event_repository_interface";
-import { Event_Model } from "../../domain/models/event_model";
+import { Event_Model, Event_Attachment } from "../../domain/models/event_model";
 import { api_client } from "../api/axios_client";
 
 export class Http_Event_Repository implements Event_Repository_Interface {
@@ -24,6 +24,7 @@ export class Http_Event_Repository implements Event_Repository_Interface {
          // Mock implementation for scaffolding (legacy method)
         return Promise.resolve([]);
     }
+
     async create(event: Omit<Event_Model, 'id'>): Promise<Event_Model> {
         // Helper to validate ObjectId
         const isValidObjectId = (id: string) => /^[0-9a-fA-F]{24}$/.test(id);
@@ -64,22 +65,7 @@ export class Http_Event_Repository implements Event_Repository_Interface {
         // Usar V1 para crear eventos (V2 no tiene endpoint POST)
         const response = await api_client.post("/v1/events", payload);
         
-        const item = response.data;
-        return {
-            id: item.id,
-            title: item.title,
-            start_time: new Date(item.start_time),
-            end_time: new Date(item.end_time),
-            description: item.description,
-            calendar_id: item.calendar_id,
-            location: item.location ? {
-                address: item.location.address,
-                latitude: item.location.latitude,
-                longitude: item.location.longitude,
-                place_name: item.location.place_name,
-                map_provider: item.location.map_provider
-            } : undefined
-        };
+        return this.map_single_response(response.data);
     }
 
     async get_events_by_date_range(start: Date, end: Date, calendar_ids?: string[]): Promise<Event_Model[]> {
@@ -103,7 +89,11 @@ export class Http_Event_Repository implements Event_Repository_Interface {
     }
 
     private map_response(data: any[]): Event_Model[] {
-        return data.map((item: any) => ({
+        return data.map((item: any) => this.map_single_response(item));
+    }
+
+    private map_single_response(item: any): Event_Model {
+        return {
             id: item.id,
             title: item.title,
             start_time: new Date(item.start_time),
@@ -116,8 +106,19 @@ export class Http_Event_Repository implements Event_Repository_Interface {
                 longitude: item.location.longitude,
                 place_name: item.location.place_name,
                 map_provider: item.location.map_provider
-            } : undefined
-        }));
+            } : undefined,
+            attachments: item.attachments ? item.attachments.map((att: any) => ({
+                id: att.id,
+                filename: att.filename,
+                url: att.url,
+                size: att.size,
+                mime_type: att.mime_type,
+                uploaded_at: new Date(att.uploaded_at),
+                uploaded_by: att.uploaded_by,
+                is_image: att.is_image,
+                thumbnail_url: att.thumbnail_url
+            })) : []
+        };
     }
 
     async search_events(query: string): Promise<Event_Model[]> {
@@ -126,21 +127,7 @@ export class Http_Event_Repository implements Event_Repository_Interface {
             params: { query }
         });
         
-        return response.data.map((item: any) => ({
-            id: item.id,
-            title: item.title,
-            start_time: new Date(item.start_time),
-            end_time: new Date(item.end_time),
-            description: item.description,
-            calendar_id: item.calendar_id,
-            location: item.location ? {
-                address: item.location.address,
-                latitude: item.location.latitude,
-                longitude: item.location.longitude,
-                place_name: item.location.place_name,
-                map_provider: item.location.map_provider
-            } : undefined
-        }));
+        return this.map_response(response.data);
     }
 
     async search_advanced(params: { title?: string; organizer?: string; keywords?: string }): Promise<Event_Model[]> {
@@ -149,43 +136,14 @@ export class Http_Event_Repository implements Event_Repository_Interface {
             params
         });
         
-        return response.data.map((item: any) => ({
-            id: item.id,
-            title: item.title,
-            start_time: new Date(item.start_time),
-            end_time: new Date(item.end_time),
-            description: item.description,
-            calendar_id: item.calendar_id,
-            location: item.location ? {
-                address: item.location.address,
-                latitude: item.location.latitude,
-                longitude: item.location.longitude,
-                place_name: item.location.place_name,
-                map_provider: item.location.map_provider
-            } : undefined
-        }));
+        return this.map_response(response.data);
     }
 
     async get_event(id: string): Promise<Event_Model | null> {
         try {
             // Usar V1 para obtener evento individual (V2 no tiene este endpoint)
             const response = await api_client.get(`/v1/events/${id}`);
-            const item = response.data;
-            return {
-                id: item.id,
-                title: item.title,
-                start_time: new Date(item.start_time),
-                end_time: new Date(item.end_time),
-                description: item.description,
-                calendar_id: item.calendar_id,
-                location: item.location ? {
-                    address: item.location.address,
-                    latitude: item.location.latitude,
-                    longitude: item.location.longitude,
-                    place_name: item.location.place_name,
-                    map_provider: item.location.map_provider
-                } : undefined
-            };
+            return this.map_single_response(response.data);
         } catch (error) {
             console.error("Error fetching event:", error);
             return null;
@@ -216,23 +174,7 @@ export class Http_Event_Repository implements Event_Repository_Interface {
 
         // Usar V1 para actualizar eventos (V2 no tiene endpoint PUT)
         const response = await api_client.put(`/v1/events/${event.id}`, payload);
-        const item = response.data;
-        
-        return {
-            id: item.id,
-            title: item.title,
-            start_time: new Date(item.start_time),
-            end_time: new Date(item.end_time),
-            description: item.description,
-            calendar_id: item.calendar_id,
-            location: item.location ? {
-                address: item.location.address,
-                latitude: item.location.latitude,
-                longitude: item.location.longitude,
-                place_name: item.location.place_name,
-                map_provider: item.location.map_provider
-            } : undefined
-        };
+        return this.map_single_response(response.data);
     }
 
     async delete(id: string): Promise<boolean> {
@@ -245,5 +187,31 @@ export class Http_Event_Repository implements Event_Repository_Interface {
             return false;
         }
     }
-}
 
+    async add_attachment(event_id: string, attachment: Event_Attachment): Promise<Event_Attachment> {
+        const payload = {
+            filename: attachment.filename,
+            url: attachment.url,
+            size: attachment.size,
+            mime_type: attachment.mime_type,
+            uploaded_by: attachment.uploaded_by,
+            is_image: attachment.is_image,
+            thumbnail_url: attachment.thumbnail_url || null
+        };
+        
+        const response = await api_client.post(`/v1/events/${event_id}/attachments`, payload);
+        const item = response.data;
+        
+        return {
+            id: item.id,
+            filename: item.filename,
+            url: item.url,
+            size: item.size,
+            mime_type: item.mime_type,
+            uploaded_at: new Date(item.uploaded_at),
+            uploaded_by: item.uploaded_by,
+            is_image: item.is_image,
+            thumbnail_url: item.thumbnail_url
+        };
+    }
+}

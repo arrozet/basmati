@@ -30,6 +30,28 @@ export class Create_Event_Use_Case {
             throw new Error("No tienes permiso para crear eventos en este calendario");
         }
 
-        return await this.event_repository.create(event);
+        // 1. Crear el evento
+        const created_event = await this.event_repository.create(event);
+
+        // 2. Asociar adjuntos si existen
+        if (event.attachments && event.attachments.length > 0) {
+            try {
+                const attachments_promises = event.attachments.map(attachment => 
+                    this.event_repository.add_attachment(created_event.id, attachment)
+                );
+                await Promise.all(attachments_promises);
+                
+                // Actualizamos el objeto evento con los adjuntos para devolverlo completo
+                // Nota: add_attachment devuelve el attachment creado, no el evento
+                // Idealmente recargaríamos el evento, pero podemos adjuntarlos manualmente
+                // ya que acabamos de subirlos.
+                created_event.attachments = event.attachments;
+            } catch (error) {
+                console.error("Error linking attachments to event:", error);
+                // No fallamos toda la creación, pero logueamos el error
+            }
+        }
+
+        return created_event;
     }
 }

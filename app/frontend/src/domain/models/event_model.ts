@@ -1,5 +1,17 @@
 import { Event_Location } from './integration_models';
 
+export interface Event_Attachment {
+    id?: string;
+    filename: string;
+    url: string;
+    size: number;
+    mime_type: string;
+    uploaded_at?: Date;
+    uploaded_by: string;
+    is_image: boolean;
+    thumbnail_url?: string;
+}
+
 export interface Event_Model {
     id: string;
     title: string;
@@ -11,5 +23,6 @@ export interface Event_Model {
     color?: string;
     /** Ubicación del evento con coordenadas para mostrar en mapa */
     location?: Event_Location;
+    /** Lista de archivos adjuntos (imágenes) */
+    attachments?: Event_Attachment[];
 }
-

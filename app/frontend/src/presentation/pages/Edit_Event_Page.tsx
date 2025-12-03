@@ -6,9 +6,10 @@ import { Neo_Input } from '../components/ui/Neo_Input';
 import { Neo_Button } from '../components/ui/Neo_Button';
 import { Neo_Modal } from '../components/ui/Neo_Modal';
 import { Location_Picker } from '../components/ui/Location_Picker';
+import { Image_Uploader } from '../components/ui/Image_Uploader';
 import { Http_Event_Repository } from '../../infrastructure/repositories/http_event_repository';
 import { Http_Calendar_Repository } from '../../infrastructure/repositories/http_calendar_repository';
-import { Event_Model } from '../../domain/models/event_model';
+import { Event_Model, Event_Attachment } from '../../domain/models/event_model';
 import { Event_Location } from '../../domain/models/integration_models';
 import { Update_Event_Use_Case } from '../../application/event/update_event_use_case';
 import { Get_Event_Use_Case } from '../../application/event/get_event_use_case';
@@ -52,6 +53,7 @@ export const Edit_Event_Page = () => {
     });
     
     const [location, set_location] = useState<Event_Location | null>(null);
+    const [attachments, set_attachments] = useState<Event_Attachment[]>([]);
 
     useEffect(() => {
         const fetch_event = async () => {
@@ -92,6 +94,11 @@ export const Edit_Event_Page = () => {
                     // Cargar ubicación si existe
                     if (fetched_event.location) {
                         set_location(fetched_event.location);
+                    }
+
+                    // Cargar adjuntos si existen
+                    if (fetched_event.attachments) {
+                        set_attachments(fetched_event.attachments);
                     }
 
                     // Fetch calendar info
@@ -136,7 +143,8 @@ export const Edit_Event_Page = () => {
                 description: form_data.description,
                 start_time: start_iso,
                 end_time: end_iso,
-                location: location || undefined
+                location: location || undefined,
+                attachments: attachments
             };
 
             await update_event_use_case.execute(updated_event, CURRENT_USER_ID);
@@ -308,6 +316,13 @@ export const Edit_Event_Page = () => {
                             value={location}
                             on_change={set_location}
                             id="event-location"
+                            disabled={saving}
+                        />
+
+                        {/* Cargador de Imágenes */}
+                        <Image_Uploader 
+                            attachments={attachments}
+                            onChange={set_attachments}
                             disabled={saving}
                         />
 

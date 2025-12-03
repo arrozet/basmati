@@ -5,11 +5,13 @@ import { Neo_Card } from '../components/ui/Neo_Card';
 import { Neo_Input } from '../components/ui/Neo_Input';
 import { Neo_Button } from '../components/ui/Neo_Button';
 import { Location_Picker } from '../components/ui/Location_Picker';
+import { Image_Uploader } from '../components/ui/Image_Uploader';
 import { Create_Event_Use_Case } from '../../application/event/create_event_use_case';
 import { Http_Event_Repository } from '../../infrastructure/repositories/http_event_repository';
 import { Http_Calendar_Repository } from '../../infrastructure/repositories/http_calendar_repository';
 import { use_calendars } from '../hooks/use_calendars';
 import { Event_Location } from '../../domain/models/integration_models';
+import { Event_Attachment } from '../../domain/models/event_model';
 
 const event_repository = new Http_Event_Repository();
 const calendar_repository = new Http_Calendar_Repository();
@@ -38,6 +40,7 @@ export const Create_Event_Page = () => {
     });
     
     const [location, set_location] = useState<Event_Location | null>(null);
+    const [attachments, set_attachments] = useState<Event_Attachment[]>([]);
 
     useEffect(() => {
         const dateParam = searchParams.get('date');
@@ -90,7 +93,8 @@ export const Create_Event_Page = () => {
                 end_time: new Date(form_data.end_time),
                 description: form_data.description,
                 calendar_id: form_data.calendar_id,
-                location: location || undefined
+                location: location || undefined,
+                attachments: attachments
             }, CURRENT_USER_ID);
             navigate('/dashboard');
         } catch (err: any) {
@@ -211,6 +215,13 @@ export const Create_Event_Page = () => {
                             value={location}
                             on_change={set_location}
                             id="event-location"
+                            disabled={loading}
+                        />
+
+                        {/* Cargador de Imágenes */}
+                        <Image_Uploader 
+                            attachments={attachments}
+                            onChange={set_attachments}
                             disabled={loading}
                         />
 
