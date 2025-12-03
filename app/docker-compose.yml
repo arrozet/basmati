@@ -87,9 +87,12 @@ services:
       - DATABASE_NAME=basmati
       - NOTIFICATION_SERVICE_URL=http://notification-service:8004
       - CALENDAR_SERVICE_URL=http://calendar-service:8002
+      - USER_SERVICE_URL=http://user-service:8001
+      - INTEGRATION_SERVICE_URL=http://integration-service:8006
     depends_on:
       - calendar-service
       - notification-service
+      - user-service
     networks:
       - basmati-network
 
@@ -126,15 +129,22 @@ services:
       - DATABASE_NAME=basmati
       - CALENDAR_SERVICE_URL=http://calendar-service:8002
       - EVENT_SERVICE_URL=http://event-service:8003
+      - USER_SERVICE_URL=http://user-service:8001
+      - NOTIFICATION_SERVICE_URL=http://notification-service:8004
       - GOOGLE_CALENDAR_API_KEY=${GOOGLE_CALENDAR_API_KEY:-}
       - TEAMUP_API_KEY=${TEAMUP_API_KEY:-}
       - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
       - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
       - AWS_REGION=${AWS_REGION}
       - AWS_S3_BUCKET_NAME=${AWS_S3_BUCKET_NAME}
+      - SENDGRID_API_KEY=${SENDGRID_API_KEY:-}
+      - SENDER_EMAIL=${SENDER_EMAIL:-amcgil@uma.es}
+      - FRONTEND_URL=${FRONTEND_URL:-http://localhost:5173}
     depends_on:
       - calendar-service
       - event-service
+      - user-service
+      - notification-service
     networks:
       - basmati-network
 

@@ -1,10 +1,9 @@
-import React, { useState, FormEvent } from 'react';
+import React, { useState, FormEvent, useEffect } from 'react';
 import { MainLayout } from '../components/layout/MainLayout';
 import { Neo_Button } from '../components/ui/Neo_Button';
 import { Neo_Input } from '../components/ui/Neo_Input';
 import { Neo_Card } from '../components/ui/Neo_Card';
-// TODO BACKEND: Descomentar cuando el backend esté listo
-// import { use_user_profile } from '../hooks/use_user_profile';
+import { use_user_context, Notification_Preferences_V2 } from '../context/UserContext';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faUser, faBell, faArrowLeft, faCheck, faExclamationCircle } from '@fortawesome/free-solid-svg-icons';
 import { useNavigate } from 'react-router-dom';
@@ -13,137 +12,88 @@ import { use_page_title } from '../hooks/use_page_title';
 type SettingsTab = 'profile' | 'notifications';
 type NotificationFrequency = 'instant' | 'daily';
 
-// ============================================================================
-// DATOS MOCK TEMPORALES - ELIMINAR CUANDO SE CONECTE AL BACKEND
-// ============================================================================
-const MOCK_USER_DATA = {
-    display_name: "Usuario Demo",
-    email: "usuario@example.com",
-    avatar_url: null,
-    notification_preferences: {
-        in_app: true,
-        email: true,
-        email_address: null
-    }
-};
-
 /**
  * Página de configuración del usuario con secciones de perfil y notificaciones.
  * Implementa estándares de accesibilidad WCAG 2.1 AA.
- * 
- * ============================================================================
- * NOTA PARA EL EQUIPO DE BACKEND:
- * ============================================================================
- * Esta página actualmente usa datos MOCK para desarrollo del frontend.
- * Para conectar al backend, debes:
- * 
- * 1. Descomentar el import de use_user_profile (línea ~6)
- * 2. Descomentar el hook y eliminar los datos MOCK (línea ~49)
- * 3. Asegurarte de que estos endpoints funcionen:
- *    - GET  /v1/users/{user_id}  (obtener perfil)
- *    - PUT  /v1/users/{user_id}  (actualizar perfil y preferencias)
- * 4. El hook usa localStorage.getItem('basmati_user_id') para el user_id
- * 5. En producción, reemplazar esto con el ID del token JWT de OAuth
- * ============================================================================
+ * Usa el contexto de usuario para obtener y actualizar datos reales.
  */
 export const Settings_Page: React.FC = () => {
     use_page_title('Settings');
     const navigate = useNavigate();
-    
-    // TODO BACKEND: Descomentar estas líneas cuando el backend esté listo
-    // const { user, loading, saving, error, update_preferences, update_profile } = use_user_profile();
-    
-    // ========================================================================
-    // MOCK DATA - ELIMINAR CUANDO SE CONECTE AL BACKEND
-    // ========================================================================
-    const user = MOCK_USER_DATA;
-    const loading = false;
-    const saving = false;
-    const error = null;
-    // ========================================================================
+    const { user, loading, error: context_error, update_user, update_preferences } = use_user_context();
     
     const [active_tab, set_active_tab] = useState<SettingsTab>('profile');
     const [success_message, set_success_message] = useState<string | null>(null);
     const [form_error, set_form_error] = useState<string | null>(null);
+    const [saving, set_saving] = useState(false);
 
     // Estados del formulario de perfil
-    const [display_name, set_display_name] = useState<string>(MOCK_USER_DATA.display_name);
-    const [email, set_email] = useState<string>(MOCK_USER_DATA.email);
+    const [display_name, set_display_name] = useState<string>('');
+    const [email, set_email] = useState<string>('');
     
     // Estados del formulario de notificaciones
-    const [notification_email_enabled, set_notification_email_enabled] = useState<boolean>(MOCK_USER_DATA.notification_preferences.email);
-    const [notification_in_app_enabled, set_notification_in_app_enabled] = useState<boolean>(MOCK_USER_DATA.notification_preferences.in_app);
+    const [notification_email_enabled, set_notification_email_enabled] = useState<boolean>(true);
+    const [notification_in_app_enabled, set_notification_in_app_enabled] = useState<boolean>(true);
     const [notification_frequency, set_notification_frequency] = useState<NotificationFrequency>('instant');
+
+    // Cargar datos del usuario cuando esté disponible
+    useEffect(() => {
+        if (user) {
+            set_display_name(user.display_name || '');
+            set_email(user.email || '');
+            set_notification_email_enabled(user.notification_preferences?.email ?? true);
+            set_notification_in_app_enabled(user.notification_preferences?.in_app ?? true);
+            set_notification_frequency(user.notification_preferences?.frequency || 'instant');
+        }
+    }, [user]);
 
     /**
      * Maneja el envío del formulario de perfil.
-     * 
-     * TODO BACKEND: Reemplazar este mock con la llamada real:
-     * await update_profile({ display_name, email });
      */
     const handle_profile_submit = async (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         set_form_error(null);
         set_success_message(null);
+        set_saving(true);
 
-        // ====================================================================
-        // MOCK - SIMULA GUARDADO EXITOSO
-        // ====================================================================
-        console.log('📝 [MOCK] Guardando perfil:', { display_name, email });
-        set_success_message('✅ Perfil actualizado correctamente (simulado)');
-        setTimeout(() => set_success_message(null), 3000);
-        
-        // TODO BACKEND: Descomentar cuando esté listo:
-        /*
         try {
-            await update_profile({
+            await update_user({
                 display_name,
                 email
             });
-            set_success_message('Perfil actualizado correctamente');
+            set_success_message('✅ Perfil actualizado correctamente');
             setTimeout(() => set_success_message(null), 3000);
         } catch (err) {
             set_form_error(err instanceof Error ? err.message : 'Error al actualizar el perfil');
+        } finally {
+            set_saving(false);
         }
-        */
     };
 
     /**
      * Maneja el envío del formulario de notificaciones.
-     * 
-     * TODO BACKEND: Reemplazar este mock con la llamada real:
-     * await update_preferences({ email, in_app, email_address });
      */
     const handle_notifications_submit = async (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         set_form_error(null);
         set_success_message(null);
+        set_saving(true);
 
-        // ====================================================================
-        // MOCK - SIMULA GUARDADO EXITOSO
-        // ====================================================================
-        console.log('🔔 [MOCK] Guardando preferencias:', {
-            email: notification_email_enabled,
-            in_app: notification_in_app_enabled,
-            frequency: notification_frequency
-        });
-        set_success_message('✅ Preferencias actualizadas correctamente (simulado)');
-        setTimeout(() => set_success_message(null), 3000);
-        
-        // TODO BACKEND: Descomentar cuando esté listo:
-        /*
         try {
-            await update_preferences({
+            const preferences: Notification_Preferences_V2 = {
                 email: notification_email_enabled,
                 in_app: notification_in_app_enabled,
-                email_address: user?.email || null
-            });
-            set_success_message('Preferencias de notificación actualizadas correctamente');
+                email_address: user?.notification_preferences?.email_address || null,
+                frequency: notification_frequency
+            };
+            await update_preferences(preferences);
+            set_success_message('✅ Preferencias actualizadas correctamente');
             setTimeout(() => set_success_message(null), 3000);
         } catch (err) {
             set_form_error(err instanceof Error ? err.message : 'Error al actualizar las preferencias');
+        } finally {
+            set_saving(false);
         }
-        */
     };
 
     /**
@@ -160,9 +110,9 @@ export const Settings_Page: React.FC = () => {
                             <div 
                                 className="w-20 h-20 rounded-full border-3 border-basmati-black shadow-hard bg-basmati-yellow flex items-center justify-center text-3xl font-black"
                                 role="img"
-                                aria-label={`Foto de perfil de ${user.display_name}`}
+                                aria-label={`Foto de perfil de ${user?.display_name || 'Usuario'}`}
                             >
-                                {user.avatar_url ? (
+                                {user?.avatar_url ? (
                                     <img 
                                         src={user.avatar_url} 
                                         alt={`Avatar de ${user.display_name}`}
@@ -173,14 +123,15 @@ export const Settings_Page: React.FC = () => {
                                 )}
                             </div>
                             <div>
+                                <p className="font-bold text-lg">{user?.external_id}</p>
                                 <p className="text-sm text-gray-600">
-                                    Esta es el control remoto de tu identidad virtual.
+                                    Proveedor: {user?.provider || 'N/A'}
                                 </p>
                             </div>
                         </div>
 
                         <Neo_Input
-                            label="Apodo"
+                            label="Nombre para mostrar"
                             type="text"
                             id="display-name"
                             value={display_name}
@@ -191,11 +142,12 @@ export const Settings_Page: React.FC = () => {
                         />
 
                         <Neo_Input
-                            label="Nombre completo"
+                            label="ID de usuario"
                             type="text"
-                            id="full-name"
-                            placeholder="Ej: Juan Pérez García"
-                            helper_text="No editable - proporcionado por OAuth"
+                            id="external-id"
+                            value={user?.external_id || ''}
+                            placeholder="external_id"
+                            helper_text="ID único del usuario (no editable)"
                             disabled
                         />
 
@@ -261,7 +213,7 @@ export const Settings_Page: React.FC = () => {
                                             Correo electrónico habilitado
                                         </label>
                                         <p id="notification-email-description" className="text-sm text-gray-600 mt-1">
-                                            Recibirás notificaciones en {user.email}
+                                            Recibirás notificaciones en {user?.email || 'tu correo'}
                                         </p>
                                     </div>
                                 </div>
@@ -337,7 +289,7 @@ export const Settings_Page: React.FC = () => {
                                             Diaria - Resumen
                                         </label>
                                         <p id="frequency-daily-description" className="text-sm text-gray-600 mt-1">
-                                            Recibirás un resumen diario con todas las novedades
+                                            Recibirás un resumen diario con todas las novedades a las 00:00
                                         </p>
                                     </div>
                                 </div>
@@ -371,8 +323,6 @@ export const Settings_Page: React.FC = () => {
         return null;
     };
 
-    // TODO BACKEND: Descomentar estos estados de carga cuando se conecte al backend
-    /*
     if (loading) {
         return (
             <MainLayout>
@@ -384,7 +334,7 @@ export const Settings_Page: React.FC = () => {
         );
     }
 
-    if (error && !user) {
+    if (context_error && !user) {
         return (
             <MainLayout>
                 <div className="max-w-2xl mx-auto py-8 px-4" role="alert">
@@ -393,7 +343,7 @@ export const Settings_Page: React.FC = () => {
                             <FontAwesomeIcon icon={faExclamationCircle} className="text-2xl text-basmati-red" aria-hidden="true" />
                             <div>
                                 <h2 className="font-black text-lg">Error al cargar configuración</h2>
-                                <p className="text-sm">{error}</p>
+                                <p className="text-sm">{context_error}</p>
                             </div>
                         </div>
                     </Neo_Card>
@@ -401,7 +351,6 @@ export const Settings_Page: React.FC = () => {
             </MainLayout>
         );
     }
-    */
 
     return (
         <MainLayout>
@@ -418,7 +367,9 @@ export const Settings_Page: React.FC = () => {
                         <span className="font-bold">Volver</span>
                     </button>
                     <h1 className="text-4xl font-black uppercase">Configuración</h1>
-                    <p className="text-gray-600 mt-2">Gestiona tu perfil y preferencias de notificación</p>
+                    <p className="text-gray-600 mt-2">
+                        Conectado como: <span className="font-bold">{user?.display_name}</span> ({user?.external_id})
+                    </p>
                 </header>
 
                 {/* Mensajes de éxito/error */}

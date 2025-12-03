@@ -7,9 +7,7 @@ import { Neo_Button } from '../components/ui/Neo_Button';
 import { use_calendars } from '../hooks/use_calendars';
 import { Calendar_Model } from '../../domain/models/calendar_model';
 import { use_page_title } from '../hooks/use_page_title';
-
-// Mock user ID (En producción vendría del contexto de autenticación)
-const CURRENT_USER_ID = 'user_dev_1';
+import { use_user_context } from '../context/UserContext';
 
 /**
  * Página para editar un calendario existente.
@@ -19,7 +17,9 @@ export const Edit_Calendar_Page = () => {
     use_page_title('Edit calendar');
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
-    const { calendars, update_calendar, delete_calendar, get_calendar_by_id } = use_calendars(CURRENT_USER_ID);
+    const { user } = use_user_context();
+    const current_user_id = user?.external_id || 'user_dev_1';
+    const { calendars, update_calendar, delete_calendar, get_calendar_by_id } = use_calendars(current_user_id);
     const [loading, set_loading] = useState(true);
     const [saving, set_saving] = useState(false);
     const [deleting, set_deleting] = useState(false);

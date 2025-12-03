@@ -11,15 +11,13 @@ import { Http_Event_Repository } from '../../infrastructure/repositories/http_ev
 import { Http_Calendar_Repository } from '../../infrastructure/repositories/http_calendar_repository';
 import { use_calendars } from '../hooks/use_calendars';
 import { use_page_title } from '../hooks/use_page_title';
+import { use_user_context } from '../context/UserContext';
 import { Event_Location } from '../../domain/models/integration_models';
 import { Event_Attachment } from '../../domain/models/event_model';
 
 const event_repository = new Http_Event_Repository();
 const calendar_repository = new Http_Calendar_Repository();
 const create_event_use_case = new Create_Event_Use_Case(event_repository, calendar_repository);
-
-// Mock user ID (En producción vendría del contexto de autenticación)
-const CURRENT_USER_ID = 'user_dev_1';
 
 /**
  * Página de creación de evento accesible.
@@ -29,7 +27,9 @@ export const Create_Event_Page = () => {
     use_page_title('Create event');
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
-    const { calendars, loading: loading_calendars } = use_calendars(CURRENT_USER_ID);
+    const { user } = use_user_context();
+    const current_user_id = user?.external_id || 'user_dev_1';
+    const { calendars, loading: loading_calendars } = use_calendars(current_user_id);
     const [loading, set_loading] = useState(false);
     const [error, set_error] = useState<string | null>(null);
     
@@ -97,7 +97,7 @@ export const Create_Event_Page = () => {
                 calendar_id: form_data.calendar_id,
                 location: location || undefined,
                 attachments: attachments
-            }, CURRENT_USER_ID);
+            }, current_user_id);
             navigate('/dashboard');
         } catch (err: any) {
             console.error("Error completo:", err);

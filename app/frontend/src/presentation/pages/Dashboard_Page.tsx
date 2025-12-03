@@ -8,6 +8,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faChevronLeft, faChevronRight, faTrash, faFilter } from '@fortawesome/free-solid-svg-icons';
 import { use_calendar_events } from '../hooks/use_calendar_events';
 import { use_calendar_visibility } from '../context/CalendarVisibilityContext';
+import { use_user_context } from '../context/UserContext';
 import { Event_Model } from '../../domain/models/event_model';
 import { Delete_Event_Use_Case } from '../../application/event/delete_event_use_case';
 import { Http_Event_Repository } from '../../infrastructure/repositories/http_event_repository';
@@ -17,9 +18,6 @@ import { use_page_title } from '../hooks/use_page_title';
 const event_repository = new Http_Event_Repository();
 const calendar_repository = new Http_Calendar_Repository();
 const delete_event_use_case = new Delete_Event_Use_Case(event_repository, calendar_repository);
-
-// Mock user ID (En producción vendría del contexto de autenticación)
-const CURRENT_USER_ID = 'user_dev_1';
 
 type ViewType = 'year' | 'month' | 'week' | 'day';
 
@@ -908,6 +906,10 @@ export const Dashboard_Page = () => {
     const calendar_id = searchParams.get('calendar_id') || undefined;
     const { hidden_calendar_ids } = use_calendar_visibility();
     
+    // Obtener el usuario actual del contexto
+    const { user } = use_user_context();
+    const current_user_id = user?.external_id || 'user_dev_1';
+    
     const [current_date, set_current_date] = useState(new Date());
     const [view, set_view] = useState<ViewType>('month');
     const { events, loading, refresh } = use_calendar_events(current_date, view, calendar_id, hidden_calendar_ids);
@@ -933,7 +935,7 @@ export const Dashboard_Page = () => {
         set_deleting(true);
         set_error(null);
         try {
-            await delete_event_use_case.execute(event_to_delete.id, CURRENT_USER_ID);
+            await delete_event_use_case.execute(event_to_delete.id, current_user_id);
             
             // Cerrar modal
             set_delete_modal_open(false);

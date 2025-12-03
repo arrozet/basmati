@@ -7,13 +7,15 @@ Cambios en V2:
 - search_by_date_range: Añade filtro opcional por calendar_id
 - get_all_events: Nuevo endpoint para obtener todos los eventos
 - delete_events_by_calendar: Nuevo endpoint para eliminar eventos de un calendario
-- add_comment: Simplificado, solo requiere user_id y text
+- add_comment: Simplificado, solo requiere user_id y text (obtiene display_name del User Service)
 """
 from datetime import datetime
+import httpx
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Path, Body, status
 
 from core.interface import IEventService
+from core.config import settings
 from schemas.event import EventResponse, EventComment, CommentCreateV2, CommentCreate
 
 
@@ -137,7 +139,7 @@ Ejemplo de uso:
 Agrega un comentario a un evento.
 
 **Mejora en V2**: Solo requiere `user_id` y `text`. El backend obtiene el display_name
-automáticamente o usa un valor por defecto.
+automáticamente consultando el User Service.
 
 Ejemplo de uso:
 ```json
@@ -161,15 +163,23 @@ Ejemplo de uso:
     ):
         """Agrega un comentario a un evento (versión simplificada).
         
-        Esta versión no requiere display_name, el backend lo infiere o usa un valor por defecto.
+        Esta versión no requiere display_name, el backend lo obtiene del User Service.
         """
-        # Convertir CommentCreateV2 a CommentCreate con display_name por defecto
-        # En producción, aquí se haría una llamada al User Service para obtener el nombre
-        display_name = f"Usuario {comment.user_id[-4:]}"  # Fallback simple
+        # Obtener el nombre real del usuario desde el User Service
+        display_name = f"Usuario {comment.user_id}"  # Fallback por defecto
         
-        # Intentar obtener el nombre real del usuario (mock por ahora)
-        if comment.user_id == "user_dev_1":
-            display_name = "Developer User"
+        try:
+            async with httpx.AsyncClient() as client:
+                user_response = await client.get(
+                    f"{settings.user_service_url}/v2/users/by-external-id/{comment.user_id}",
+                    timeout=5.0
+                )
+                if user_response.status_code == 200:
+                    user_data = user_response.json()
+                    display_name = user_data.get("display_name", display_name)
+        except Exception as e:
+            # Si falla la consulta al User Service, usamos el fallback
+            print(f"Warning: No se pudo obtener display_name del User Service: {e}")
         
         full_comment = CommentCreate(
             author_external_id=comment.user_id,

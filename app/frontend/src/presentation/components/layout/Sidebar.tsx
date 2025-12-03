@@ -9,6 +9,7 @@ import { Calendar_Model } from '../../domain/models/calendar_model';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faEye, faEyeSlash, faTrash, faPlus, faCalendarPlus, faFileImport, faChevronRight, faChevronDown } from '@fortawesome/free-solid-svg-icons';
 import { use_calendar_visibility } from '../../context/CalendarVisibilityContext';
+import { use_user_context } from '../../context/UserContext';
 
 interface SidebarProps {
     isOpen?: boolean;
@@ -140,8 +141,11 @@ const CalendarTreeItem: React.FC<CalendarTreeItemProps> = ({
  * Usa elemento semántico <aside> y navegación accesible.
  */
 export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
-    // Hardcoded user_id for now as per AGENTS.md
-    const { calendars, loading, delete_calendar } = use_calendars('user_dev_1');
+    // Obtener el usuario actual del contexto
+    const { user } = use_user_context();
+    const current_user_id = user?.external_id || 'user_dev_1';
+    
+    const { calendars, loading, delete_calendar } = use_calendars(current_user_id);
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
     const active_calendar_id = searchParams.get('calendar_id');
@@ -151,11 +155,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
     const [calendarToDelete, setCalendarToDelete] = useState<Calendar_Model | null>(null);
     const [isDeleting, setIsDeleting] = useState(false);
 
-    const myCalendars = calendars.filter(cal => cal.owner_id === 'user_dev_1');
+    const myCalendars = calendars.filter(cal => cal.owner_id === current_user_id);
     // Solo mostramos raíces en el nivel superior
     const myRootCalendars = myCalendars.filter(cal => !cal.parent_id);
     
-    const otherCalendars = calendars.filter(cal => cal.owner_id !== 'user_dev_1');
+    const otherCalendars = calendars.filter(cal => cal.owner_id !== current_user_id);
 
     const handle_calendar_click = (calendar_id: string) => {
         navigate(`/dashboard?calendar_id=${calendar_id}`);

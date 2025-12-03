@@ -68,6 +68,11 @@ db.createCollection("users", {
             email_address: {
               bsonType: ["string", "null"],
               description: "Email alternativo para notificaciones (opcional)"
+            },
+            frequency: {
+              bsonType: "string",
+              enum: ["instant", "daily"],
+              description: "Frecuencia de notificaciones: instant (inmediato) o daily (resumen diario a las 00:00)"
             }
           },
           additionalProperties: false

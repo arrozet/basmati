@@ -32,7 +32,8 @@ db.createCollection("users", {
           properties: {
             in_app: { bsonType: "bool" },
             email: { bsonType: "bool" },
-            email_address: { bsonType: ["string", "null"] }
+            email_address: { bsonType: ["string", "null"] },
+            frequency: { bsonType: "string", enum: ["instant", "daily"] }
           }
         },
         followed_calendar_ids: { bsonType: "array", items: { bsonType: "objectId" } },

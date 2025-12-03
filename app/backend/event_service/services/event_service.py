@@ -280,13 +280,18 @@ class EventService(IEventService):
 ## HASTA AQUÍ LA VERSIÓN 2 DEL SERVICIO ##
 
     async def _notify_new_comment(self, event_doc: dict, comment_doc: dict) -> None:
-        """Envía notificación al creador del evento tras un nuevo comentario."""
+        """Envía notificación al creador del evento tras un nuevo comentario.
+        
+        Crea una notificación in-app y envía un correo electrónico si el usuario
+        tiene las notificaciones por email activas.
+        """
         creator_id = event_doc.get("creator_external_id")
         author_id = comment_doc.get("author_external_id")
 
         if not creator_id or creator_id == author_id:
             return
 
+        # 1. Crear notificación in-app
         payload = {
             "recipient_external_id": creator_id,
             "type": "NEW_COMMENT",
@@ -306,8 +311,61 @@ class EventService(IEventService):
                     json=payload,
                 )
         except Exception as exc:
-            # Se registra el error sin interrumpir el flujo principal
             print(f"Error enviando notificación de comentario: {str(exc)}")
+
+        # 2. Enviar correo electrónico si el usuario tiene email activo
+        try:
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                # Obtener preferencias del usuario
+                user_response = await client.get(
+                    f"{settings.user_service_url}/v2/users/by-external-id/{creator_id}"
+                )
+                
+                if user_response.status_code != 200:
+                    print(f"No se pudo obtener usuario {creator_id} para enviar email")
+                    return
+                
+                user_data = user_response.json()
+                prefs = user_data.get("notification_preferences", {})
+                
+                # Verificar si tiene email activo y frecuencia instant
+                if not prefs.get("email", False):
+                    print(f"Usuario {creator_id} tiene email desactivado")
+                    return
+                
+                frequency = prefs.get("frequency", "instant")
+                if frequency != "instant":
+                    print(f"Usuario {creator_id} tiene frecuencia {frequency}, no enviamos email inmediato")
+                    return
+                
+                # Obtener el email del usuario
+                user_email = prefs.get("email_address") or user_data.get("email")
+                if not user_email:
+                    print(f"No se encontró email para usuario {creator_id}")
+                    return
+                
+                # Enviar el correo usando el integration service
+                email_payload = {
+                    "to_email": user_email,
+                    "event_title": event_doc.get("title", "Evento"),
+                    "calendar_title": event_doc.get("calendar_title", "Calendario"),
+                    "commenter_name": comment_doc.get("author_display_name", "Alguien"),
+                    "comment_text": comment_doc.get("text", ""),
+                    "event_id": str(event_doc.get("_id"))
+                }
+                
+                email_response = await client.post(
+                    f"{settings.integration_service_url}/v2/email/send-comment-notification",
+                    json=email_payload
+                )
+                
+                if email_response.status_code == 200:
+                    print(f"Email de notificación enviado a {user_email}")
+                else:
+                    print(f"Error enviando email: {email_response.status_code}")
+                    
+        except Exception as exc:
+            print(f"Error enviando email de notificación: {str(exc)}")
 
     def _document_to_response(self, document: dict) -> EventResponse:
         """Convierte un documento de MongoDB a EventResponse."""

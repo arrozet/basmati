@@ -36,11 +36,14 @@ export class Http_Event_Repository implements Event_Repository_Interface {
              calendar_id = "507f1f77bcf86cd799439011"; // Default mock ID
         }
 
+        // Obtener el usuario actual de localStorage
+        const current_user = localStorage.getItem('basmati_current_user') || 'user_dev_1';
+        
         // Construir payload con ubicación si existe
         const payload: Record<string, any> = {
             calendar_id: calendar_id,
             calendar_title: "Personal",
-            creator_external_id: "user_dev_1", // Mock user
+            creator_external_id: current_user, // Usuario de la sesión actual
             title: event.title,
             description: event.description,
             visibility: "private",

@@ -134,10 +134,10 @@ export class Http_Calendar_Repository implements Calendar_Repository_Interface {
             return {
                 id: item.id,
                 title: item.title,
-                color: item.color,
+                color: item.color || '#EBBE4D',
                 owner_id: item.creator_external_id || item.owner_id || item.creator_id,
                 icon: item.icon,
-                is_public: item.is_public,
+                is_public: item.visibility === 'public',
                 parent_id: item.parent_calendar_id
             };
         } catch (error) {

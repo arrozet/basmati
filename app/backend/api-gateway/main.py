@@ -225,6 +225,20 @@ async def events_v2_route(path: str, request: Request):
     full_path = f"v2/events/{path}" if path else "v2/events"
     return await proxy_request("events", full_path, request)
 
+@app.api_route("/v2/users/{path:path}", methods=["GET", "POST", "PUT", "DELETE"])
+async def users_v2_route(path: str, request: Request):
+    """
+    Proxy para el User Service V2.
+    
+    Incluye endpoints como:
+        GET /v2/users/{id} → Obtener usuario con preferencias V2
+        GET /v2/users/by-external-id/{external_id} → Buscar por external_id
+        PUT /v2/users/{id} → Actualizar usuario con frecuencia
+        POST /v2/users/seed-dev-users → Crear usuarios de desarrollo
+    """
+    full_path = f"v2/users/{path}" if path else "v2/users"
+    return await proxy_request("users", full_path, request)
+
 @app.api_route("/v2/calendars/{path:path}", methods=["GET", "POST", "PUT", "DELETE"])
 async def calendars_v2_route(path: str, request: Request):
     """

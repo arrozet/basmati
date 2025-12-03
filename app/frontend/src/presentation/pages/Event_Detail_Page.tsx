@@ -21,6 +21,7 @@ import { Event_Model, Event_Comment } from '../../domain/models/event_model';
 import { Get_Event_Use_Case } from '../../application/event/get_event_use_case';
 import { Add_Comment_Use_Case } from '../../application/event/add_comment_use_case';
 import { use_page_title } from '../hooks/use_page_title';
+import { use_user_context } from '../context/UserContext';
 
 // Dependencies
 const event_repository = new Http_Event_Repository();
@@ -29,11 +30,11 @@ const calendar_repository = new Http_Calendar_Repository();
 const get_event_use_case = new Get_Event_Use_Case(event_repository);
 const add_comment_use_case = new Add_Comment_Use_Case(event_repository);
 
-const CURRENT_USER_ID = 'user_dev_1'; // Mock ID
-
 export const Event_Detail_Page = () => {
     use_page_title('Event details');
     const { id } = useParams();
+    const { user } = use_user_context();
+    const current_user_id = user?.external_id || 'user_dev_1';
     const navigate = useNavigate();
     
     const [loading, set_loading] = useState(true);
@@ -79,7 +80,7 @@ export const Event_Detail_Page = () => {
         if (!event || !id) return;
         
         try {
-            const new_comment = await add_comment_use_case.execute(id, text, CURRENT_USER_ID);
+            const new_comment = await add_comment_use_case.execute(id, text, current_user_id);
             set_event(prev => prev ? {
                 ...prev,
                 comments: [...(prev.comments || []), new_comment]
@@ -287,7 +288,7 @@ export const Event_Detail_Page = () => {
                     <Comments_Section 
                         comments={event.comments || []} 
                         on_add_comment={handle_add_comment}
-                        current_user_id={CURRENT_USER_ID}
+                        current_user_id={current_user_id}
                     />
                 </div>
             </div>

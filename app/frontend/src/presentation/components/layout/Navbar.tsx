@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faSearch, faBars } from '@fortawesome/free-solid-svg-icons';
+import { faSearch, faBars, faSignOutAlt } from '@fortawesome/free-solid-svg-icons';
 import { Neo_Button } from '../ui/Neo_Button';
 import { Neo_Input } from '../ui/Neo_Input';
+import { Notification_Bell } from '../ui/Notification_Bell';
+import { use_user_context } from '../../context/UserContext';
 
 interface NavbarProps {
     onMenuClick?: () => void;
@@ -17,6 +19,11 @@ export const Navbar: React.FC<NavbarProps> = ({ onMenuClick }) => {
     const [search_query, set_search_query] = useState("");
     const [menu_open, set_menu_open] = useState(false);
     const navigate = useNavigate();
+    
+    // Obtener el usuario actual del contexto
+    const { user } = use_user_context();
+    const current_user_id = user?.external_id || 'user_dev_1';
+    const current_user_name = user?.display_name || 'Usuario';
 
     const handle_menu_click = () => {
         set_menu_open(!menu_open);
@@ -28,6 +35,11 @@ export const Navbar: React.FC<NavbarProps> = ({ onMenuClick }) => {
         if (search_query.trim()) {
             navigate(`/search?q=${encodeURIComponent(search_query)}`);
         }
+    };
+
+    const handle_logout = () => {
+        localStorage.removeItem('basmati_current_user');
+        navigate('/login');
     };
 
     return (
@@ -83,15 +95,28 @@ export const Navbar: React.FC<NavbarProps> = ({ onMenuClick }) => {
             </button>
 
             <div className="flex items-center gap-2 md:gap-4">
+                {/* Campana de notificaciones */}
+                <Notification_Bell external_id={current_user_id} />
+                
                 <Link to="/settings">
                     <Neo_Button 
                         variant="secondary" 
                         className="px-3 py-1 text-sm md:text-base md:px-4"
                         aria-label="Ver configuración de perfil y notificaciones"
                     >
-                        Mi perfil
+                        {current_user_name}
                     </Neo_Button>
                 </Link>
+
+                <button
+                    type="button"
+                    onClick={handle_logout}
+                    className="p-2 text-gray-600 hover:text-basmati-red transition-colors focus:outline-none focus:ring-4 focus:ring-basmati-yellow focus:ring-offset-2 rounded"
+                    aria-label="Cerrar sesión"
+                    title="Cerrar sesión"
+                >
+                    <FontAwesomeIcon icon={faSignOutAlt} />
+                </button>
             </div>
         </nav>
     );

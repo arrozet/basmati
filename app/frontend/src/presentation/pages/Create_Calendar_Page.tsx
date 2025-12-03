@@ -6,9 +6,7 @@ import { Neo_Input } from '../components/ui/Neo_Input';
 import { Neo_Button } from '../components/ui/Neo_Button';
 import { use_calendars } from '../hooks/use_calendars';
 import { use_page_title } from '../hooks/use_page_title';
-
-// Mock user ID (En producción vendría del contexto de autenticación)
-const CURRENT_USER_ID = 'user_dev_1';
+import { use_user_context } from '../context/UserContext';
 
 /**
  * Página para crear un nuevo calendario.
@@ -17,18 +15,31 @@ const CURRENT_USER_ID = 'user_dev_1';
 export const Create_Calendar_Page = () => {
     use_page_title('Create calendar');
     const navigate = useNavigate();
-    const { create_calendar, calendars } = use_calendars(CURRENT_USER_ID);
+    
+    // Obtener el usuario actual del contexto en lugar de hardcodear user_dev_1
+    const { user, loading: user_loading } = use_user_context();
+    const current_user_id = user?.external_id || 'user_dev_1';
+    const current_user_name = user?.display_name || 'Usuario';
+    
+    const { create_calendar, calendars } = use_calendars(current_user_id);
     const [loading, set_loading] = useState(false);
     const [error, set_error] = useState<string | null>(null);
     
     const [form_data, set_form_data] = useState({
         title: '',
         color: '#EBBE4D', // Color por defecto basmati-yellow
-        owner_id: CURRENT_USER_ID,
+        owner_id: current_user_id,
         icon: '',
         is_public: false,
         parent_id: ''
     });
+
+    // Actualizar owner_id cuando el usuario cambie
+    React.useEffect(() => {
+        if (user?.external_id) {
+            set_form_data(prev => ({ ...prev, owner_id: user.external_id }));
+        }
+    }, [user?.external_id]);
 
     const handle_change = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         const { name, value, type } = e.target;
@@ -55,8 +66,8 @@ export const Create_Calendar_Page = () => {
             await create_calendar({
                 title: form_data.title,
                 color: form_data.color,
-                // Ensure owner_id is consistent with what the sidebar expects for "My Calendars"
-                owner_id: form_data.owner_id === CURRENT_USER_ID ? CURRENT_USER_ID : form_data.owner_id,
+                // Usar el ID del usuario actual de la sesión
+                owner_id: current_user_id,
                 icon: form_data.icon,
                 is_public: form_data.is_public,
                 parent_id: form_data.parent_id || undefined
@@ -80,6 +91,17 @@ export const Create_Calendar_Page = () => {
         { hex: '#EC4899', name: 'Rosa' },
         { hex: '#10B981', name: 'Verde' }
     ];
+
+    // Mostrar carga mientras se obtiene el usuario
+    if (user_loading) {
+        return (
+            <MainLayout>
+                <div className="flex justify-center items-center min-h-[60vh]">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-3 border-basmati-black"></div>
+                </div>
+            </MainLayout>
+        );
+    }
 
     return (
         <MainLayout>
@@ -155,7 +177,7 @@ export const Create_Calendar_Page = () => {
                                 className="border-3 border-basmati-black px-3 py-2 focus:outline-none focus:ring-4 focus:ring-basmati-yellow ring-offset-2 transition-all bg-white"
                             >
                                 <option value="">Ninguno (Calendario principal)</option>
-                                {calendars.filter(c => c.owner_id === CURRENT_USER_ID).map(cal => (
+                                {calendars.filter(c => c.owner_id === current_user_id).map(cal => (
                                     <option key={cal.id} value={cal.id}>
                                         {cal.title}
                                     </option>
@@ -166,16 +188,18 @@ export const Create_Calendar_Page = () => {
                             </p>
                         </div>
 
-                        <Neo_Input 
-                            label="Organizador" 
-                            placeholder="Ej: Mi padre" 
-                            name="owner_id"
-                            value={form_data.owner_id}
-                            onChange={handle_change}
-                            required
-                            id="calendar-owner"
-                            autoComplete="off"
-                        />
+                        {/* Campo de organizador ahora muestra el nombre del usuario actual */}
+                        <div className="flex flex-col gap-1">
+                            <label className="font-bold text-sm text-basmati-black">
+                                Organizador
+                            </label>
+                            <div className="border-3 border-basmati-black px-3 py-2 bg-gray-100 text-gray-700">
+                                {current_user_name}
+                            </div>
+                            <p className="text-xs text-gray-600">
+                                El organizador es el usuario actual de la sesión.
+                            </p>
+                        </div>
 
                         <div className="flex flex-col gap-1">
                             <label htmlFor="calendar-icon" className="font-bold text-sm text-basmati-black">

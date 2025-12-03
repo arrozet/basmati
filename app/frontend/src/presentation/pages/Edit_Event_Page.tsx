@@ -15,6 +15,7 @@ import { Update_Event_Use_Case } from '../../application/event/update_event_use_
 import { Get_Event_Use_Case } from '../../application/event/get_event_use_case';
 import { Delete_Event_Use_Case } from '../../application/event/delete_event_use_case';
 import { use_page_title } from '../hooks/use_page_title';
+import { use_user_context } from '../context/UserContext';
 
 // Dependencies
 const event_repository = new Http_Event_Repository();
@@ -24,9 +25,6 @@ const get_event_use_case = new Get_Event_Use_Case(event_repository);
 const update_event_use_case = new Update_Event_Use_Case(event_repository, calendar_repository);
 const delete_event_use_case = new Delete_Event_Use_Case(event_repository, calendar_repository);
 
-// Mock user ID (En producción vendría del contexto de autenticación)
-const CURRENT_USER_ID = 'user_dev_1';
-
 /**
  * Página de edición de evento accesible.
  * Formulario con labels asociados, botones semánticos y aria-labels.
@@ -35,6 +33,8 @@ export const Edit_Event_Page = () => {
     use_page_title('Edit event');
     const { id } = useParams();
     const navigate = useNavigate();
+    const { user } = use_user_context();
+    const current_user_id = user?.external_id || 'user_dev_1';
     const [loading, set_loading] = useState(true);
     const [saving, set_saving] = useState(false);
     const [error, set_error] = useState<string | null>(null);
@@ -149,7 +149,7 @@ export const Edit_Event_Page = () => {
                 attachments: attachments
             };
 
-            await update_event_use_case.execute(updated_event, CURRENT_USER_ID);
+            await update_event_use_case.execute(updated_event, current_user_id);
             navigate('/dashboard');
         } catch (err: any) {
             console.error(err);
@@ -172,7 +172,7 @@ export const Edit_Event_Page = () => {
         
         set_deleting(true);
         try {
-            await delete_event_use_case.execute(event.id, CURRENT_USER_ID);
+            await delete_event_use_case.execute(event.id, current_user_id);
             navigate('/dashboard');
         } catch (error: any) {
             console.error('Error al eliminar evento:', error);

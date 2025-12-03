@@ -159,6 +159,38 @@ class UserRepository:
         user = await self.collection.find_one({"email": email})
         return user
     
+    async def find_one(self, query: dict) -> "UserModel | None":
+        """
+        Busca un usuario por un query genérico.
+        
+        Args:
+            query: Diccionario con filtros de búsqueda
+            
+        Returns:
+            UserModel: Usuario encontrado o None
+        """
+        user = await self.collection.find_one(query)
+        if user:
+            from models.user import UserModel
+            return UserModel(**user)
+        return None
+    
+    async def find_many(self, query: dict, limit: int = 100) -> list:
+        """
+        Busca múltiples usuarios por un query genérico.
+        
+        Args:
+            query: Diccionario con filtros de búsqueda
+            limit: Límite de resultados
+            
+        Returns:
+            list[UserModel]: Lista de usuarios encontrados
+        """
+        cursor = self.collection.find(query).limit(limit)
+        users = await cursor.to_list(length=limit)
+        from models.user import UserModel
+        return [UserModel(**user) for user in users]
+    
     async def find_by_display_name(self, name: str) -> list[dict]:
         """
         Busca usuarios por display_name parcial (parametrized query 2).
