@@ -158,6 +158,21 @@ export class Http_Event_Repository implements Event_Repository_Interface {
             end_time: event.end_time.toISOString()
         };
 
+        // Incluir adjuntos en la actualización
+        if (event.attachments) {
+            payload.attachments = event.attachments.map(att => ({
+                id: att.id || '', // El backend generará un ObjectId si está vacío o es inválido
+                filename: att.filename,
+                url: att.url,
+                size: att.size,
+                mime_type: att.mime_type,
+                uploaded_at: att.uploaded_at instanceof Date ? att.uploaded_at.toISOString() : att.uploaded_at,
+                uploaded_by: att.uploaded_by,
+                is_image: att.is_image,
+                thumbnail_url: att.thumbnail_url || null
+            }));
+        }
+
         // Añadir ubicación si existe (puede ser null para eliminarla)
         if (event.location) {
             payload.location = {

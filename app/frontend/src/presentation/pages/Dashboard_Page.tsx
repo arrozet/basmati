@@ -268,6 +268,7 @@ const CalendarGrid: React.FC<{
             
             // Calcular eventos que se renderizan en esta fila
             const events_to_render: Multi_Day_Event_Segment[] = [];
+            const MAX_VISIBLE_SLOTS = 3;
             
             for (let col = 0; col < 7; col++) {
                 const cell = row_start_cell + col;
@@ -337,10 +338,16 @@ const CalendarGrid: React.FC<{
                     const day_events = events.filter((e: Event_Model) => event_occurs_on_day(e, current_day_date));
                     const day_events_count = day_events.length;
                     
+                    // Calcular eventos ocultos para este día específico en esta fila
+                    const hidden_events_count = day_events.filter(e => {
+                        const slot = slots_for_row.get(e.id);
+                        return slot !== undefined && slot >= MAX_VISIBLE_SLOTS;
+                    }).length;
+
                     day_cells.push(
                         <div 
                             key={day_index} 
-                            className="bg-white border-3 border-basmati-black shadow-hard hover:-translate-y-1 hover:shadow-[6px_6px_0px_0px_rgba(26,26,26,1)] transition-all cursor-pointer relative min-h-[100px] md:min-h-[120px] overflow-visible focus-within:ring-4 focus-within:ring-basmati-yellow"
+                            className="bg-white border-3 border-basmati-black shadow-hard hover:shadow-[6px_6px_0px_0px_rgba(26,26,26,1)] hover:bg-gray-50 transition-all cursor-pointer relative min-h-[100px] md:min-h-[120px] overflow-visible focus-within:ring-4 focus-within:ring-basmati-yellow"
                             onClick={() => handle_day_click(current_day_date)}
                             role="gridcell"
                             tabIndex={0}
@@ -358,6 +365,14 @@ const CalendarGrid: React.FC<{
                                     {day_index}
                                 </time>
                             </div>
+                            
+                            {/* Indicador de más eventos (Desktop) */}
+                            {hidden_events_count > 0 && (
+                                <div className="hidden md:block absolute bottom-1 left-2 text-xs font-bold text-gray-500 hover:text-basmati-black z-10">
+                                    +{hidden_events_count} más
+                                </div>
+                            )}
+
                             {/* Eventos en móvil (lista simple) */}
                             <div className="md:hidden mt-6 flex flex-col gap-1 px-1">
                                 {day_events.map((event: Event_Model) => {
@@ -416,7 +431,9 @@ const CalendarGrid: React.FC<{
                     
                     {/* Capa de eventos multi-día superpuestos (solo en desktop) */}
                     <div className="hidden md:block absolute top-8 left-0 right-0 pointer-events-none" style={{ zIndex: 5 }}>
-                        {events_to_render.map((segment, idx) => {
+                        {events_to_render
+                            .filter(segment => segment.slot_index < MAX_VISIBLE_SLOTS)
+                            .map((segment, idx) => {
                             const event = segment.event;
                             const event_color = event.color || '#EBBE4D';
                             
@@ -453,7 +470,7 @@ const CalendarGrid: React.FC<{
                             return (
                                 <div
                                     key={`${event.id}-${row}-${idx}`}
-                                    className="absolute pointer-events-auto cursor-pointer group"
+                                    className="absolute pointer-events-auto cursor-pointer group hover:z-20 hover:scale-[1.01] transition-all duration-200"
                                     style={{
                                         left: `${left_percent}%`,
                                         width: `${width_percent}%`,

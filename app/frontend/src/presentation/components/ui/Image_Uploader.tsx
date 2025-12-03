@@ -4,7 +4,7 @@ import { Event_Attachment } from '../../../domain/models/event_model';
 import { Http_S3_Repository } from '../../../infrastructure/repositories/http_s3_repository';
 import { Upload_Image_Use_Case } from '../../../application/s3/upload_image_use_case';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faCamera } from '@fortawesome/free-solid-svg-icons';
+import { faCamera, faTimes } from '@fortawesome/free-solid-svg-icons';
 
 interface ImageUploaderProps {
     attachments: Event_Attachment[];
@@ -163,11 +163,15 @@ export const Image_Uploader: React.FC<ImageUploaderProps> = ({
                             {!disabled && (
                                 <button
                                     type="button"
-                                    onClick={() => handleRemove(index)}
-                                    className="absolute top-1 right-1 bg-basmati-red text-white w-8 h-8 flex items-center justify-center border-2 border-basmati-black shadow-sm hover:scale-105 transition-transform"
+                                    onClick={(e) => {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                        handleRemove(index);
+                                    }}
+                                    className="absolute top-1 right-1 bg-basmati-red text-white w-8 h-8 flex items-center justify-center border-2 border-basmati-black shadow-sm hover:scale-105 transition-transform z-10 cursor-pointer"
                                     aria-label={`Eliminar imagen ${att.filename}`}
                                 >
-                                    ✕
+                                    <FontAwesomeIcon icon={faTimes} />
                                 </button>
                             )}
                             

@@ -160,6 +160,7 @@ class EventUpdate(BaseModel):
 	start_time: datetime | None = Field(None, description="Nueva fecha de inicio")
 	end_time: datetime | None = Field(None, description="Nueva fecha de fin")
 	location: EventLocation | None = Field(None, description="Actualización de la ubicación")
+	attachments: list[EventAttachment] | None = Field(None, description="Lista actualizada de adjuntos")
 	visibility: Literal["public", "private", "inherited"] | None = Field(
 		None, description="Nueva visibilidad"
 	)

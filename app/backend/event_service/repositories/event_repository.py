@@ -92,6 +92,27 @@ class EventRepository(IEventRepository):
         if not current_event:
             return None
 
+        # Procesar attachments ANTES de la validación
+        # El frontend puede enviar UUIDs u otros IDs, debemos convertirlos a ObjectId
+        if "attachments" in update_dict:
+            for attachment in update_dict["attachments"]:
+                if "size" in attachment:
+                    attachment["size"] = Int64(attachment["size"])
+                # Renombrar id a _id para cumplir con el schema de MongoDB
+                if "id" in attachment:
+                    raw_id = attachment.pop("id")
+                    # Si es un ObjectId válido (24 hex chars), usarlo; si no, generar uno nuevo
+                    if ObjectId.is_valid(raw_id):
+                        attachment["_id"] = ObjectId(raw_id)
+                    else:
+                        attachment["_id"] = ObjectId()  # Generar nuevo ObjectId
+                elif "_id" not in attachment:
+                    attachment["_id"] = ObjectId()  # Generar ID si es nuevo
+                
+                # Asegurar que uploaded_at sea datetime
+                if "uploaded_at" in attachment and isinstance(attachment["uploaded_at"], str):
+                    attachment["uploaded_at"] = datetime.fromisoformat(attachment["uploaded_at"].replace("Z", "+00:00"))
+
         merged_event = {**current_event, **update_dict}
         merged_event["updated_at"] = datetime.now(timezone.utc)
 
@@ -99,12 +120,6 @@ class EventRepository(IEventRepository):
             EventModel(**merged_event)
         except Exception as exc:
             raise ValueError(f"Datos de actualización inválidos: {str(exc)}")
-
-        # Convertir size a int64 en attachments si se están actualizando
-        if "attachments" in update_dict:
-            for attachment in update_dict["attachments"]:
-                if "size" in attachment:
-                    attachment["size"] = Int64(attachment["size"])
 
         try:
             update_dict["updated_at"] = datetime.now(timezone.utc)

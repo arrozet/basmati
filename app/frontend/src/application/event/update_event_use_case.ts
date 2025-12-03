@@ -43,39 +43,9 @@ export class Update_Event_Use_Case {
         if (!event.end_time) throw new Error("End time is required");
         if (new Date(event.end_time) <= new Date(event.start_time)) throw new Error("End time must be after start time");
 
-        // 1. Actualizar datos básicos del evento
+        // 1. Actualizar evento completo (incluyendo adjuntos)
+        // El backend se encarga de reemplazar la lista de adjuntos con la nueva lista enviada
         const updated_event = await this.event_repository.update(event);
-
-        // 2. Gestionar nuevos adjuntos
-        // Identificar adjuntos nuevos (aquellos que no tienen ID generado por el backend o que sabemos que son nuevos)
-        // En este caso simple, si el front envía adjuntos en 'event.attachments', asumimos que
-        // debemos intentar añadirlos si no están ya. 
-        // Como el update del backend NO toca adjuntos, debemos llamar a add_attachment por cada uno.
-        // Pero cuidado de no duplicar.
-        
-        if (event.attachments && event.attachments.length > 0) {
-            // Obtener adjuntos actuales del evento (del backend) para no duplicar
-            const current_event_state = await this.event_repository.get_event(event.id);
-            const current_attachment_urls = new Set(current_event_state?.attachments?.map(a => a.url) || []);
-
-            const new_attachments = event.attachments.filter(att => !current_attachment_urls.has(att.url));
-
-            if (new_attachments.length > 0) {
-                try {
-                    const attachments_promises = new_attachments.map(attachment => 
-                        this.event_repository.add_attachment(updated_event.id, attachment)
-                    );
-                    await Promise.all(attachments_promises);
-                    
-                    // Actualizar el modelo devuelto
-                    if (!updated_event.attachments) updated_event.attachments = [];
-                    updated_event.attachments.push(...new_attachments);
-                    
-                } catch (error) {
-                    console.error("Error adding new attachments:", error);
-                }
-            }
-        }
 
         return updated_event;
     }
