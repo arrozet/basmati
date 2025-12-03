@@ -1,5 +1,5 @@
 import { Event_Repository_Interface } from "../../domain/repositories/event_repository_interface";
-import { Event_Model, Event_Attachment } from "../../domain/models/event_model";
+import { Event_Model, Event_Attachment, Event_Comment } from "../../domain/models/event_model";
 import { api_client } from "../api/axios_client";
 
 export class Http_Event_Repository implements Event_Repository_Interface {
@@ -117,6 +117,13 @@ export class Http_Event_Repository implements Event_Repository_Interface {
                 uploaded_by: att.uploaded_by,
                 is_image: att.is_image,
                 thumbnail_url: att.thumbnail_url
+            })) : [],
+            comments: item.comments ? item.comments.map((com: any) => ({
+                id: com.id || com._id,
+                author_external_id: com.author_external_id,
+                author_display_name: com.author_display_name,
+                text: com.text,
+                created_at: new Date(com.created_at)
             })) : []
         };
     }
@@ -227,6 +234,24 @@ export class Http_Event_Repository implements Event_Repository_Interface {
             uploaded_by: item.uploaded_by,
             is_image: item.is_image,
             thumbnail_url: item.thumbnail_url
+        };
+    }
+
+    async add_comment(event_id: string, text: string, user_id: string): Promise<Event_Comment> {
+        const payload = {
+            text: text,
+            user_id: user_id // Note: Backend usually infers this from auth token, but we send it as per instructions
+        };
+        
+        const response = await api_client.post(`/v1/events/${event_id}/comments`, payload);
+        const item = response.data;
+        
+        return {
+            id: item.id || item._id,
+            author_external_id: item.author_external_id,
+            author_display_name: item.author_display_name,
+            text: item.text,
+            created_at: new Date(item.created_at)
         };
     }
 }

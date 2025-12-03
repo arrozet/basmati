@@ -1,4 +1,4 @@
-import { Event_Model, Event_Attachment } from "../models/event_model";
+import { Event_Model, Event_Attachment, Event_Comment } from "../models/event_model";
 
 export interface Event_Repository_Interface {
     /**
@@ -54,4 +54,12 @@ export interface Event_Repository_Interface {
      * @param attachment Datos del adjunto (url, filename, etc.)
      */
     add_attachment(event_id: string, attachment: Event_Attachment): Promise<Event_Attachment>;
+
+    /**
+     * Añade un comentario a un evento.
+     * @param event_id ID del evento.
+     * @param text Texto del comentario.
+     * @param user_id ID del usuario que comenta.
+     */
+    add_comment(event_id: string, text: string, user_id: string): Promise<Event_Comment>;
 }

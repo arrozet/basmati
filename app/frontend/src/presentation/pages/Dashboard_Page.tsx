@@ -121,7 +121,7 @@ const CalendarGrid: React.FC<{
     const months_labels = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
 
     const handle_event_click = (event_id: string) => {
-        navigate(`/events/edit/${event_id}`);
+        navigate(`/events/${event_id}`);
     };
 
     const handle_day_click = (date: Date) => {

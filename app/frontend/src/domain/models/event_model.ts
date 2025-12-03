@@ -1,5 +1,13 @@
 import { Event_Location } from './integration_models';
 
+export interface Event_Comment {
+    id: string;
+    author_external_id: string;
+    author_display_name: string;
+    text: string;
+    created_at: Date;
+}
+
 export interface Event_Attachment {
     id?: string;
     filename: string;
@@ -25,4 +33,6 @@ export interface Event_Model {
     location?: Event_Location;
     /** Lista de archivos adjuntos (imágenes) */
     attachments?: Event_Attachment[];
+    /** Lista de comentarios asociados */
+    comments?: Event_Comment[];
 }

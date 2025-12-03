@@ -144,7 +144,7 @@ export const Search_Page: React.FC = () => {
                                     <Neo_Button 
                                         variant="primary" 
                                         className="text-xs px-3 py-1"
-                                        onClick={() => navigate(`/events/edit/${event.id}`)}
+                                        onClick={() => navigate(`/events/${event.id}`)}
                                         aria-label={`Ver detalles de ${event.title}`}
                                     >
                                         Ver detalles
