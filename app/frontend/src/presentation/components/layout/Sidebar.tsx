@@ -7,7 +7,7 @@ import { clsx } from 'clsx';
 import { use_calendars } from '../../hooks/use_calendars';
 import { Calendar_Model } from '../../domain/models/calendar_model';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faEye, faEyeSlash, faTrash } from '@fortawesome/free-solid-svg-icons';
+import { faEye, faEyeSlash, faTrash, faPlus, faCalendarPlus, faFileImport } from '@fortawesome/free-solid-svg-icons';
 import { use_calendar_visibility } from '../../context/CalendarVisibilityContext';
 
 interface SidebarProps {
@@ -225,7 +225,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
                 <div>
                     <Link to={createEventLink} onClick={onClose}>
                         <Neo_Button className="w-full flex items-center justify-center gap-2" aria-label="Crear nuevo evento">
-                            <span aria-hidden="true">+</span> Crear evento
+                            <FontAwesomeIcon icon={faPlus} aria-hidden="true" /> Crear evento
                         </Neo_Button>
                     </Link>
                 </div>
@@ -237,7 +237,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
                             className="w-full flex items-center justify-center gap-2" 
                             aria-label="Crear nuevo calendario"
                         >
-                            <span aria-hidden="true">+</span> Crear calendario
+                            <FontAwesomeIcon icon={faCalendarPlus} aria-hidden="true" /> Crear calendario
                         </Neo_Button>
                     </Link>
                     <Link to="/calendars/import" onClick={onClose} className="block mt-2">
@@ -246,7 +246,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
                             className="w-full flex items-center justify-center gap-2 text-sm" 
                             aria-label="Importar calendario"
                         >
-                            <span aria-hidden="true">↓</span> Importar calendario
+                            <FontAwesomeIcon icon={faFileImport} aria-hidden="true" /> Importar calendario
                         </Neo_Button>
                     </Link>
                 </div>
