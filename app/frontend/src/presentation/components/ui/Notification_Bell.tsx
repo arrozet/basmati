@@ -60,9 +60,18 @@ export const Notification_Bell: React.FC<Notification_Bell_Props> = ({ external_
 
     /**
      * Formatea la fecha de la notificación en formato relativo.
+     * Las fechas del backend vienen en UTC pero sin el sufijo "Z", por lo que
+     * hay que añadirlo para que JavaScript las interprete correctamente.
      */
     const format_relative_time = (date_string: string): string => {
-        const date = new Date(date_string);
+        // Añadir "Z" si la fecha no tiene indicador de zona horaria (UTC)
+        // Esto evita que JavaScript la interprete como hora local
+        const has_timezone = date_string.endsWith('Z') || 
+                             date_string.includes('+') || 
+                             /T\d{2}:\d{2}:\d{2}.*-\d{2}/.test(date_string);
+        const utc_date_string = has_timezone ? date_string : date_string + 'Z';
+        
+        const date = new Date(utc_date_string);
         const now = new Date();
         const diff_ms = now.getTime() - date.getTime();
         const diff_minutes = Math.floor(diff_ms / 60000);

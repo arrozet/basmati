@@ -2,6 +2,19 @@ import { Event_Repository_Interface } from "../../domain/repositories/event_repo
 import { Event_Model, Event_Attachment, Event_Comment } from "../../domain/models/event_model";
 import { api_client } from "../api/axios_client";
 
+/**
+ * Parsea una fecha que viene del backend en UTC.
+ * El backend envía fechas sin sufijo "Z", lo que hace que JavaScript
+ * las interprete como hora local. Esta función añade "Z" para corregirlo.
+ */
+const parse_utc_date = (date_string: string): Date => {
+    if (!date_string) return new Date();
+    const has_timezone = date_string.endsWith('Z') || 
+                         date_string.includes('+') || 
+                         /T\d{2}:\d{2}:\d{2}.*-\d{2}/.test(date_string);
+    return new Date(has_timezone ? date_string : date_string + 'Z');
+};
+
 export class Http_Event_Repository implements Event_Repository_Interface {
     /**
      * Obtiene todos los eventos del sistema usando el nuevo endpoint v2.
@@ -99,8 +112,8 @@ export class Http_Event_Repository implements Event_Repository_Interface {
         return {
             id: item.id,
             title: item.title,
-            start_time: new Date(item.start_time),
-            end_time: new Date(item.end_time),
+            start_time: parse_utc_date(item.start_time),
+            end_time: parse_utc_date(item.end_time),
             description: item.description,
             calendar_id: item.calendar_id,
             location: item.location ? {
@@ -116,7 +129,7 @@ export class Http_Event_Repository implements Event_Repository_Interface {
                 url: att.url,
                 size: att.size,
                 mime_type: att.mime_type,
-                uploaded_at: new Date(att.uploaded_at),
+                uploaded_at: parse_utc_date(att.uploaded_at),
                 uploaded_by: att.uploaded_by,
                 is_image: att.is_image,
                 thumbnail_url: att.thumbnail_url
@@ -126,7 +139,7 @@ export class Http_Event_Repository implements Event_Repository_Interface {
                 author_external_id: com.author_external_id,
                 author_display_name: com.author_display_name,
                 text: com.text,
-                created_at: new Date(com.created_at)
+                created_at: parse_utc_date(com.created_at)
             })) : []
         };
     }
@@ -233,7 +246,7 @@ export class Http_Event_Repository implements Event_Repository_Interface {
             url: item.url,
             size: item.size,
             mime_type: item.mime_type,
-            uploaded_at: new Date(item.uploaded_at),
+            uploaded_at: parse_utc_date(item.uploaded_at),
             uploaded_by: item.uploaded_by,
             is_image: item.is_image,
             thumbnail_url: item.thumbnail_url
@@ -255,7 +268,7 @@ export class Http_Event_Repository implements Event_Repository_Interface {
             author_external_id: item.author_external_id,
             author_display_name: item.author_display_name,
             text: item.text,
-            created_at: new Date(item.created_at)
+            created_at: parse_utc_date(item.created_at)
         };
     }
 }
