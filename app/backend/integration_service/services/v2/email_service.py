@@ -1,10 +1,10 @@
 """Servicio de envío de correos electrónicos usando SendGrid.
 
 Nuevo en V2: Este módulo implementa la lógica de negocio para el envío 
-de correos usando la API de SendGrid desde la cuenta amcgil@uma.es.
+de correos usando la API de SendGrid. La configuración se obtiene del .env.
 """
 import httpx
-import os
+from core.config import settings
 from schemas.email import (
     EmailRequest,
     EmailResponse,
@@ -24,22 +24,32 @@ class EmailServiceV2:
     
     Si no hay API key de SendGrid configurada, simula el envío
     para entornos de desarrollo.
+    
+    La configuración (API key, sender email) se obtiene del .env.
     """
     
-    # Configuración de SendGrid
+    # URL de la API de SendGrid (constante, no configurable)
     SENDGRID_API_URL = "https://api.sendgrid.com/v3/mail/send"
-    SENDER_EMAIL = "amcgil@uma.es"
-    SENDER_NAME = "Basmati Calendar"
     
-    def __init__(self, api_key: str | None = None):
+    def __init__(
+        self, 
+        api_key: str | None = None,
+        sender_email: str | None = None,
+        sender_name: str = "Basmati Calendar"
+    ):
         """
         Inicializa el servicio de email.
         
         Args:
             api_key: API Key de SendGrid. Si no se proporciona,
-                     se intenta obtener de la variable de entorno SENDGRID_API_KEY.
+                     se obtiene de settings.sendgrid_api_key.
+            sender_email: Email del remitente. Si no se proporciona,
+                          se obtiene de settings.sender_email.
+            sender_name: Nombre del remitente.
         """
-        self.api_key = api_key or os.getenv("SENDGRID_API_KEY")
+        self.api_key = api_key or settings.sendgrid_api_key
+        self.sender_email = sender_email or settings.sender_email
+        self.sender_name = sender_name
     
     async def send_email(self, request: EmailRequest) -> EmailResponse:
         """
@@ -155,8 +165,8 @@ class EmailServiceV2:
                 }
             ],
             "from": {
-                "email": self.SENDER_EMAIL,
-                "name": self.SENDER_NAME
+                "email": self.sender_email,
+                "name": self.sender_name
             },
             "content": [
                 {

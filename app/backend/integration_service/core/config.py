@@ -35,7 +35,7 @@ class IntegrationServiceSettings(Settings):
     
     # Configuración de SendGrid para envío de correos
     sendgrid_api_key: str | None = None
-    sender_email: str = "amcgil@uma.es"
+    sender_email: str = "amcgil+noreply-basmati@uma.es"
 
 # Instancia de configuración para este servicio
 settings = IntegrationServiceSettings()

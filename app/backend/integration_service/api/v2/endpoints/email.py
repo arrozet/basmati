@@ -34,7 +34,7 @@ Envía un correo electrónico usando SendGrid.
 
 **Nuevo en V2**: Este endpoint no existe en V1.
 
-El correo se envía desde la cuenta amcgil@uma.es.
+El correo se envía desde la cuenta configurada en SENDER_EMAIL (.env).
 Si no hay API key de SendGrid configurada, simula el envío para desarrollo.
     """,
     responses={
