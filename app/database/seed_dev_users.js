@@ -3,8 +3,12 @@
 // ============================================================================
 // 
 // Crea los usuarios de desarrollo necesarios para probar el sistema:
-// - user_dev_1: Usuario principal con email matemes897@badfist.com
-// - user_dev_2: Usuario secundario con email mbduz@comfythings.com
+// - user_dev_1: Usuario principal con email amcgil@uma.es
+// - user_dev_2: Usuario secundario con email rubenoliva@uma.es
+//
+// NOTA: Los emails se configuran en el .env del backend (DEV_USER_*_EMAIL)
+//       Este script usa los valores por defecto. Si cambias el .env,
+//       actualiza también este script o usa el endpoint /seed-dev-users.
 //
 // Uso: mongosh "connection-string" --file seed_dev_users.js
 // ============================================================================
@@ -19,7 +23,7 @@ print("🌱 Creando usuarios de desarrollo...\n");
 const user_dev_1 = {
     external_id: "user_dev_1",
     provider: "google",
-    email: "matemes897@badfist.com",
+    email: "amcgil@uma.es",
     display_name: "Usuario Desarrollo 1",
     avatar_url: null,
     notification_preferences: {
@@ -53,7 +57,7 @@ if (result1.upsertedId) {
 const user_dev_2 = {
     external_id: "user_dev_2",
     provider: "google",
-    email: "mbduz@comfythings.com",
+    email: "rubenoliva@uma.es",
     display_name: "Usuario Desarrollo 2",
     avatar_url: null,
     notification_preferences: {

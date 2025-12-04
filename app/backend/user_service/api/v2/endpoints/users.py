@@ -11,6 +11,7 @@ from schemas.v2.user import UserUpdateV2, UserResponseV2, NotificationPreference
 from schemas.common import ResponseMessage
 from services.user_service import UserService
 from core.database import get_user_repository
+from core.config import settings
 
 router = APIRouter()
 
@@ -365,8 +366,8 @@ Crea los usuarios de desarrollo necesarios para probar la aplicación.
 **Solo para desarrollo**: Este endpoint crea usuarios de prueba.
 
 Usuarios creados:
-- **user_dev_1**: matemes897@badfist.com (frecuencia instant)
-- **user_dev_2**: mbduz@comfythings.com (frecuencia instant)
+- **user_dev_1**: Configurado en DEV_USER_1_EMAIL (frecuencia instant)
+- **user_dev_2**: Configurado en DEV_USER_2_EMAIL (frecuencia instant)
 - **user_dev_3**: daily_digest_test@example.com (frecuencia daily)
     """,
     responses={
@@ -394,7 +395,7 @@ async def seed_dev_users(
         {
             "external_id": "user_dev_1",
             "provider": "google",
-            "email": "matemes897@badfist.com",
+            "email": settings.dev_user_1_email,
             "display_name": "Usuario Desarrollo 1",
             "avatar_url": None,
             "notification_preferences": {
@@ -409,7 +410,7 @@ async def seed_dev_users(
         {
             "external_id": "user_dev_2",
             "provider": "google",
-            "email": "mbduz@comfythings.com",
+            "email": settings.dev_user_2_email,
             "display_name": "Usuario Desarrollo 2",
             "avatar_url": None,
             "notification_preferences": {
@@ -424,7 +425,7 @@ async def seed_dev_users(
         {
             "external_id": "user_dev_3",
             "provider": "google",
-            "email": "daily_digest_test@example.com",
+            "email": settings.dev_user_3_email,
             "display_name": "Usuario Resumen Diario",
             "avatar_url": None,
             "notification_preferences": {

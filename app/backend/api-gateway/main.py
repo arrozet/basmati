@@ -293,6 +293,34 @@ async def integrations_s3_v2_route(path: str, request: Request):
     return await proxy_request_multipart("integrations", full_path, request)
 
 
+@app.api_route("/v2/email/{path:path}", methods=["GET", "POST", "PUT", "DELETE"])
+async def integrations_email_v2_route(path: str, request: Request):
+    """
+    Proxy para el Integration Service V2 (Email).
+    
+    Endpoints disponibles:
+        POST /v2/email/send → Enviar correo electrónico
+        POST /v2/email/send-digest → Enviar resumen diario
+        POST /v2/email/send-comment-notification → Enviar notificación de comentario
+    """
+    full_path = f"v2/email/{path}" if path else "v2/email"
+    return await proxy_request("integrations", full_path, request)
+
+
+@app.api_route("/v2/digest/{path:path}", methods=["GET", "POST", "PUT", "DELETE"])
+async def integrations_digest_v2_route(path: str, request: Request):
+    """
+    Proxy para el Integration Service V2 (Daily Digest).
+    
+    Endpoints disponibles:
+        POST /v2/digest/send-all → Enviar digest a todos los usuarios
+        POST /v2/digest/send-user → Enviar digest a un usuario específico
+        GET /v2/digest/preview/{user_id} → Vista previa del digest
+    """
+    full_path = f"v2/digest/{path}" if path else "v2/digest"
+    return await proxy_request("integrations", full_path, request)
+
+
 async def proxy_request_multipart(service_name: str, path: str, request: Request):
     """
     Proxifica una petición multipart/form-data al servicio backend.

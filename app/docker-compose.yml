@@ -10,6 +10,8 @@ services:
       - /app/node_modules
     environment:
       - VITE_API_GATEWAY_URL=http://localhost:8000
+      - VITE_DEV_USER_1_EMAIL=${DEV_USER_1_EMAIL:-amcgil@uma.es}
+      - VITE_DEV_USER_2_EMAIL=${DEV_USER_2_EMAIL:-rubenoliva@uma.es}
     depends_on:
       - api-gateway
     networks:
@@ -51,6 +53,9 @@ services:
       - MONGO_URI=${MONGO_URI}
       - SERVICE_PORT=8001
       - DATABASE_NAME=basmati
+      - DEV_USER_1_EMAIL=${DEV_USER_1_EMAIL:-amcgil@uma.es}
+      - DEV_USER_2_EMAIL=${DEV_USER_2_EMAIL:-rubenoliva@uma.es}
+      - DEV_USER_3_EMAIL=${DEV_USER_3_EMAIL:-daily_digest_test@example.com}
     networks:
       - basmati-network
 

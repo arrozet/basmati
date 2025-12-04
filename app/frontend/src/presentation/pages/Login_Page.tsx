@@ -5,6 +5,7 @@ import { Neo_Card } from '../components/ui/Neo_Card';
 import { Neo_Input } from '../components/ui/Neo_Input';
 import { use_page_title } from '../hooks/use_page_title';
 import { use_user_context } from '../context/UserContext';
+import { DEV_USER_1, DEV_USER_2 } from '../../infrastructure/config/dev_users';
 
 /**
  * Página de inicio de sesión simplificada para desarrollo.
@@ -88,19 +89,19 @@ export const Login_Page = () => {
                     <div className="grid grid-cols-1 gap-2">
                         <button
                             type="button"
-                            onClick={() => set_username('user_dev_1')}
+                            onClick={() => set_username(DEV_USER_1.id)}
                             className="text-left p-3 border-2 border-gray-200 rounded hover:border-basmati-yellow hover:bg-basmati-yellow/10 transition-all"
                         >
-                            <span className="font-bold text-basmati-black">user_dev_1</span>
-                            <span className="text-gray-500 text-xs block">matemes897@badfist.com</span>
+                            <span className="font-bold text-basmati-black">{DEV_USER_1.id}</span>
+                            <span className="text-gray-500 text-xs block">{DEV_USER_1.email}</span>
                         </button>
                         <button
                             type="button"
-                            onClick={() => set_username('user_dev_2')}
+                            onClick={() => set_username(DEV_USER_2.id)}
                             className="text-left p-3 border-2 border-gray-200 rounded hover:border-basmati-blue hover:bg-basmati-blue/10 transition-all"
                         >
-                            <span className="font-bold text-basmati-black">user_dev_2</span>
-                            <span className="text-gray-500 text-xs block">mbduz@comfythings.com</span>
+                            <span className="font-bold text-basmati-black">{DEV_USER_2.id}</span>
+                            <span className="text-gray-500 text-xs block">{DEV_USER_2.email}</span>
                         </button>
                     </div>
                 </div>
