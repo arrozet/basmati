@@ -1,16 +1,16 @@
 """Lógica de negocio para usuarios"""
 from datetime import datetime, timezone
 from schemas.user import UserCreate, UserUpdate, UserResponse
-from repositories.user_repository import UserRepository
+from core.interface.user import IUserService, IUserRepository
 
-class UserService:
+class UserService(IUserService):
     """
     Servicio para manejar la lógica de negocio de usuarios.
     
     Delega acceso a BD al UserRepository.
     """
     
-    def __init__(self, user_repository: UserRepository):
+    def __init__(self, user_repository: IUserRepository):
         """
         Inicializa el servicio de usuarios.
         
@@ -178,6 +178,15 @@ class UserService:
             bool: True si se actualizó correctamente
         """
         return await self.user_repository.update_last_login(user_id)
+
+    def get_raw_repository(self) -> IUserRepository:
+        """
+        Devuelve el repositorio subyacente.
+        
+        Returns:
+            IUserRepository: El repositorio
+        """
+        return self.user_repository
     
     def _document_to_response(self, document: dict) -> UserResponse:
         """

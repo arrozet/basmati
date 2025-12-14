@@ -3,9 +3,10 @@ from datetime import datetime, timezone
 from typing import Any
 from bson import ObjectId
 from models.user import UserModel
+from core.interface.user import IUserRepository
 
 
-class UserRepository:
+class UserRepository(IUserRepository):
     """
     Repository para operaciones de acceso a datos de usuarios.
     

@@ -159,7 +159,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
     // Solo mostramos raíces en el nivel superior
     const myRootCalendars = myCalendars.filter(cal => !cal.parent_id);
     
+    // Para "Otros calendarios" también filtramos solo las raíces para respetar la jerarquía
     const otherCalendars = calendars.filter(cal => cal.owner_id !== current_user_id);
+    const otherRootCalendars = otherCalendars.filter(cal => !cal.parent_id);
 
     const handle_calendar_click = (calendar_id: string) => {
         navigate(`/dashboard?calendar_id=${calendar_id}`);
@@ -280,38 +282,24 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
 
                 <nav aria-label="Otros calendarios">
                     <h2 className="font-bold text-lg mb-2">Otros calendarios</h2>
-                    <ul className="flex flex-col gap-2 list-none p-0">
-                        {otherCalendars.map((cal) => {
-                            const visible = is_visible(cal.id);
-                            return (
-                            <li key={cal.id} className="flex items-center">
-                                <button 
-                                    type="button"
-                                    className={clsx(
-                                        "flex items-center gap-2 flex-1 text-left cursor-pointer hover:translate-x-1 transition-transform focus:outline-none focus:ring-2 focus:ring-basmati-yellow p-2 rounded",
-                                        active_calendar_id === cal.id ? "bg-basmati-yellow/20 font-bold border-r-4 border-basmati-yellow" : "hover:bg-white"
-                                    )}
-                                    aria-label={`Ver calendario ${cal.title}`}
-                                    onClick={() => handle_calendar_click(cal.id)}
-                                >
-                                    <div 
-                                        className="w-4 h-4 border-3 border-basmati-black" 
-                                        style={{ backgroundColor: cal.color || '#5496FF' }}
-                                        aria-hidden="true"
-                                    ></div>
-                                    <span className="font-medium">{cal.title}</span>
-                                </button>
-                                <button
-                                    onClick={(e) => { e.stopPropagation(); toggle_visibility(cal.id); }}
-                                    className="w-6 h-6 flex items-center justify-center hover:bg-gray-200 rounded transition-colors text-basmati-black ml-1"
-                                    aria-label={visible ? "Ocultar calendario" : "Mostrar calendario"}
-                                >
-                                     <FontAwesomeIcon icon={visible ? faEye : faEyeSlash} className={visible ? "" : "opacity-50"} size="xs" />
-                                </button>
-                            </li>
-                            );
-                        })}
-                    </ul>
+                    {loading ? (
+                        <div className="text-sm text-gray-500">Cargando...</div>
+                    ) : (
+                        <ul className="flex flex-col gap-2 list-none p-0">
+                            {otherRootCalendars.map((cal) => (
+                                <CalendarTreeItem
+                                    key={cal.id}
+                                    calendar={cal}
+                                    allCalendars={otherCalendars}
+                                    activeCalendarId={active_calendar_id}
+                                    onCalendarClick={handle_calendar_click}
+                                />
+                            ))}
+                            {otherCalendars.length === 0 && (
+                                <li className="text-sm text-gray-500 italic">No hay otros calendarios.</li>
+                            )}
+                        </ul>
+                    )}
                 </nav>
 
                 <div className="mt-auto">

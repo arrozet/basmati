@@ -3,8 +3,9 @@ from fastapi import APIRouter, HTTPException, status, Query, Path, Body, Depends
 from typing import List
 from schemas.user import UserCreate, UserUpdate, UserResponse
 from schemas.common import ResponseMessage
-from services.user_service import UserService
-from core.database import get_user_repository
+from core.interface.user import IUserService
+from core.factory.user import get_user_factory
+from core.database import get_database
 
 router = APIRouter()
 
@@ -31,17 +32,18 @@ router = APIRouter()
 # 5. Inyecta el resultado final en el endpoint
 # 6. Al terminar la request, limpia los recursos
 
-async def get_user_service(user_repository = Depends(get_user_repository)) -> UserService:
+async def get_user_service(db = Depends(get_database)) -> IUserService:
     """
-    Proporciona una instancia de UserService con el Repository.
+    Proporciona una instancia de UserService usando Abstract Factory.
     
     Args:
-        user_repository: Repository de usuarios (inyectado por FastAPI)
+        db: Base de datos MongoDB (inyectada por FastAPI)
         
     Returns:
-        UserService: Instancia del servicio de usuarios
+        IUserService: Instancia del servicio de usuarios (v1)
     """
-    return UserService(user_repository)
+    factory = get_user_factory("v1", db)
+    return factory.create_service()
 
 @router.post(
     "",
@@ -57,7 +59,7 @@ async def get_user_service(user_repository = Depends(get_user_repository)) -> Us
 )
 async def create_user(
     user: UserCreate = Body(..., description="Datos del usuario a crear (incluye external_id y provider)"),
-    service: UserService = Depends(get_user_service)
+    service: IUserService = Depends(get_user_service)
 ):
     """
     Crea un nuevo usuario en el sistema con OAuth.
@@ -93,7 +95,7 @@ async def create_user(
 )
 async def get_user(
     user_id: str = Path(..., description="ID único del usuario"),
-    service: UserService = Depends(get_user_service)
+    service: IUserService = Depends(get_user_service)
 ):
     """
     Obtiene un usuario por su ID.
@@ -128,7 +130,7 @@ async def get_user(
 async def update_user(
     user_id: str = Path(..., description="ID único del usuario"),
     user: UserUpdate = Body(..., description="Datos a actualizar del usuario"),
-    service: UserService = Depends(get_user_service)
+    service: IUserService = Depends(get_user_service)
 ):
     """
     Actualiza un usuario existente.
@@ -163,7 +165,7 @@ async def update_user(
 )
 async def delete_user(
     user_id: str = Path(..., description="ID único del usuario"),
-    service: UserService = Depends(get_user_service)
+    service: IUserService = Depends(get_user_service)
 ):
     """
     Elimina un usuario del sistema.
@@ -197,7 +199,7 @@ async def delete_user(
 )
 async def search_by_email(
     email: str = Query(..., description="Email del usuario"),
-    service: UserService = Depends(get_user_service)
+    service: IUserService = Depends(get_user_service)
 ):
     """
     Busca un usuario por email (parametrized query 1).
@@ -230,7 +232,7 @@ async def search_by_email(
 )
 async def search_by_display_name(
     display_name: str = Query(..., description="Nombre o parte del nombre"),
-    service: UserService = Depends(get_user_service)
+    service: IUserService = Depends(get_user_service)
 ):
     """
     Busca usuarios por display_name parcial (parametrized query 2).
@@ -259,7 +261,7 @@ async def search_by_display_name(
 async def search_by_oauth(
     external_id: str = Query(..., description="ID del proveedor OAuth"),
     provider: str = Query(..., description="Proveedor OAuth (google/facebook)"),
-    service: UserService = Depends(get_user_service)
+    service: IUserService = Depends(get_user_service)
 ):
     """
     Busca un usuario por sus credenciales OAuth.

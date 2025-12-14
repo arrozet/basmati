@@ -9,24 +9,26 @@ from fastapi import APIRouter, HTTPException, status, Path, Body, Depends, Query
 from typing import Optional, List
 from schemas.v2.user import UserUpdateV2, UserResponseV2, NotificationPreferencesSchemaV2
 from schemas.common import ResponseMessage
-from services.user_service import UserService
-from core.database import get_user_repository
+from core.interface.user import IUserService
+from core.factory.user import get_user_factory
+from core.database import get_database
 from core.config import settings
 
 router = APIRouter()
 
 
-async def get_user_service(user_repository=Depends(get_user_repository)) -> UserService:
+async def get_user_service(db = Depends(get_database)) -> IUserService:
     """
-    Proporciona una instancia de UserService con el Repository.
+    Proporciona una instancia de UserService usando Abstract Factory.
     
     Args:
-        user_repository: Repository de usuarios (inyectado por FastAPI)
+        db: Base de datos MongoDB (inyectada por FastAPI)
         
     Returns:
-        UserService: Instancia del servicio de usuarios
+        IUserService: Instancia del servicio de usuarios (v2)
     """
-    return UserService(user_repository)
+    factory = get_user_factory("v2", db)
+    return factory.create_service()
 
 
 @router.get(
@@ -46,7 +48,7 @@ Obtiene un usuario por su ID externo (Google ID, Facebook ID, etc.).
 )
 async def get_user_by_external_id_v2(
     external_id: str = Path(..., description="External ID del usuario (OAuth ID)"),
-    service: UserService = Depends(get_user_service)
+    service: IUserService = Depends(get_user_service)
 ):
     """
     Obtiene un usuario por su external_id (ID de OAuth).
@@ -59,7 +61,7 @@ async def get_user_by_external_id_v2(
         UserResponseV2: Usuario encontrado con preferencias V2
     """
     # Buscar en el repositorio por external_id
-    user = await service.user_repository.find_one({"external_id": external_id})
+    user = await service.get_raw_repository().find_one({"external_id": external_id})
     
     if not user:
         raise HTTPException(
@@ -100,7 +102,7 @@ async def list_users_v2(
     notification_frequency: Optional[str] = Query(None, description="Filtrar por frecuencia: 'instant' o 'daily'"),
     email_notifications: Optional[bool] = Query(None, description="Filtrar por notificaciones por email activadas"),
     limit: int = Query(100, ge=1, le=1000, description="Número máximo de resultados"),
-    service: UserService = Depends(get_user_service)
+    service: IUserService = Depends(get_user_service)
 ):
     """
     Lista usuarios con filtros opcionales.
@@ -124,7 +126,7 @@ async def list_users_v2(
         query["notification_preferences.email"] = email_notifications
     
     # Buscar usuarios
-    users = await service.user_repository.find_many(query, limit=limit)
+    users = await service.get_raw_repository().find_many(query, limit=limit)
     
     # Convertir a V2
     result = []
@@ -156,7 +158,7 @@ Obtiene un usuario por su ID.
 )
 async def get_user_v2(
     user_id: str = Path(..., description="ID único del usuario"),
-    service: UserService = Depends(get_user_service)
+    service: IUserService = Depends(get_user_service)
 ):
     """
     Obtiene un usuario por su ID con preferencias de notificación V2.
@@ -207,7 +209,7 @@ Valores de frecuencia:
 async def update_user_v2(
     user_id: str = Path(..., description="ID único del usuario"),
     user: UserUpdateV2 = Body(..., description="Datos a actualizar del usuario"),
-    service: UserService = Depends(get_user_service)
+    service: IUserService = Depends(get_user_service)
 ):
     """
     Actualiza un usuario existente con soporte para preferencias V2.
@@ -242,7 +244,7 @@ async def update_user_v2(
     # Si hay preferencias de notificación con frequency, actualizarlas directamente
     if "notification_preferences" in update_dict and update_dict["notification_preferences"]:
         # Actualizar directamente en el repositorio
-        await service.user_repository.update(user_id, {
+        await service.get_raw_repository().update(user_id, {
             "notification_preferences": update_dict["notification_preferences"]
         })
         updated_user = await service.get_user(user_id)
@@ -280,7 +282,7 @@ Incluye:
 )
 async def get_notification_preferences_v2(
     user_id: str = Path(..., description="ID único del usuario"),
-    service: UserService = Depends(get_user_service)
+    service: IUserService = Depends(get_user_service)
 ):
     """
     Obtiene las preferencias de notificación de un usuario.
@@ -328,7 +330,7 @@ Valores de frecuencia:
 async def update_notification_preferences_v2(
     user_id: str = Path(..., description="ID único del usuario"),
     preferences: NotificationPreferencesSchemaV2 = Body(..., description="Nuevas preferencias"),
-    service: UserService = Depends(get_user_service)
+    service: IUserService = Depends(get_user_service)
 ):
     """
     Actualiza las preferencias de notificación de un usuario.
@@ -349,7 +351,7 @@ async def update_notification_preferences_v2(
         )
     
     # Actualizar directamente las preferencias
-    await service.user_repository.update(user_id, {
+    await service.get_raw_repository().update(user_id, {
         "notification_preferences": preferences.model_dump()
     })
     
@@ -376,7 +378,7 @@ Usuarios creados:
     }
 )
 async def seed_dev_users(
-    service: UserService = Depends(get_user_service)
+    service: IUserService = Depends(get_user_service)
 ):
     """
     Crea o actualiza los usuarios de desarrollo.
@@ -444,15 +446,15 @@ async def seed_dev_users(
     for user_data in dev_users:
         try:
             # Verificar si ya existe
-            existing = await service.user_repository.find_one({"external_id": user_data["external_id"]})
+            existing = await service.get_raw_repository().find_one({"external_id": user_data["external_id"]})
             
             if existing:
                 # Actualizar
-                await service.user_repository.update(existing.id, user_data)
+                await service.get_raw_repository().update(existing.id, user_data)
                 results["updated"].append(user_data["external_id"])
             else:
                 # Crear nuevo
-                await service.user_repository.create(user_data)
+                await service.get_raw_repository().create(user_data)
                 results["created"].append(user_data["external_id"])
         except Exception as e:
             results["errors"].append({"external_id": user_data["external_id"], "error": str(e)})
