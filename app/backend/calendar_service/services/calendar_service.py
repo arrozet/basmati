@@ -1,13 +1,17 @@
 """Lógica de negocio para calendarios"""
 from datetime import datetime, timezone
+from typing import Any
 from bson import ObjectId
 import httpx
 from schemas.calendar import CalendarCreate, CalendarUpdate, CalendarResponse, CalendarHierarchy
 from repositories.calendar_repository import CalendarRepository
 from core.config import settings
+from core.interface import ICalendarService
 
 
-class CalendarService:
+from core.interface import ICalendarService
+
+class CalendarService(ICalendarService):
     """
     Servicio para manejar la lógica de negocio de calendarios.
     
@@ -35,8 +39,8 @@ class CalendarService:
         """
         calendars = await self.calendar_repository.find_all(limit)
         return [self._document_to_response(calendar) for calendar in calendars]
-    
-    async def create_calendar(self, calendar_data: CalendarCreate) -> CalendarResponse:
+        
+    async def create_calendar(self, calendar_data: Any) -> CalendarResponse:
         """
         Crea un nuevo calendario.
         
@@ -54,24 +58,29 @@ class CalendarService:
             ValueError: Si el calendario padre no existe
         """
         # Preparar datos
-        calendar_dict = calendar_data.model_dump()
+        if not isinstance(calendar_data, CalendarCreate) and hasattr(calendar_data, 'model_dump'):
+            calendar_dict = calendar_data.model_dump()
+        else:
+            calendar_dict = calendar_data.model_dump() if hasattr(calendar_data, 'model_dump') else dict(calendar_data)
+
         calendar_dict["created_at"] = datetime.now(timezone.utc)
         calendar_dict["updated_at"] = datetime.now(timezone.utc)
         calendar_dict["subscriber_count"] = 0
         
         # Manejar jerarquía si tiene calendario padre
-        if calendar_data.parent_calendar_id:
+        parent_id = getattr(calendar_data, 'parent_calendar_id', None)
+        if parent_id:
             # Verificar que el padre exista
-            parent = await self.calendar_repository.find_by_id(calendar_data.parent_calendar_id)
+            parent = await self.calendar_repository.find_by_id(parent_id)
             if not parent:
-                raise ValueError(f"El calendario padre con ID '{calendar_data.parent_calendar_id}' no existe")
+                raise ValueError(f"El calendario padre con ID '{parent_id}' no existe")
             
             # Convertir parent_calendar_id a ObjectId
-            calendar_dict["parent_calendar_id"] = ObjectId(calendar_data.parent_calendar_id)
+            calendar_dict["parent_calendar_id"] = ObjectId(parent_id)
             
             # Construir path: path del padre + ID del padre
             parent_path = parent.get("path", [])
-            calendar_dict["path"] = parent_path + [ObjectId(calendar_data.parent_calendar_id)]
+            calendar_dict["path"] = parent_path + [ObjectId(parent_id)]
         else:
             calendar_dict["parent_calendar_id"] = None
             calendar_dict["path"] = []
@@ -101,7 +110,7 @@ class CalendarService:
             return self._document_to_response(calendar)
         return None
     
-    async def update_calendar(self, calendar_id: str, calendar_data: CalendarUpdate) -> CalendarResponse | None:
+    async def update_calendar(self, calendar_id: str, calendar_data: Any) -> CalendarResponse | None:
         """
         Actualiza un calendario existente.
         
@@ -112,7 +121,7 @@ class CalendarService:
         Returns:
             CalendarResponse: Calendario actualizado o None si no existe
         """
-        update_dict = calendar_data.model_dump(exclude_unset=True)
+        update_dict = calendar_data.model_dump(exclude_unset=True) if hasattr(calendar_data, 'model_dump') else dict(calendar_data)
         if not update_dict:
             return await self.get_calendar(calendar_id)
         

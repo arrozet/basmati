@@ -3,9 +3,10 @@ from datetime import datetime, timezone
 from typing import Any
 from bson import ObjectId
 from models.calendar import CalendarModel
+from core.interface import ICalendarRepository
 
 
-class CalendarRepository:
+class CalendarRepository(ICalendarRepository):
     """
     Repository para operaciones de acceso a datos de calendarios.
     
