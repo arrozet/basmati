@@ -29,10 +29,9 @@ export class Http_Notification_Repository implements Notification_Repository_Int
      */
     async get_unread_notifications(external_id: string): Promise<Notification_Model[]> {
         try {
-            const response = await api_client.get(`/v1/notifications/search`, {
+            const response = await api_client.get(`/v1/notifications/search/unread`, {
                 params: {
-                    recipient_external_id: external_id,
-                    is_read: false
+                    recipient_external_id: external_id
                 }
             });
             return response.data.map(this.map_to_notification_model);
@@ -58,18 +57,17 @@ export class Http_Notification_Repository implements Notification_Repository_Int
      * @returns Promesa con el número de notificaciones actualizadas.
      */
     async mark_all_as_read(external_id: string): Promise<number> {
-        // Obtener todas las notificaciones no leídas y marcarlas una por una
-        const unread = await this.get_unread_notifications(external_id);
-        let count = 0;
-        for (const notification of unread) {
-            try {
-                await this.mark_as_read(notification.id);
-                count++;
-            } catch (error) {
-                console.error(`Error marcando notificación ${notification.id} como leída:`, error);
-            }
+        try {
+            // Usar el endpoint bulk del backend
+            const response = await api_client.put(`/v1/notifications/user/${external_id}/read-all`);
+            // El backend devuelve un mensaje con el formato: "X notificaciones marcadas como leídas"
+            // Extraer el número de la respuesta
+            const match = response.data.message?.match(/(\d+)/);
+            return match ? parseInt(match[1], 10) : 0;
+        } catch (error) {
+            console.error("Error marcando todas las notificaciones como leídas:", error);
+            return 0;
         }
-        return count;
     }
 
     /**

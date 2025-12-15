@@ -115,7 +115,6 @@ export const Notification_Bell: React.FC<Notification_Bell_Props> = ({ external_
                 type="button"
                 onClick={() => {
                     set_is_open(!is_open);
-                    if (!is_open) refresh();
                 }}
                 className="relative p-2 font-bold border-3 border-basmati-black shadow-hard active:shadow-none active:translate-x-[2px] active:translate-y-[2px] transition-all focus:outline-none focus:ring-4 focus:ring-basmati-yellow focus:ring-offset-2 hover:bg-basmati-yellow bg-white"
                 aria-label={`Notificaciones${unread_count > 0 ? `, ${unread_count} sin leer` : ''}`}
