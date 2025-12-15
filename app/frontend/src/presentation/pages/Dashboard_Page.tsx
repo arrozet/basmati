@@ -326,9 +326,9 @@ const CalendarGrid: React.FC<{
                 const day_index = cell - first_day + 1;
                 
                 if (day_index < 1 || day_index > days_in_month) {
-                    // Celda vacía
+                    // Celda vacía (invisible en desktop para mantener grid, oculta en móvil)
                     day_cells.push(
-                        <div key={`empty-${cell}`} className="bg-gray-50 border-3 border-transparent min-h-[100px] md:min-h-[120px]"></div>
+                        <div key={`empty-${cell}`} className="hidden md:block invisible min-h-[100px] md:min-h-[120px]"></div>
                     );
                 } else {
                     const current_day_date = new Date(year, month, day_index);
