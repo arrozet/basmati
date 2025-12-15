@@ -2,3 +2,4 @@
 
 Contiene los endpoints específicos de la versión 2 de la API.
 """
+

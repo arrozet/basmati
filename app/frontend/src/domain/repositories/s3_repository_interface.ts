@@ -10,3 +10,4 @@ export interface S3_Repository_Interface {
     upload_image(file: File, folder?: string): Promise<Event_Attachment>;
 }
 
+
