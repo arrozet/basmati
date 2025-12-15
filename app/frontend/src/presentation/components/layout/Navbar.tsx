@@ -61,7 +61,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onMenuClick }) => {
                 </button>
                 <Link 
                     to="/dashboard"
-                    className="flex items-center gap-2 focus:outline-none focus:ring-4 focus:ring-basmati-yellow focus:ring-offset-2 p-1 rounded-sm group"
+                    className="hidden md:flex items-center gap-2 focus:outline-none focus:ring-4 focus:ring-basmati-yellow focus:ring-offset-2 p-1 rounded-sm group"
                     aria-label="Ir a página principal de Basmati"
                 >
                     <img src="/favicon.webp" alt="" className="h-6 w-6 md:h-8 md:w-8 object-contain" />
