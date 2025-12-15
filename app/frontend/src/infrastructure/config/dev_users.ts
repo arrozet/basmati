@@ -34,7 +34,7 @@ export const DEV_USER_2: Dev_User_Config = {
  */
 export const DEV_USER_3: Dev_User_Config = {
     id: 'user_dev_3',
-    email: import.meta.env.VITE_DEV_USER_3_EMAIL || 'daily_digest_test@example.com',
+    email: import.meta.env.VITE_DEV_USER_3_EMAIL || 'bamasti-dailydigest@yopmail.com',
     display_name: 'Usuario Resumen Diario'
 };
 
