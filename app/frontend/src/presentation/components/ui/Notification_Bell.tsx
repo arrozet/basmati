@@ -138,7 +138,7 @@ export const Notification_Bell: React.FC<Notification_Bell_Props> = ({ external_
             {/* Dropdown de notificaciones */}
             {is_open && (
                 <div 
-                    className="absolute right-0 top-full mt-2 w-80 md:w-96 bg-white border-3 border-basmati-black shadow-hard z-50 max-h-[70vh] overflow-hidden flex flex-col"
+                    className="fixed left-2 right-2 top-[4.5rem] md:absolute md:left-auto md:right-0 md:top-full md:mt-2 md:w-96 bg-white border-3 border-basmati-black shadow-hard z-50 max-h-[70vh] overflow-hidden flex flex-col"
                     role="menu"
                     aria-label="Menú de notificaciones"
                 >

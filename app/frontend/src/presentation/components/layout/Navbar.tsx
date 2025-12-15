@@ -84,17 +84,17 @@ export const Navbar: React.FC<NavbarProps> = ({ onMenuClick }) => {
                 </form>
             </div>
 
-            {/* Mobile Search Icon */}
-            <button 
-                type="button"
-                className="md:hidden p-2 mr-2 focus:outline-none focus:ring-4 focus:ring-basmati-yellow focus:ring-offset-2 rounded hover:bg-basmati-yellow/20 transition-colors"
-                onClick={() => navigate('/search')}
-                aria-label="Ir a página de búsqueda"
-            >
-                <FontAwesomeIcon icon={faSearch} className="text-xl" />
-            </button>
-
             <div className="flex items-center gap-2 md:gap-4">
+                {/* Mobile Search Icon */}
+                <button 
+                    type="button"
+                    className="md:hidden p-2 focus:outline-none focus:ring-4 focus:ring-basmati-yellow focus:ring-offset-2 rounded hover:bg-basmati-yellow/20 transition-colors"
+                    onClick={() => navigate('/search')}
+                    aria-label="Ir a página de búsqueda"
+                >
+                    <FontAwesomeIcon icon={faSearch} className="text-xl" />
+                </button>
+
                 {/* Campana de notificaciones */}
                 <Notification_Bell external_id={current_user_id} />
                 
