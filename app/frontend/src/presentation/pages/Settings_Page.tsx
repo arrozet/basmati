@@ -3,9 +3,10 @@ import { MainLayout } from '../components/layout/MainLayout';
 import { Neo_Button } from '../components/ui/Neo_Button';
 import { Neo_Input } from '../components/ui/Neo_Input';
 import { Neo_Card } from '../components/ui/Neo_Card';
+import { Avatar } from '../components/ui/Avatar';
 import { use_user_context, Notification_Preferences_V2 } from '../context/UserContext';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faUser, faBell, faArrowLeft, faCheck, faExclamationCircle } from '@fortawesome/free-solid-svg-icons';
+import { faUser, faBell, faArrowLeft, faCheck, faExclamationCircle, faSignOutAlt } from '@fortawesome/free-solid-svg-icons';
 import { useNavigate } from 'react-router-dom';
 import { use_page_title } from '../hooks/use_page_title';
 
@@ -96,6 +97,11 @@ export const Settings_Page: React.FC = () => {
         }
     };
 
+    const handle_logout = () => {
+        localStorage.removeItem('basmati_current_user');
+        navigate('/login');
+    };
+
     /**
      * Renderiza el contenido de la pestaña activa.
      */
@@ -103,25 +109,27 @@ export const Settings_Page: React.FC = () => {
         if (active_tab === 'profile') {
             return (
                 <section aria-labelledby="profile-heading">
-                    <h2 id="profile-heading" className="text-2xl font-black mb-6">Mi perfil</h2>
+                    <div className="flex justify-between items-center mb-6">
+                        <h2 id="profile-heading" className="text-2xl font-black">Mi perfil</h2>
+                        <button
+                            type="button"
+                            onClick={handle_logout}
+                            className="flex items-center gap-2 text-basmati-red hover:text-white hover:bg-basmati-red px-3 py-1 rounded border-2 border-transparent hover:border-basmati-black transition-all font-bold text-sm"
+                            title="Cerrar sesión de la cuenta actual"
+                        >
+                            <FontAwesomeIcon icon={faSignOutAlt} />
+                            <span>Cerrar sesión</span>
+                        </button>
+                    </div>
                     
                     <form onSubmit={handle_profile_submit} className="space-y-6">
                         <div className="flex items-center gap-4 mb-8">
-                            <div 
-                                className="w-20 h-20 rounded-full border-3 border-basmati-black shadow-hard bg-basmati-yellow flex items-center justify-center text-3xl font-black"
-                                role="img"
-                                aria-label={`Foto de perfil de ${user?.display_name || 'Usuario'}`}
-                            >
-                                {user?.avatar_url ? (
-                                    <img 
-                                        src={user.avatar_url} 
-                                        alt={`Avatar de ${user.display_name}`}
-                                        className="w-full h-full rounded-full object-cover"
-                                    />
-                                ) : (
-                                    <FontAwesomeIcon icon={faUser} aria-hidden="true" />
-                                )}
-                            </div>
+                            <Avatar 
+                                src={user?.avatar_url} 
+                                alt={user?.display_name || 'Usuario'} 
+                                size="xl"
+                                className="w-20 h-20 text-3xl shadow-hard"
+                            />
                             <div>
                                 <p className="font-bold text-lg">{user?.external_id}</p>
                                 <p className="text-sm text-gray-600">

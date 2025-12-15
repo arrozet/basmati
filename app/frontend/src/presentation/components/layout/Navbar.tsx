@@ -5,6 +5,7 @@ import { faSearch, faBars, faSignOutAlt } from '@fortawesome/free-solid-svg-icon
 import { Neo_Button } from '../ui/Neo_Button';
 import { Neo_Input } from '../ui/Neo_Input';
 import { Notification_Bell } from '../ui/Notification_Bell';
+import { Avatar } from '../ui/Avatar';
 import { use_user_context } from '../../context/UserContext';
 
 interface NavbarProps {
@@ -24,6 +25,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onMenuClick }) => {
     const { user } = use_user_context();
     const current_user_id = user?.external_id || 'user_dev_1';
     const current_user_name = user?.display_name || 'Usuario';
+    const current_user_avatar = user?.avatar_url || null;
 
     const handle_menu_click = () => {
         set_menu_open(!menu_open);
@@ -84,7 +86,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onMenuClick }) => {
                 </form>
             </div>
 
-            <div className="flex items-center gap-2 md:gap-4">
+            <div className="flex items-center gap-3 md:gap-4">
                 {/* Mobile Search Icon */}
                 <button 
                     type="button"
@@ -98,20 +100,19 @@ export const Navbar: React.FC<NavbarProps> = ({ onMenuClick }) => {
                 {/* Campana de notificaciones */}
                 <Notification_Bell external_id={current_user_id} />
                 
-                <Link to="/settings">
-                    <Neo_Button 
-                        variant="secondary" 
-                        className="px-3 py-1 text-sm md:text-base md:px-4"
-                        aria-label="Ver configuración de perfil y notificaciones"
-                    >
-                        {current_user_name}
-                    </Neo_Button>
+                <Link to="/settings" className="focus:outline-none rounded-full" aria-label="Ver configuración de perfil">
+                    <Avatar 
+                        src={current_user_avatar} 
+                        alt={current_user_name} 
+                        size="md"
+                        className="hover:shadow-hard active:shadow-none active:translate-x-[1px] active:translate-y-[1px] transition-all cursor-pointer"
+                    />
                 </Link>
 
                 <button
                     type="button"
                     onClick={handle_logout}
-                    className="p-2 text-gray-600 hover:text-basmati-red transition-colors focus:outline-none focus:ring-4 focus:ring-basmati-yellow focus:ring-offset-2 rounded"
+                    className="hidden md:inline-flex p-2 text-gray-600 hover:text-basmati-red transition-colors focus:outline-none focus:ring-4 focus:ring-basmati-yellow focus:ring-offset-2 rounded"
                     aria-label="Cerrar sesión"
                     title="Cerrar sesión"
                 >
