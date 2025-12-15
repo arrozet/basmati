@@ -10,11 +10,45 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faEye, faEyeSlash, faTrash, faPlus, faCalendarPlus, faFileImport, faChevronRight, faChevronDown } from '@fortawesome/free-solid-svg-icons';
 import { use_calendar_visibility } from '../../context/CalendarVisibilityContext';
 import { use_user_context } from '../../context/UserContext';
+import daily_tips from '../../content/daily_tips.json';
 
 interface SidebarProps {
     isOpen?: boolean;
     onClose?: () => void;
 }
+
+type Tips_By_Day = Record<string, string[]>;
+const TIPS_BY_DAY = daily_tips as Tips_By_Day;
+
+/**
+ * Devuelve un tip pseudoaleatorio estable para el día actual.
+ */
+const get_today_tip = (): string => {
+    const today = new Date();
+    const day = today.getDate().toString(); // '1'...'31'
+    const tips_for_day = TIPS_BY_DAY[day];
+
+    if (tips_for_day && tips_for_day.length > 0) {
+        const index = Math.floor(Math.random() * tips_for_day.length);
+        return tips_for_day[index];
+    }
+
+    // Fallback en caso de que falte algún día en el JSON
+    const fallback_day = '1';
+    const fallback_tips = TIPS_BY_DAY[fallback_day] || ['Organiza tu caos como si de granos de arroz se tratase.'];
+    const index = Math.floor(Math.random() * fallback_tips.length);
+    return fallback_tips[index];
+};
+
+/**
+ * Componente que muestra un tip distinto cada día.
+ */
+const Random_Tip: React.FC = () => {
+    // Se inicializa una sola vez por montaje de componente: sin parpadeos,
+    // pero en cada recarga de la página se puede obtener un tip distinto.
+    const [tip] = useState<string>(() => get_today_tip());
+    return <p className="text-xs">{tip}</p>;
+};
 
 interface CalendarTreeItemProps {
     calendar: Calendar_Model;
@@ -305,7 +339,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
                 <div className="mt-auto">
                     <Neo_Card className="bg-basmati-green/20" role="complementary" aria-label="Consejo del día">
                         <p className="text-xs font-bold mb-2">Tip del día:</p>
-                        <p className="text-xs">Organiza tu caos como si de granos de arroz se tratase.</p>
+                        <Random_Tip />
                     </Neo_Card>
                 </div>
             </aside>
