@@ -31,7 +31,8 @@ export class Http_Notification_Repository implements Notification_Repository_Int
         try {
             const response = await api_client.get(`/v1/notifications/search/unread`, {
                 params: {
-                    recipient_external_id: external_id
+                    // El backend espera el parámetro 'user_id'
+                    user_id: external_id
                 }
             });
             return response.data.map(this.map_to_notification_model);
