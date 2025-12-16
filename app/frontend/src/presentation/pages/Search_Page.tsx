@@ -156,7 +156,12 @@ export const Search_Page: React.FC = () => {
                   </span>
                 </div>
                 <div className="mt-auto flex justify-end">
-                  <Neo_Button variant="secondary" className="text-xs px-3 py-1">
+                  <Neo_Button
+                    variant="secondary"
+                    className="text-xs px-3 py-1"
+                    onClick={() => navigate(`/calendars/${calendar.id}`)}
+                    aria-label={`Ver calendario ${calendar.title}`}
+                  >
                     Ver calendario
                   </Neo_Button>
                 </div>

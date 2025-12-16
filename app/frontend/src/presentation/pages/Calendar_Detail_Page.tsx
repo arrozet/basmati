@@ -141,20 +141,20 @@ export const Calendar_Detail_Page = () => {
 
   return (
     <MainLayout>
-      <div className="max-w-6xl mx-auto md:h-[calc(100vh-120px)] h-auto flex flex-col md:flex-row gap-6 pb-10 md:pb-0">
-        {/* Columna Izquierda: Detalles del Calendario */}
-        <Neo_Card className="flex-1 flex flex-col md:overflow-hidden !p-0 border-3 relative">
+      <div className="max-w-6xl mx-auto pb-10">
+        {/* Detalles del Calendario - Compacto */}
+        <Neo_Card className="!p-0 border-3 relative mb-6">
           {/* Header con color del calendario */}
           <div
-            className="h-4 w-full border-b-3 border-basmati-black shrink-0"
+            className="h-4 w-full border-b-3 border-basmati-black"
             style={{
               backgroundColor: calendar.color || "#EBBE4D",
             }}
           ></div>
 
-          <div className="flex-1 md:overflow-y-auto p-4 md:p-8 scrollbar-hide">
+          <div className="p-6">
             {/* Barra superior: Visibilidad y Botones */}
-            <div className="flex justify-between items-start mb-6">
+            <div className="flex justify-between items-start mb-4">
               <span className="inline-flex items-center px-3 py-1 rounded-full border-2 border-basmati-black bg-white text-xs font-bold uppercase tracking-wider shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
                 <FontAwesomeIcon
                   icon={get_visibility_icon()}
@@ -173,80 +173,82 @@ export const Calendar_Detail_Page = () => {
             </div>
 
             {/* Título */}
-            <h1 className="text-4xl md:text-5xl font-black mb-8 leading-tight text-basmati-black">
+            <h1 className="text-3xl md:text-4xl font-black mb-6 leading-tight text-basmati-black">
               {calendar.title}
             </h1>
 
-            {/* Información */}
-            <div className="space-y-6 mb-8">
+            {/* Información en grid */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {/* Creador */}
               <div>
-                <h3 className="font-black text-sm mb-2 uppercase tracking-wide text-gray-400">
+                <h3 className="font-black text-xs mb-2 uppercase tracking-wide text-gray-400">
                   Creador
                 </h3>
-                <p className="text-lg font-bold">
+                <p className="text-base font-bold">
                   {calendar.creator_display_name || "Desconocido"}
                 </p>
               </div>
 
-              {/* Descripción */}
-              {calendar.description && (
-                <div>
-                  <h3 className="font-black text-sm mb-2 uppercase tracking-wide text-gray-400">
-                    Descripción
-                  </h3>
-                  <div className="prose prose-lg max-w-none text-basmati-black bg-gray-50 p-4 rounded-sm border-l-4 border-basmati-yellow">
-                    {calendar.description}
-                  </div>
-                </div>
-              )}
-
-              {/* Keywords */}
-              {calendar.keywords && calendar.keywords.length > 0 && (
-                <div>
-                  <h3 className="font-black text-sm mb-2 uppercase tracking-wide text-gray-400">
-                    Palabras clave
-                  </h3>
-                  <div className="flex flex-wrap gap-2">
-                    {calendar.keywords.map((keyword, idx) => (
-                      <span
-                        key={idx}
-                        className="px-3 py-1 bg-basmati-yellow border-2 border-basmati-black rounded-full text-sm font-bold shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
-                      >
-                        {keyword}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
-
               {/* Fechas */}
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <h3 className="font-black text-xs mb-1 uppercase tracking-wide text-gray-400">
-                    <FontAwesomeIcon icon={faClock} className="mr-1" />
-                    Creado
-                  </h3>
-                  <p className="text-sm font-medium">
-                    {format_date(calendar.created_at)}
-                  </p>
-                </div>
-                <div>
-                  <h3 className="font-black text-xs mb-1 uppercase tracking-wide text-gray-400">
-                    <FontAwesomeIcon icon={faCalendar} className="mr-1" />
-                    Actualizado
-                  </h3>
-                  <p className="text-sm font-medium">
-                    {format_date(calendar.updated_at)}
-                  </p>
-                </div>
+              <div>
+                <h3 className="font-black text-xs mb-2 uppercase tracking-wide text-gray-400">
+                  <FontAwesomeIcon icon={faClock} className="mr-1" />
+                  Creado
+                </h3>
+                <p className="text-sm font-medium">
+                  {format_date(calendar.created_at)}
+                </p>
+              </div>
+              <div>
+                <h3 className="font-black text-xs mb-2 uppercase tracking-wide text-gray-400">
+                  <FontAwesomeIcon icon={faCalendar} className="mr-1" />
+                  Actualizado
+                </h3>
+                <p className="text-sm font-medium">
+                  {format_date(calendar.updated_at)}
+                </p>
               </div>
             </div>
+
+            {/* Descripción y Keywords si existen */}
+            {(calendar.description ||
+              (calendar.keywords && calendar.keywords.length > 0)) && (
+              <div className="mt-6 space-y-4">
+                {calendar.description && (
+                  <div>
+                    <h3 className="font-black text-xs mb-2 uppercase tracking-wide text-gray-400">
+                      Descripción
+                    </h3>
+                    <div className="prose max-w-none text-basmati-black bg-gray-50 p-3 rounded-sm border-l-4 border-basmati-yellow text-sm">
+                      {calendar.description}
+                    </div>
+                  </div>
+                )}
+
+                {calendar.keywords && calendar.keywords.length > 0 && (
+                  <div>
+                    <h3 className="font-black text-xs mb-2 uppercase tracking-wide text-gray-400">
+                      Palabras clave
+                    </h3>
+                    <div className="flex flex-wrap gap-2">
+                      {calendar.keywords.map((keyword, idx) => (
+                        <span
+                          key={idx}
+                          className="px-3 py-1 bg-basmati-yellow border-2 border-basmati-black rounded-full text-sm font-bold shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+                        >
+                          {keyword}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </Neo_Card>
 
-        {/* Columna Derecha: Comentarios */}
-        <div className="w-full md:w-96 flex-shrink-0 h-[600px] md:h-full">
+        {/* Comentarios - Ancho completo */}
+        <div className="h-[500px]">
           <Comments_Section
             comments={calendar.comments || []}
             on_add_comment={handle_add_comment}

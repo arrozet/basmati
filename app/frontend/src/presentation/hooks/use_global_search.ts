@@ -39,8 +39,17 @@ export const use_global_search = (query: string) => {
           search_calendars_use_case.execute(query),
         ]);
 
+        // Obtener usuario actual
+        const current_user =
+          localStorage.getItem("basmati_current_user") || "user_dev_1";
+
+        // Filtrar calendarios: solo mostrar públicos si no son del usuario actual
+        const filtered_calendars = calendars_result.filter(
+          (cal) => cal.owner_id === current_user || cal.is_public === true
+        );
+
         set_events(events_result);
-        set_calendars(calendars_result);
+        set_calendars(filtered_calendars);
       } catch (err) {
         console.error(err);
         set_error("Error al realizar la búsqueda");

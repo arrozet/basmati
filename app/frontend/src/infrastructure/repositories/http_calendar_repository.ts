@@ -86,21 +86,27 @@ export class Http_Calendar_Repository implements Calendar_Repository_Interface {
    * Actualiza un calendario existente.
    */
   async update(calendar: Calendar_Model): Promise<Calendar_Model> {
-    const response = await api_client.put(`/v1/calendars/${calendar.id}`, {
-      title: calendar.title,
-      color: calendar.color,
-      icon: calendar.icon,
-      is_public: calendar.is_public,
-      parent_calendar_id: calendar.parent_id,
-    });
+    const response = await api_client.put(
+      `/v1/calendars/${calendar.id}`,
+      {
+        title: calendar.title,
+        color: calendar.color,
+        icon: calendar.icon,
+        visibility: calendar.is_public ? "public" : "private",
+        parent_calendar_id: calendar.parent_id,
+      },
+      {
+        params: { current_user_id: calendar.owner_id },
+      }
+    );
     const item = response.data;
     return {
       id: item.id,
       title: item.title,
       color: item.color,
-      owner_id: item.owner_id,
+      owner_id: item.creator_external_id || item.owner_id,
       icon: item.icon,
-      is_public: item.is_public,
+      is_public: item.visibility === "public",
       parent_id: item.parent_calendar_id,
     };
   }
@@ -141,9 +147,13 @@ export class Http_Calendar_Repository implements Calendar_Repository_Interface {
         title: item.title,
         color: item.color || "#EBBE4D",
         owner_id: item.creator_external_id || item.owner_id || item.creator_id,
+        creator_display_name: item.creator_display_name,
         icon: item.icon,
         is_public: item.visibility === "public",
+        visibility: item.visibility,
         parent_id: item.parent_calendar_id,
+        created_at: item.created_at ? new Date(item.created_at) : undefined,
+        updated_at: item.updated_at ? new Date(item.updated_at) : undefined,
       };
     } catch (error) {
       console.error("Error fetching calendar:", error);
@@ -165,7 +175,8 @@ export class Http_Calendar_Repository implements Calendar_Repository_Interface {
         color: item.color || "#EBBE4D",
         owner_id: item.creator_external_id || item.owner_id || item.creator_id,
         icon: item.icon,
-        is_public: item.is_public,
+        is_public: item.visibility === "public",
+        visibility: item.visibility,
         parent_id: item.parent_calendar_id,
       }));
     } catch (error) {

@@ -274,16 +274,25 @@ export const Edit_Calendar_Page = () => {
               </select>
             </div>
 
-            <Neo_Input
-              label="Organizador"
-              placeholder="Ej: Mi padre"
-              name="owner_id"
-              value={form_data.owner_id}
-              onChange={handle_change}
-              required
-              id="calendar-owner"
-              autoComplete="off"
-            />
+            <div className="flex flex-col gap-1">
+              <label
+                htmlFor="calendar-owner"
+                className="font-bold text-sm text-basmati-black"
+              >
+                Organizador (solo lectura)
+              </label>
+              <input
+                type="text"
+                id="calendar-owner"
+                value={form_data.owner_id}
+                readOnly
+                className="p-3 border-3 border-basmati-black bg-gray-100 cursor-not-allowed text-gray-600 font-medium"
+                aria-label="ID del organizador - no modificable"
+              />
+              <p className="text-xs text-gray-600">
+                El organizador no se puede cambiar
+              </p>
+            </div>
 
             <div className="flex flex-col gap-1">
               <label
