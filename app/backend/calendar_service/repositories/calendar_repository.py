@@ -348,4 +348,32 @@ class CalendarRepository(ICalendarRepository):
             return result.modified_count > 0
         except Exception:
             return False
+    
+    # ==================== COMENTARIOS ====================
+    
+    async def add_comment(self, calendar_id: str, comment_dict: dict) -> dict | None:
+        """
+        Agrega un comentario a un calendario.
+        
+        Args:
+            calendar_id: ID del calendario
+            comment_dict: Diccionario con los datos del comentario
+            
+        Returns:
+            dict: Comentario agregado o None si el calendario no existe
+        """
+        try:
+            # Agregar el comentario al array de comments
+            result = await self.collection.find_one_and_update(
+                {"_id": ObjectId(calendar_id)},
+                {"$push": {"comments": comment_dict}},
+                return_document=True
+            )
+            
+            if result and "comments" in result and len(result["comments"]) > 0:
+                # Retornar el último comentario agregado
+                return result["comments"][-1]
+            return None
+        except Exception:
+            return None
 

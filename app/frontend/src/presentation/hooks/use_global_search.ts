@@ -11,50 +11,51 @@ const event_repository = new Http_Event_Repository();
 const calendar_repository = new Http_Calendar_Repository();
 
 const search_events_use_case = new Search_Events_Use_Case(event_repository);
-const search_calendars_use_case = new Search_Calendars_Use_Case(calendar_repository);
+const search_calendars_use_case = new Search_Calendars_Use_Case(
+  calendar_repository
+);
 
 export const use_global_search = (query: string) => {
-    const [events, set_events] = useState<Event_Model[]>([]);
-    const [calendars, set_calendars] = useState<Calendar_Model[]>([]);
-    const [loading, set_loading] = useState(false);
-    const [error, set_error] = useState<string | null>(null);
+  const [events, set_events] = useState<Event_Model[]>([]);
+  const [calendars, set_calendars] = useState<Calendar_Model[]>([]);
+  const [loading, set_loading] = useState(false);
+  const [error, set_error] = useState<string | null>(null);
 
-    useEffect(() => {
-        const fetch_data = async () => {
-            if (!query.trim()) {
-                set_events([]);
-                set_calendars([]);
-                return;
-            }
+  useEffect(() => {
+    const fetch_data = async () => {
+      if (!query.trim()) {
+        set_events([]);
+        set_calendars([]);
+        return;
+      }
 
-            set_loading(true);
-            set_error(null);
+      set_loading(true);
+      set_error(null);
 
-            try {
-                // Ejecutar búsquedas en paralelo
-                const [events_result, calendars_result] = await Promise.all([
-                    search_events_use_case.execute(query),
-                    search_calendars_use_case.execute(query)
-                ]);
+      try {
+        // Ejecutar búsquedas en paralelo
+        const [events_result, calendars_result] = await Promise.all([
+          search_events_use_case.execute(query),
+          search_calendars_use_case.execute(query),
+        ]);
 
-                set_events(events_result);
-                set_calendars(calendars_result);
-            } catch (err) {
-                console.error(err);
-                set_error("Error al realizar la búsqueda");
-            } finally {
-                set_loading(false);
-            }
-        };
+        set_events(events_result);
+        set_calendars(calendars_result);
+      } catch (err) {
+        console.error(err);
+        set_error("Error al realizar la búsqueda");
+      } finally {
+        set_loading(false);
+      }
+    };
 
-        // Debounce
-        const timeout_id = setTimeout(() => {
-            fetch_data();
-        }, 500);
+    // Debounce
+    const timeout_id = setTimeout(() => {
+      fetch_data();
+    }, 500);
 
-        return () => clearTimeout(timeout_id);
-    }, [query]);
+    return () => clearTimeout(timeout_id);
+  }, [query]);
 
-    return { events, calendars, loading, error };
+  return { events, calendars, loading, error };
 };
-

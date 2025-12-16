@@ -308,6 +308,91 @@ class CalendarService(ICalendarService):
         
         return CalendarResponse(**document)
 
+    # ==================== PERMISOS ====================
+
+    async def can_view_calendar(self, calendar_id: str, user_id: str) -> bool:
+        """
+        Verifica si un usuario puede ver un calendario.
+        
+        Reglas:
+        - Calendarios públicos: todos pueden ver
+        - Calendarios unlisted: todos pueden ver (si tienen el enlace)
+        - Calendarios privados: solo el creador puede ver
+        
+        Args:
+            calendar_id: ID del calendario
+            user_id: ID externo del usuario
+            
+        Returns:
+            bool: True si el usuario puede ver el calendario
+        """
+        calendar = await self.calendar_repository.find_by_id(calendar_id)
+        if not calendar:
+            return False
+        
+        visibility = calendar.get("visibility", "public")
+        
+        # Public y unlisted: todos pueden ver
+        if visibility in ["public", "unlisted"]:
+            return True
+        
+        # Private: solo el creador
+        return calendar.get("creator_external_id") == user_id
+
+    async def can_edit_calendar(self, calendar_id: str, user_id: str) -> bool:
+        """
+        Verifica si un usuario puede editar un calendario.
+        
+        Reglas:
+        - Solo el creador puede editar, independientemente de la visibilidad
+        
+        Args:
+            calendar_id: ID del calendario
+            user_id: ID externo del usuario
+            
+        Returns:
+            bool: True si el usuario puede editar el calendario
+        """
+        calendar = await self.calendar_repository.find_by_id(calendar_id)
+        if not calendar:
+            return False
+        
+        return calendar.get("creator_external_id") == user_id
+
+    # ==================== COMENTARIOS ====================
+
+    async def add_comment(self, calendar_id: str, comment_data: Any) -> Any:
+        """
+        Agrega un comentario a un calendario.
+        
+        Args:
+            calendar_id: ID del calendario
+            comment_data: Datos del comentario (CommentCreate)
+            
+        Returns:
+            CalendarComment: Comentario agregado o None si el calendario no existe
+        """
+        from schemas.calendar import CalendarComment, CommentCreate
+        from models.calendar import CalendarCommentModel
+        
+        # Convertir a dict
+        comment_dict = comment_data.model_dump() if hasattr(comment_data, 'model_dump') else dict(comment_data)
+        
+        # Agregar timestamp
+        comment_dict["created_at"] = datetime.now(timezone.utc)
+        comment_dict["_id"] = ObjectId()
+        
+        # Agregar al calendario
+        result = await self.calendar_repository.add_comment(calendar_id, comment_dict)
+        
+        if result:
+            # Convertir a CalendarComment para respuesta
+            result["id"] = str(result["_id"])
+            return CalendarComment(**result)
+        
+        return None
+
+
     async def delete_calendar_recursive(self, calendar_id: str, event_service_url: str | None = None) -> dict:
         """
         Elimina un calendario y todos sus subcalendarios recursivamente,

@@ -27,6 +27,22 @@ class PyObjectId(ObjectId):
     def __get_pydantic_json_schema__(cls, schema, handler):
         return {"type": "string"}
 
+class CalendarCommentModel(BaseModel):
+    """Comentario realizado sobre un calendario"""
+    
+    id: PyObjectId = Field(default_factory=PyObjectId, alias="_id")
+    author_external_id: str = Field(..., description="External ID del autor")
+    author_display_name: str = Field(..., description="Nombre visible del autor")
+    text: str = Field(..., description="Contenido del comentario")
+    created_at: datetime = Field(default_factory=datetime.utcnow, description="Fecha del comentario")
+    
+    model_config = {
+        "populate_by_name": True,
+        "arbitrary_types_allowed": True,
+        "json_encoders": {ObjectId: str},
+    }
+
+
 class CalendarModel(BaseModel):
     """Modelo de calendario en MongoDB"""
     id: PyObjectId | None = Field(alias="_id", default=None)
@@ -43,6 +59,11 @@ class CalendarModel(BaseModel):
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
     subscriber_count: int = 0  # contador denormalizado
+    comments: list[CalendarCommentModel] = Field(
+        default_factory=list,
+        description="Comentarios asociados al calendario",
+    )
+
     
     model_config = {
         "populate_by_name": True,

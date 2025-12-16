@@ -50,6 +50,35 @@ class CalendarUpdate(BaseModel):
         }
     )
 
+class CalendarComment(BaseModel):
+    """Comentario incluido en la respuesta del calendario"""
+    
+    id: str = Field(..., description="ID del comentario")
+    author_external_id: str = Field(..., description="External ID del autor del comentario")
+    author_display_name: str = Field(..., description="Nombre visible del autor")
+    text: str = Field(..., description="Contenido del comentario")
+    created_at: datetime = Field(..., description="Fecha de creación del comentario")
+    
+    model_config = ConfigDict(from_attributes=True)
+
+class CommentCreate(BaseModel):
+    """Payload para crear un comentario en un calendario"""
+    
+    author_external_id: str = Field(..., description="External ID del autor del comentario")
+    author_display_name: str = Field(..., description="Nombre visible del autor")
+    text: str = Field(..., min_length=1, description="Texto del comentario")
+    
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "author_external_id": "google_123456789",
+                "author_display_name": "Juan Pérez",
+                "text": "Me gusta este calendario, muy útil"
+            }
+        }
+    )
+
+
 class CalendarResponse(BaseModel):
     """Schema de respuesta de calendario"""
     id: str
@@ -66,6 +95,11 @@ class CalendarResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
     subscriber_count: int = 0
+    comments: list[CalendarComment] = Field(
+        default_factory=list,
+        description="Comentarios asociados al calendario"
+    )
+
     
     model_config = ConfigDict(from_attributes=True)
 
