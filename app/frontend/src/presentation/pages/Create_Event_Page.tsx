@@ -132,8 +132,8 @@ export const Create_Event_Page = () => {
   return (
     <MainLayout>
       <div className="flex justify-center">
-        <div className="w-full max-w-2xl">
-          <Link to="/dashboard" className="inline-block mb-6">
+        <div className="w-full max-w-4xl">
+          <Link to="/dashboard" className="inline-block mb-4">
             <Neo_Button
               variant="secondary"
               className="flex items-center gap-2 text-sm font-bold px-4 py-2"
@@ -146,7 +146,7 @@ export const Create_Event_Page = () => {
           <Neo_Card className="w-full" title="Crear evento">
             <form
               onSubmit={handle_submit}
-              className="flex flex-col gap-6"
+              className="flex flex-col gap-4"
               aria-label="Formulario de creación de evento"
             >
               <Neo_Input

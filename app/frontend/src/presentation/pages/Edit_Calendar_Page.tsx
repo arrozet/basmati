@@ -182,15 +182,15 @@ export const Edit_Calendar_Page = () => {
   return (
     <MainLayout>
       <div className="flex flex-col items-center">
-        <div className="w-full max-w-2xl mb-4 flex justify-start">
+        <div className="w-full max-w-4xl mb-4 flex justify-start">
           <Neo_Button onClick={() => navigate(-1)} variant="secondary">
             <FontAwesomeIcon icon={faArrowLeft} className="mr-2" /> Volver
           </Neo_Button>
         </div>
-        <Neo_Card className="w-full max-w-2xl" title="Modificar calendario">
+        <Neo_Card className="w-full max-w-4xl" title="Modificar calendario">
           <form
             onSubmit={handle_submit}
-            className="flex flex-col gap-6"
+            className="flex flex-col gap-4"
             aria-label="Formulario de modificación de calendario"
           >
             <Neo_Input
