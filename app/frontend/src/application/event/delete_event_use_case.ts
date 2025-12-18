@@ -2,49 +2,57 @@ import { Event_Repository_Interface } from "../../domain/repositories/event_repo
 import { Calendar_Repository_Interface } from "../../domain/repositories/calendar_repository_interface";
 
 export class Delete_Event_Use_Case {
-    private event_repository: Event_Repository_Interface;
-    private calendar_repository: Calendar_Repository_Interface;
+  private event_repository: Event_Repository_Interface;
+  private calendar_repository: Calendar_Repository_Interface;
 
-    constructor(
-        event_repository: Event_Repository_Interface,
-        calendar_repository: Calendar_Repository_Interface
-    ) {
-        this.event_repository = event_repository;
-        this.calendar_repository = calendar_repository;
+  constructor(
+    event_repository: Event_Repository_Interface,
+    calendar_repository: Calendar_Repository_Interface
+  ) {
+    this.event_repository = event_repository;
+    this.calendar_repository = calendar_repository;
+  }
+
+  /**
+   * Ejecuta la lógica de negocio para eliminar un evento.
+   * @param id ID del evento a eliminar.
+   * @param user_id ID del usuario actual.
+   */
+  async execute(id: string, user_id: string): Promise<boolean> {
+    if (!id) throw new Error("Event ID is required");
+
+    // Get event to check calendar
+    const event = await this.event_repository.get_event(id);
+    if (!event) throw new Error("Event not found");
+
+    // Get calendar to check ownership
+    const calendar = await this.calendar_repository.get_by_id(
+      event.calendar_id
+    );
+
+    // Si el calendario no existe, es un evento huérfano.
+    // Permitimos borrarlo para limpiar datos inconsistentes.
+    if (!calendar) {
+      console.warn(
+        `Deleting orphan event ${id} - calendar ${event.calendar_id} not found`
+      );
+      return await this.event_repository.delete(id);
     }
 
-    /**
-     * Ejecuta la lógica de negocio para eliminar un evento.
-     * @param id ID del evento a eliminar.
-     * @param user_id ID del usuario actual.
-     */
-    async execute(id: string, user_id: string): Promise<boolean> {
-        if (!id) throw new Error("Event ID is required");
+    // Strict ownership check
+    // Ensure both IDs are strings and trimmed for comparison to avoid false negatives
+    const calendarOwner = String(calendar.owner_id).trim();
+    const currentUser = String(user_id).trim();
 
-        // Get event to check calendar
-        const event = await this.event_repository.get_event(id);
-        if (!event) throw new Error("Event not found");
-
-        // Get calendar to check ownership
-        const calendar = await this.calendar_repository.get_by_id(event.calendar_id);
-        
-        // Si el calendario no existe, es un evento huérfano.
-        // Permitimos borrarlo para limpiar datos inconsistentes.
-        if (!calendar) {
-            console.warn(`Deleting orphan event ${id} - calendar ${event.calendar_id} not found`);
-            return await this.event_repository.delete(id);
-        }
-
-        // Strict ownership check
-        // Ensure both IDs are strings and trimmed for comparison to avoid false negatives
-        const calendarOwner = String(calendar.owner_id).trim();
-        const currentUser = String(user_id).trim();
-
-        if (calendarOwner !== currentUser) {
-            console.error(`Permission denied: Calendar Owner '${calendarOwner}' !== Current User '${currentUser}'`);
-            throw new Error("No tienes permiso para eliminar eventos de este calendario");
-        }
-
-        return await this.event_repository.delete(id);
+    if (calendarOwner !== currentUser) {
+      console.error(
+        `Permission denied: Calendar Owner '${calendarOwner}' !== Current User '${currentUser}'`
+      );
+      throw new Error(
+        "No tienes permiso para eliminar eventos de este calendario"
+      );
     }
+
+    return await this.event_repository.delete(id);
+  }
 }
