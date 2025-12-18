@@ -277,24 +277,14 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
       // Pasamos true para activar el borrado recursivo
       await delete_calendar(calendarToDelete.id, true);
 
-      // Si el calendario borrado era el activo, navegar al dashboard general
-      // Verificamos si el activo es el borrado o alguno de sus hijos (aunque aquí ya no tenemos la lista de hijos fácilmente,
-      // si el calendario activo desaparece de la lista, deberíamos navegar.
-      // Simplificación: Si el ID activo es igual al borrado, navegamos.
-      // Para los hijos, el comportamiento actual es aceptable (se quedará en una ruta de calendario que ya no existe,
-      // lo cual debería manejarse en el Dashboard o aquí de forma más robusta si tuviéramos acceso a los hijos).
-      // Dado que movimos la lógica, asumiremos que si borramos el padre, navegamos al home por seguridad.
-      if (active_calendar_id === calendarToDelete.id) {
-        navigate("/dashboard");
-      }
-
-      setCalendarToDelete(null);
+      // Forzar recarga completa para actualizar eventos en el dashboard
+      window.location.href = "/dashboard";
     } catch (error) {
       console.error("Failed to delete calendar", error);
       // Podríamos mostrar un toast de error aquí si existiera un sistema de notificaciones global
       alert("Error al eliminar el calendario. Por favor intente nuevamente.");
-    } finally {
       setIsDeleting(false);
+      setCalendarToDelete(null);
     }
   };
 
