@@ -59,7 +59,8 @@ export class Http_Calendar_Repository implements Calendar_Repository_Interface {
       title: calendar.title,
       color: calendar.color,
       creator_external_id: calendar.owner_id, // Mapeo correcto
-      creator_display_name: "Usuario Dev", // TODO: Obtener del contexto de usuario real cuando exista auth
+      creator_display_name:
+        calendar.creator_display_name || "Usuario Desconocido", // Usar el display_name del usuario que crea el calendario
       keywords: [], // Campo opcional pero recomendado
       icon: calendar.icon,
       visibility: calendar.is_public ? "public" : "private", // Mapeo de booleano a enum
