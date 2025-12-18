@@ -159,10 +159,10 @@ const CalendarTreeItem: React.FC<CalendarTreeItemProps> = ({
           <span className="truncate text-sm">{calendar.title}</span>
         </button>
 
-        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+        <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
           <button
             onClick={handleVisibilityToggle}
-            className="w-6 h-6 flex items-center justify-center hover:bg-gray-200 rounded transition-colors text-basmati-black"
+            className="w-5 h-5 flex items-center justify-center hover:bg-gray-200 rounded transition-colors text-basmati-black"
             aria-label={visible ? "Ocultar calendario" : "Mostrar calendario"}
           >
             <FontAwesomeIcon
@@ -170,22 +170,22 @@ const CalendarTreeItem: React.FC<CalendarTreeItemProps> = ({
               className={visible ? "" : "opacity-50"}
               size="xs"
             />
+          </button>
           <button
             onClick={(e) => {
               e.stopPropagation();
               navigate(`/calendars/${calendar.id}`);
             }}
-            className="w-6 h-6 flex items-center justify-center hover:bg-basmati-blue/20 text-basmati-blue rounded transition-colors"
+            className="w-5 h-5 flex items-center justify-center hover:bg-basmati-blue/20 text-basmati-blue rounded transition-colors"
             aria-label="Ver detalles del calendario"
             title="Ver detalles"
           >
             <FontAwesomeIcon icon={faInfoCircle} size="xs" />
           </button>
-          </button>
           {onEdit && (
             <button
               onClick={handleEdit}
-              className="w-6 h-6 flex items-center justify-center hover:bg-basmati-blue/20 text-basmati-blue rounded transition-colors"
+              className="w-5 h-5 flex items-center justify-center hover:bg-basmati-blue/20 text-basmati-blue rounded transition-colors"
               aria-label="Editar calendario"
               title="Editar calendario"
             >
@@ -195,7 +195,7 @@ const CalendarTreeItem: React.FC<CalendarTreeItemProps> = ({
           {onDelete && (
             <button
               onClick={handleDelete}
-              className="w-6 h-6 flex items-center justify-center hover:bg-basmati-red/20 text-basmati-red rounded transition-colors"
+              className="w-5 h-5 flex items-center justify-center hover:bg-basmati-red/20 text-basmati-red rounded transition-colors"
               aria-label="Eliminar calendario"
               title="Eliminar calendario"
             >
