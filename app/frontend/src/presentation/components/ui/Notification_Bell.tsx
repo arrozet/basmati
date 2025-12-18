@@ -182,7 +182,7 @@ export const Notification_Bell: React.FC<Notification_Bell_Props> = ({ external_
                             </div>
                         ) : (
                             <ul className="divide-y-2 divide-basmati-black/20">
-                                {notifications.slice(0, 10).map((notification) => (
+                                {notifications.map((notification) => (
                                     <li key={notification.id}>
                                         <button
                                             type="button"
@@ -224,22 +224,6 @@ export const Notification_Bell: React.FC<Notification_Bell_Props> = ({ external_
                             </ul>
                         )}
                     </div>
-
-                    {/* Footer con enlace a ver todas */}
-                    {notifications.length > 10 && (
-                        <div className="p-3 border-t-3 border-basmati-black bg-gray-50">
-                            <button
-                                type="button"
-                                onClick={() => {
-                                    set_is_open(false);
-                                    // TODO: Navegar a página de todas las notificaciones
-                                }}
-                                className="w-full text-center text-sm font-bold text-basmati-blue hover:underline focus:outline-none focus:ring-2 focus:ring-basmati-yellow rounded py-1"
-                            >
-                                Ver todas las notificaciones ({notifications.length})
-                            </button>
-                        </div>
-                    )}
                 </div>
             )}
         </div>
