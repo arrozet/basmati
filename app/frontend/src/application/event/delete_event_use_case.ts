@@ -28,12 +28,11 @@ export class Delete_Event_Use_Case {
         // Get calendar to check ownership
         const calendar = await this.calendar_repository.get_by_id(event.calendar_id);
         
-        // If calendar is not found but event exists, it might be a data inconsistency 
-        // or a system calendar event. For safety, if we can't verify ownership, we block deletion.
+        // Si el calendario no existe, es un evento huérfano.
+        // Permitimos borrarlo para limpiar datos inconsistentes.
         if (!calendar) {
-            // Alternative: Allow deletion if it's an orphan event? 
-            // Strict Clean Architecture: No, we must verify permissions.
-             throw new Error("Calendar not found associated with this event. Cannot verify permission.");
+            console.warn(`Deleting orphan event ${id} - calendar ${event.calendar_id} not found`);
+            return await this.event_repository.delete(id);
         }
 
         // Strict ownership check

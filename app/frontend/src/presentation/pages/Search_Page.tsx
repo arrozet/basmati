@@ -13,30 +13,80 @@ import {
   faClipboardList,
   faClock,
   faExclamationCircle,
+  faFilter,
+  faChevronDown,
+  faChevronUp,
+  faUser,
 } from "@fortawesome/free-solid-svg-icons";
 
 /**
  * Página de búsqueda unificada (Calendarios + Eventos).
+ * Soporta búsqueda por palabra clave, organizador y rango de fechas.
  */
 export const Search_Page: React.FC = () => {
   use_page_title("Búsqueda");
   const [search_params] = useSearchParams();
   const navigate = useNavigate();
 
+  // Estado del formulario
   const [query, set_query] = useState(search_params.get("q") || "");
+  const [creator_name, set_creator_name] = useState(
+    search_params.get("creator") || ""
+  );
+  const [date_from, set_date_from] = useState(search_params.get("from") || "");
+  const [date_to, set_date_to] = useState(search_params.get("to") || "");
+  const [show_filters, set_show_filters] = useState(false);
 
+  // Sincronizar con URL params
   useEffect(() => {
     const q = search_params.get("q");
-    if (q) {
-      set_query(q);
+    const creator = search_params.get("creator");
+    const from = search_params.get("from");
+    const to = search_params.get("to");
+
+    if (q !== null) set_query(q);
+    if (creator !== null) set_creator_name(creator);
+    if (from !== null) set_date_from(from);
+    if (to !== null) set_date_to(to);
+
+    // Mostrar filtros si hay alguno activo
+    if (creator || from || to) {
+      set_show_filters(true);
     }
   }, [search_params]);
 
-  const { events, calendars, loading, error } = use_global_search(query);
+  // Construir filtros para el hook
+  const filters = {
+    creator_name: creator_name || undefined,
+    date_from: date_from || undefined,
+    date_to: date_to || undefined,
+  };
+
+  const { events, calendars, loading, error } = use_global_search(
+    query,
+    filters
+  );
+
+  // Verificar si hay filtros activos
+  const has_active_filters = creator_name || date_from || date_to;
 
   const handle_submit = (e: React.FormEvent) => {
     e.preventDefault();
-    navigate(`/search?q=${encodeURIComponent(query)}`);
+
+    // Construir URL con todos los parámetros
+    const params = new URLSearchParams();
+    if (query) params.set("q", query);
+    if (creator_name) params.set("creator", creator_name);
+    if (date_from) params.set("from", date_from);
+    if (date_to) params.set("to", date_to);
+
+    navigate(`/search?${params.toString()}`);
+  };
+
+  const handle_clear_filters = () => {
+    set_creator_name("");
+    set_date_from("");
+    set_date_to("");
   };
 
   return (
@@ -71,6 +121,7 @@ export const Search_Page: React.FC = () => {
           onSubmit={handle_submit}
           aria-label="Formulario de búsqueda global"
         >
+          {/* Búsqueda principal */}
           <div className="flex flex-col md:flex-row gap-4 items-end">
             <div className="flex-grow w-full">
               <Neo_Input
@@ -91,6 +142,96 @@ export const Search_Page: React.FC = () => {
               <span>Buscar</span>
             </Neo_Button>
           </div>
+
+          {/* Botón para mostrar/ocultar filtros */}
+          <div className="mt-4 flex items-center gap-4">
+            <button
+              type="button"
+              onClick={() => set_show_filters(!show_filters)}
+              className="flex items-center gap-2 text-sm font-bold text-basmati-blue hover:underline"
+            >
+              <FontAwesomeIcon icon={faFilter} />
+              <span>Filtros avanzados</span>
+              <FontAwesomeIcon
+                icon={show_filters ? faChevronUp : faChevronDown}
+                className="text-xs"
+              />
+              {has_active_filters && (
+                <span className="ml-1 px-2 py-0.5 bg-basmati-yellow text-basmati-black text-xs rounded-full border border-basmati-black">
+                  Activos
+                </span>
+              )}
+            </button>
+            {has_active_filters && (
+              <button
+                type="button"
+                onClick={handle_clear_filters}
+                className="text-sm text-basmati-red hover:underline"
+              >
+                Limpiar filtros
+              </button>
+            )}
+          </div>
+
+          {/* Filtros avanzados (colapsables) */}
+          {show_filters && (
+            <div className="mt-4 pt-4 border-t-2 border-gray-200 grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* Filtro por organizador/creador */}
+              <div>
+                <label
+                  htmlFor="creator-filter"
+                  className="block text-sm font-bold text-basmati-black mb-1"
+                >
+                  <FontAwesomeIcon icon={faUser} className="mr-2" />
+                  Organizador
+                </label>
+                <input
+                  id="creator-filter"
+                  type="text"
+                  placeholder="Nombre del creador..."
+                  value={creator_name}
+                  onChange={(e) => set_creator_name(e.target.value)}
+                  className="w-full px-3 py-2 border-3 border-basmati-black rounded-none focus:outline-none focus:ring-2 focus:ring-basmati-yellow text-sm"
+                />
+              </div>
+
+              {/* Filtro por fecha desde */}
+              <div>
+                <label
+                  htmlFor="date-from-filter"
+                  className="block text-sm font-bold text-basmati-black mb-1"
+                >
+                  <FontAwesomeIcon icon={faCalendarAlt} className="mr-2" />
+                  Fecha desde
+                </label>
+                <input
+                  id="date-from-filter"
+                  type="date"
+                  value={date_from}
+                  onChange={(e) => set_date_from(e.target.value)}
+                  className="w-full px-3 py-2 border-3 border-basmati-black rounded-none focus:outline-none focus:ring-2 focus:ring-basmati-yellow text-sm"
+                />
+              </div>
+
+              {/* Filtro por fecha hasta */}
+              <div>
+                <label
+                  htmlFor="date-to-filter"
+                  className="block text-sm font-bold text-basmati-black mb-1"
+                >
+                  <FontAwesomeIcon icon={faCalendarAlt} className="mr-2" />
+                  Fecha hasta
+                </label>
+                <input
+                  id="date-to-filter"
+                  type="date"
+                  value={date_to}
+                  onChange={(e) => set_date_to(e.target.value)}
+                  className="w-full px-3 py-2 border-3 border-basmati-black rounded-none focus:outline-none focus:ring-2 focus:ring-basmati-yellow text-sm"
+                />
+              </div>
+            </div>
+          )}
         </form>
       </Neo_Card>
 
@@ -146,14 +287,48 @@ export const Search_Page: React.FC = () => {
                     {calendar.title}
                   </h3>
                 </div>
-                <div className="flex items-center gap-2 text-sm text-gray-600 mb-4 px-1">
-                  <div
-                    className="w-3 h-3 rounded-full border-2 border-basmati-black"
-                    style={{ backgroundColor: calendar.color }}
-                  />
-                  <span className="font-medium">
-                    {calendar.is_public ? "Público" : "Privado"}
-                  </span>
+                <div className="flex flex-col gap-2 text-sm text-gray-600 mb-4 px-1">
+                  <div className="flex items-center gap-2">
+                    <div
+                      className="w-3 h-3 rounded-full border-2 border-basmati-black"
+                      style={{ backgroundColor: calendar.color }}
+                    />
+                    <span className="font-medium">
+                      {calendar.is_public ? "Público" : "Privado"}
+                    </span>
+                  </div>
+                  {calendar.creator_display_name && (
+                    <div className="flex items-center gap-2">
+                      <FontAwesomeIcon
+                        icon={faUser}
+                        className="text-gray-400 w-3"
+                      />
+                      <span
+                        className="truncate"
+                        title={calendar.creator_display_name}
+                      >
+                        {calendar.creator_display_name}
+                      </span>
+                    </div>
+                  )}
+                  {calendar.created_at && (
+                    <div className="flex items-center gap-2">
+                      <FontAwesomeIcon
+                        icon={faClock}
+                        className="text-gray-400 w-3"
+                      />
+                      <span>
+                        {new Date(calendar.created_at).toLocaleDateString(
+                          "es-ES",
+                          {
+                            day: "numeric",
+                            month: "short",
+                            year: "numeric",
+                          }
+                        )}
+                      </span>
+                    </div>
+                  )}
                 </div>
                 <div className="mt-auto flex justify-end">
                   <Neo_Button
@@ -228,24 +403,32 @@ export const Search_Page: React.FC = () => {
         </section>
       )}
 
-      {!loading && events.length === 0 && calendars.length === 0 && query && (
-        <div className="text-center py-16 bg-white border-3 border-basmati-black border-dashed flex flex-col items-center gap-4 rounded-lg">
-          <FontAwesomeIcon
-            icon={faExclamationCircle}
-            className="text-4xl text-gray-300"
-          />
-          <p className="text-xl text-gray-600 font-bold">
-            No se encontraron resultados para "{query}".
-          </p>
-          <p className="text-gray-500">Intenta con otros términos.</p>
-        </div>
-      )}
+      {!loading &&
+        events.length === 0 &&
+        calendars.length === 0 &&
+        (query || has_active_filters) && (
+          <div className="text-center py-16 bg-white border-3 border-basmati-black border-dashed flex flex-col items-center gap-4 rounded-lg">
+            <FontAwesomeIcon
+              icon={faExclamationCircle}
+              className="text-4xl text-gray-300"
+            />
+            <p className="text-xl text-gray-600 font-bold">
+              No se encontraron resultados{query ? ` para "${query}"` : ""}.
+            </p>
+            <p className="text-gray-500">
+              Intenta con otros términos o ajusta los filtros.
+            </p>
+          </div>
+        )}
 
-      {!loading && !query && (
+      {!loading && !query && !has_active_filters && (
         <div className="text-center py-16 bg-white border-3 border-basmati-black border-dashed flex flex-col items-center gap-4 rounded-lg">
           <FontAwesomeIcon icon={faSearch} className="text-4xl text-gray-300" />
           <p className="text-xl text-gray-600 font-bold">
-            Introduce un término para empezar a buscar.
+            Introduce un término o usa los filtros para buscar.
+          </p>
+          <p className="text-gray-500">
+            Puedes buscar por palabra clave, organizador o rango de fechas.
           </p>
         </div>
       )}

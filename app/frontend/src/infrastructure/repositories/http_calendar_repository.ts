@@ -184,13 +184,46 @@ export class Http_Calendar_Repository implements Calendar_Repository_Interface {
         title: item.title,
         color: item.color || "#EBBE4D",
         owner_id: item.creator_external_id || item.owner_id || item.creator_id,
+        creator_display_name: item.creator_display_name,
         icon: item.icon,
         is_public: item.visibility === "public",
         visibility: item.visibility,
         parent_id: item.parent_calendar_id,
+        created_at: item.created_at ? new Date(item.created_at) : undefined,
       }));
     } catch (error) {
       console.error("Error searching calendars:", error);
+      return [];
+    }
+  }
+
+  /**
+   * Busca calendarios por nombre del creador.
+   */
+  async search_by_creator_name(
+    creator_name: string
+  ): Promise<Calendar_Model[]> {
+    try {
+      const response = await api_client.get(
+        `/v1/calendars/search/by-creator-name`,
+        {
+          params: { name: creator_name },
+        }
+      );
+      return response.data.map((item: any) => ({
+        id: item.id,
+        title: item.title,
+        color: item.color || "#EBBE4D",
+        owner_id: item.creator_external_id || item.owner_id || item.creator_id,
+        creator_display_name: item.creator_display_name,
+        icon: item.icon,
+        is_public: item.visibility === "public",
+        visibility: item.visibility,
+        parent_id: item.parent_calendar_id,
+        created_at: item.created_at ? new Date(item.created_at) : undefined,
+      }));
+    } catch (error) {
+      console.error("Error searching calendars by creator:", error);
       return [];
     }
   }

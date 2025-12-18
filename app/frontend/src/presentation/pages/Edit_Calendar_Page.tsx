@@ -110,7 +110,7 @@ export const Edit_Calendar_Page = () => {
     if (!calendar) return;
 
     const confirmation = window.confirm(
-      `¿Estás seguro de que quieres eliminar el calendario "${calendar.title}"? Esta acción no se puede deshacer.`
+      `¿Estás seguro de que quieres eliminar el calendario "${calendar.title}"? Se eliminarán también todos sus eventos y subcalendarios. Esta acción no se puede deshacer.`
     );
 
     if (!confirmation) return;
@@ -119,12 +119,12 @@ export const Edit_Calendar_Page = () => {
     set_error(null);
 
     try {
-      await delete_calendar(calendar.id);
-      navigate("/dashboard");
+      await delete_calendar(calendar.id, true); // recursive=true para eliminar eventos asociados
+      // Forzar recarga completa para actualizar eventos en el dashboard
+      window.location.href = "/dashboard";
     } catch (err: any) {
       console.error(err);
       set_error(err.message || "Error al eliminar el calendario");
-    } finally {
       set_deleting(false);
     }
   };

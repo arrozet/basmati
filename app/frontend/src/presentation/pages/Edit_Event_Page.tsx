@@ -229,17 +229,16 @@ export const Edit_Event_Page = () => {
                     </header>
 
                     <form onSubmit={handle_submit} className="space-y-6" aria-label="Formulario de edición de evento">
-                        {calendar_info && (
-                            <div className="flex items-center gap-2 bg-gray-100 p-2 rounded border-2 border-gray-200">
-                                <span className="text-sm font-bold text-gray-600">Calendario:</span>
-                                <div 
-                                    className="w-3 h-3 border-2 border-basmati-black" 
-                                    style={{ backgroundColor: calendar_info.color }}
-                                    aria-hidden="true"
-                                ></div>
-                                <span className="text-sm font-medium">{calendar_info.title}</span>
-                            </div>
-                        )}
+                        {/* Indicador del calendario */}
+                        <div className="flex items-center gap-3 p-3 border-3 border-basmati-black bg-white shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]">
+                            <span className="text-sm font-bold text-gray-600 uppercase">Calendario:</span>
+                            <span 
+                                className="w-4 h-4 border-2 border-basmati-black" 
+                                style={{ backgroundColor: calendar_info?.color || '#EBBE4D' }}
+                                aria-hidden="true"
+                            ></span>
+                            <span className="text-sm font-bold">{calendar_info?.title || 'Cargando...'}</span>
+                        </div>
 
                         <fieldset className="border-0 p-0 m-0">
                             <legend className="sr-only">Información básica del evento</legend>

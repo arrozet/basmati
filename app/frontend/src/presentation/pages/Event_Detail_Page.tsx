@@ -134,10 +134,22 @@ export const Event_Detail_Page = () => {
 
     return (
         <MainLayout>
-            <div className="max-w-6xl mx-auto md:h-[calc(100vh-120px)] h-auto flex flex-col md:flex-row gap-6 pb-10 md:pb-0">
+            <div className="max-w-6xl mx-auto">
+                {/* Botón Volver */}
+                <Neo_Button
+                    onClick={() => navigate(-1)}
+                    variant="secondary"
+                    className="flex items-center gap-2 text-sm font-bold px-4 py-2 mb-6"
+                    aria-label="Volver"
+                >
+                    <FontAwesomeIcon icon={faArrowLeft} />
+                    <span>Volver</span>
+                </Neo_Button>
+
+                <div className="md:h-[calc(100vh-180px)] h-auto flex flex-col md:flex-row gap-6 pb-10 md:pb-0">
                 
-                {/* Columna Izquierda: Tarjeta Principal del Evento */}
-                <Neo_Card className="flex-1 flex flex-col md:overflow-hidden !p-0 border-3 relative">
+                    {/* Columna Izquierda: Tarjeta Principal del Evento */}
+                    <Neo_Card className="flex-1 flex flex-col md:overflow-hidden !p-0 border-3 relative">
                     
                     {/* Header con color del calendario */}
                     <div className="h-4 w-full border-b-3 border-basmati-black shrink-0" style={{ 
@@ -150,12 +162,15 @@ export const Event_Detail_Page = () => {
                         
                         {/* Barra superior: Calendario y Botones */}
                         <div className="flex justify-between items-start mb-6">
-                            {calendar_info && (
-                                <span className="inline-flex items-center px-3 py-1 rounded-full border-2 border-basmati-black bg-white text-xs font-bold uppercase tracking-wider shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
-                                    <span className="w-2 h-2 rounded-full mr-2" style={{ backgroundColor: calendar_info.color }}></span>
-                                    {calendar_info.title}
-                                </span>
-                            )}
+                            <span 
+                                className="inline-flex items-center px-4 py-2 border-3 border-basmati-black bg-white text-sm font-bold uppercase tracking-wider shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]"
+                            >
+                                <span 
+                                    className="w-4 h-4 border-2 border-basmati-black mr-3" 
+                                    style={{ backgroundColor: calendar_info?.color || '#EBBE4D' }}
+                                ></span>
+                                {calendar_info?.title || 'Calendario'}
+                            </span>
                             <Neo_Button 
                                 onClick={() => navigate(`/events/edit/${event.id}`)}
                                 variant="secondary"
@@ -290,6 +305,7 @@ export const Event_Detail_Page = () => {
                         on_add_comment={handle_add_comment}
                         current_user_id={current_user_id}
                     />
+                </div>
                 </div>
             </div>
         </MainLayout>
