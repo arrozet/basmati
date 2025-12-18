@@ -336,6 +336,12 @@ const CalendarGrid: React.FC<{
                     const day_events = events.filter((e: Event_Model) => event_occurs_on_day(e, current_day_date));
                     const day_events_count = day_events.length;
                     
+                    // Verificar si es el día actual
+                    const today = new Date();
+                    const is_today = current_day_date.getDate() === today.getDate() &&
+                                     current_day_date.getMonth() === today.getMonth() &&
+                                     current_day_date.getFullYear() === today.getFullYear();
+                    
                     // Calcular eventos ocultos para este día específico en esta fila
                     const hidden_events_count = day_events.filter(e => {
                         const slot = slots_for_row.get(e.id);
@@ -345,7 +351,11 @@ const CalendarGrid: React.FC<{
                     day_cells.push(
                         <div 
                             key={day_index} 
-                            className="bg-white border-3 border-basmati-black shadow-hard hover:shadow-[6px_6px_0px_0px_rgba(26,26,26,1)] hover:bg-gray-50 transition-all cursor-pointer relative min-h-[100px] md:min-h-[120px] overflow-visible focus-within:ring-4 focus-within:ring-basmati-yellow"
+                            className={`border-3 border-basmati-black shadow-hard hover:shadow-[6px_6px_0px_0px_rgba(26,26,26,1)] transition-all cursor-pointer relative min-h-[100px] md:min-h-[120px] overflow-visible focus-within:ring-4 focus-within:ring-basmati-yellow ${
+                                is_today 
+                                    ? 'bg-basmati-yellow/30 hover:bg-basmati-yellow/40 ring-2 ring-basmati-yellow ring-inset' 
+                                    : 'bg-white hover:bg-gray-50'
+                            }`}
                             onClick={() => handle_day_click(current_day_date)}
                             role="gridcell"
                             tabIndex={0}
@@ -355,11 +365,18 @@ const CalendarGrid: React.FC<{
                                     handle_day_click(current_day_date);
                                 }
                             }}
-                            aria-label={`${day_name} ${day_index}, ${day_events_count} evento${day_events_count !== 1 ? 's' : ''}`}
+                            aria-label={`${is_today ? 'Hoy, ' : ''}${day_name} ${day_index}, ${day_events_count} evento${day_events_count !== 1 ? 's' : ''}`}
                         >
                             <div className="flex justify-between items-start p-2">
                                 <span className="md:hidden font-bold text-gray-500 text-xs uppercase">{day_name}</span>
-                                <time className="font-bold text-gray-800 absolute top-2 right-2" dateTime={current_day_date.toISOString()}>
+                                <time 
+                                    className={`font-bold absolute top-2 right-2 ${
+                                        is_today 
+                                            ? 'bg-basmati-black text-white w-7 h-7 rounded-full flex items-center justify-center text-sm' 
+                                            : 'text-gray-800'
+                                    }`} 
+                                    dateTime={current_day_date.toISOString()}
+                                >
                                     {day_index}
                                 </time>
                             </div>
