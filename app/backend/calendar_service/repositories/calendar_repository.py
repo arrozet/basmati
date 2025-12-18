@@ -2,6 +2,7 @@
 from datetime import datetime, timezone
 from typing import Any
 from bson import ObjectId
+from pymongo import ReturnDocument
 from models.calendar import CalendarModel
 from core.interface import ICalendarRepository
 
@@ -129,7 +130,7 @@ class CalendarRepository(ICalendarRepository):
             result = await self.collection.find_one_and_update(
                 {"_id": ObjectId(calendar_id)},
                 {"$set": update_dict},
-                return_document=True
+                return_document=ReturnDocument.AFTER
             )
             return result
         except Exception as e:
@@ -367,13 +368,14 @@ class CalendarRepository(ICalendarRepository):
             result = await self.collection.find_one_and_update(
                 {"_id": ObjectId(calendar_id)},
                 {"$push": {"comments": comment_dict}},
-                return_document=True
+                return_document=ReturnDocument.AFTER
             )
             
             if result and "comments" in result and len(result["comments"]) > 0:
                 # Retornar el último comentario agregado
                 return result["comments"][-1]
             return None
-        except Exception:
+        except Exception as e:
+            print(f"Error adding comment: {e}")
             return None
 

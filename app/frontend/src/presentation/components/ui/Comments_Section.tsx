@@ -2,10 +2,11 @@ import React, { useState, useRef, useEffect } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faComments, faSpinner, faPaperPlane } from '@fortawesome/free-solid-svg-icons';
 import { Event_Comment } from '../../../domain/models/event_model';
+import { Calendar_Comment } from '../../../domain/models/calendar_model';
 import { Neo_Button } from './Neo_Button';
 
 interface CommentsSectionProps {
-    comments: Event_Comment[];
+    comments: (Event_Comment | Calendar_Comment)[];
     on_add_comment: (text: string) => Promise<void>;
     current_user_id: string;
 }

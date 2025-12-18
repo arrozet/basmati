@@ -142,6 +142,12 @@ export const Calendar_Detail_Page = () => {
   return (
     <MainLayout>
       <div className="max-w-6xl mx-auto pb-10">
+        <div className="mb-4">
+          <Neo_Button onClick={() => navigate(-1)} variant="secondary">
+            <FontAwesomeIcon icon={faArrowLeft} className="mr-2" /> Volver
+          </Neo_Button>
+        </div>
+
         {/* Detalles del Calendario - Compacto */}
         <Neo_Card className="!p-0 border-3 relative mb-6">
           {/* Header con color del calendario */}

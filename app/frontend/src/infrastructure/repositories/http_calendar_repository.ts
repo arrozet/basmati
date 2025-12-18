@@ -154,6 +154,15 @@ export class Http_Calendar_Repository implements Calendar_Repository_Interface {
         parent_id: item.parent_calendar_id,
         created_at: item.created_at ? new Date(item.created_at) : undefined,
         updated_at: item.updated_at ? new Date(item.updated_at) : undefined,
+        comments: item.comments
+          ? item.comments.map((c: any) => ({
+              id: c.id,
+              author_external_id: c.author_external_id,
+              author_display_name: c.author_display_name,
+              text: c.text,
+              created_at: new Date(c.created_at),
+            }))
+          : [],
       };
     } catch (error) {
       console.error("Error fetching calendar:", error);

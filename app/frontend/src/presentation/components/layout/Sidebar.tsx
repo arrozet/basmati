@@ -17,6 +17,7 @@ import {
   faChevronRight,
   faChevronDown,
   faPencil,
+  faInfoCircle,
 } from "@fortawesome/free-solid-svg-icons";
 import { use_calendar_visibility } from "../../context/CalendarVisibilityContext";
 import { use_user_context } from "../../context/UserContext";
@@ -86,6 +87,7 @@ const CalendarTreeItem: React.FC<CalendarTreeItemProps> = ({
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const { toggle_visibility, is_visible } = use_calendar_visibility();
+  const navigate = useNavigate();
 
   const children = allCalendars.filter((c) => c.parent_id === calendar.id);
   const hasChildren = children.length > 0;
@@ -168,6 +170,17 @@ const CalendarTreeItem: React.FC<CalendarTreeItemProps> = ({
               className={visible ? "" : "opacity-50"}
               size="xs"
             />
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              navigate(`/calendars/${calendar.id}`);
+            }}
+            className="w-6 h-6 flex items-center justify-center hover:bg-basmati-blue/20 text-basmati-blue rounded transition-colors"
+            aria-label="Ver detalles del calendario"
+            title="Ver detalles"
+          >
+            <FontAwesomeIcon icon={faInfoCircle} size="xs" />
+          </button>
           </button>
           {onEdit && (
             <button

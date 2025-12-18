@@ -306,6 +306,12 @@ class CalendarService(ICalendarService):
         if "path" in document:
             document["path"] = [str(obj_id) for obj_id in document.get("path", [])]
         
+        # Convertir comments _id a id
+        if "comments" in document and document["comments"]:
+            for comment in document["comments"]:
+                if "_id" in comment:
+                    comment["id"] = str(comment["_id"])
+        
         return CalendarResponse(**document)
 
     # ==================== PERMISOS ====================
