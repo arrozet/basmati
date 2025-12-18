@@ -342,11 +342,8 @@ const CalendarGrid: React.FC<{
                                      current_day_date.getMonth() === today.getMonth() &&
                                      current_day_date.getFullYear() === today.getFullYear();
                     
-                    // Calcular eventos ocultos para este día específico en esta fila
-                    const hidden_events_count = day_events.filter(e => {
-                        const slot = slots_for_row.get(e.id);
-                        return slot !== undefined && slot >= MAX_VISIBLE_SLOTS;
-                    }).length;
+                    // Verificar si hay eventos ocultos (más de MAX_VISIBLE_SLOTS eventos)
+                    const has_hidden_events = day_events_count > MAX_VISIBLE_SLOTS;
 
                     day_cells.push(
                         <div 
@@ -381,11 +378,28 @@ const CalendarGrid: React.FC<{
                                 </time>
                             </div>
                             
-                            {/* Indicador de más eventos (Desktop) */}
-                            {hidden_events_count > 0 && (
-                                <div className="hidden md:block absolute bottom-1 left-2 text-xs font-bold text-gray-500 hover:text-basmati-black z-10">
-                                    +{hidden_events_count} más
-                                </div>
+                            {/* Indicador de más eventos (Desktop) - clickeable para ir a vista día */}
+                            {has_hidden_events && (
+                                <span
+                                    role="button"
+                                    tabIndex={0}
+                                    className="hidden md:block absolute bottom-1 left-2 text-xs font-bold text-gray-500 hover:text-basmati-black hover:underline z-10 cursor-pointer"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        onDateChange(current_day_date);
+                                        onViewChange('day');
+                                    }}
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter' || e.key === ' ') {
+                                            e.stopPropagation();
+                                            onDateChange(current_day_date);
+                                            onViewChange('day');
+                                        }
+                                    }}
+                                    aria-label={`Ver más eventos del día ${day_index}`}
+                                >
+                                    Ver más
+                                </span>
                             )}
 
                             {/* Eventos en móvil (lista simple) */}
