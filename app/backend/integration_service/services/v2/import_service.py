@@ -1,4 +1,4 @@
-"""Lógica de negocio para integración con servicios externos (V2)"""
+"""Lógica de negocio para importación desde servicios externos (V2)"""
 import httpx
 from schemas.integration import (
     GoogleCalendarImportRequest,
@@ -8,7 +8,7 @@ from schemas.integration import (
 )
 
 
-class IntegrationServiceV2:
+class ImportServiceV2:
     """
     Servicio para importar calendarios desde servicios externos (V2).
     
@@ -23,7 +23,7 @@ class IntegrationServiceV2:
         event_service_url: str
     ):
         """
-        Inicializa el servicio de integración.
+        Inicializa el servicio de importación.
         
         Args:
             calendar_service_url: URL del CalendarService
@@ -416,3 +416,4 @@ class IntegrationServiceV2:
             print(f"Error al importar eventos desde Teamup: {str(e)}")
             import traceback
             traceback.print_exc()
+

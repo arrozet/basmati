@@ -1,19 +1,19 @@
-"""Endpoints de integraciones V2 - Solo importación de calendarios"""
+"""Endpoints de importaciones V2 - Solo importación de calendarios"""
 from fastapi import APIRouter, HTTPException, status, Body
 from schemas.integration import (
     GoogleCalendarImportRequest,
     TeamupImportRequest,
     ImportResponse
 )
-from services.v2.integration_service import IntegrationServiceV2
+from services.v2.import_service import ImportServiceV2
 from core.config import settings
 
 router = APIRouter()
 
 
-def get_integration_service_v2() -> IntegrationServiceV2:
-    """Crea una instancia del servicio de integración V2"""
-    return IntegrationServiceV2(
+def get_import_service_v2() -> ImportServiceV2:
+    """Crea una instancia del servicio de importación V2"""
+    return ImportServiceV2(
         settings.CALENDAR_SERVICE_URL,
         settings.EVENT_SERVICE_URL
     )
@@ -44,7 +44,7 @@ async def import_from_google_calendar(
         ImportResponse: Resultado con IDs de calendarios creados
     """
     try:
-        service = get_integration_service_v2()
+        service = get_import_service_v2()
         return await service.import_from_google_calendar(import_request)
     except Exception as e:
         raise HTTPException(
@@ -91,10 +91,11 @@ async def import_from_teamup(
         ImportResponse: Resultado con IDs de calendarios creados y eventos importados
     """
     try:
-        service = get_integration_service_v2()
+        service = get_import_service_v2()
         return await service.import_from_teamup(import_request)
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error al importar desde Teamup: {str(e)}"
         )
+
