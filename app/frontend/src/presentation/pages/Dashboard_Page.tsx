@@ -425,7 +425,7 @@ const CalendarGrid: React.FC<{
           day_cells.push(
             <div
               key={day_index}
-              className={`border-3 border-basmati-black shadow-hard hover:shadow-[6px_6px_0px_0px_rgba(26,26,26,1)] transition-all cursor-pointer relative min-h-[100px] md:min-h-[120px] overflow-visible focus-within:ring-4 focus-within:ring-basmati-yellow ${
+              className={`border-3 border-basmati-black shadow-hard hover:shadow-[6px_6px_0px_0px_rgba(26,26,26,1)] transition-all cursor-pointer relative min-h-[100px] md:min-h-[140px] overflow-visible focus-within:ring-4 focus-within:ring-basmati-yellow ${
                 is_today
                   ? "bg-basmati-yellow/30 hover:bg-basmati-yellow/40 ring-2 ring-basmati-yellow ring-inset"
                   : "bg-white hover:bg-gray-50"
@@ -449,10 +449,11 @@ const CalendarGrid: React.FC<{
                 <span className="md:hidden font-bold text-gray-500 text-xs uppercase">
                   {day_name}
                 </span>
+                
                 <time
-                  className={`font-bold absolute top-2 right-2 ${
+                  className={`font-bold absolute top-1 right-1 ${
                     is_today
-                      ? "bg-basmati-black text-white w-7 h-7 rounded-full flex items-center justify-center text-sm"
+                      ? "bg-basmati-yellow text-basmati-black border-2 border-basmati-black w-6 h-6 rounded-full flex items-center justify-center text-xs shadow-[2px_2px_0px_0px_rgba(26,26,26,1)] z-10"
                       : "text-gray-800"
                   }`}
                   dateTime={current_day_date.toISOString()}
@@ -461,12 +462,12 @@ const CalendarGrid: React.FC<{
                 </time>
               </div>
 
-              {/* Indicador de más eventos (Desktop) - clickeable para ir a vista día */}
+              {/* Indicador de más eventos (Desktop) - Abajo a la izquierda, más discreto */}
               {has_hidden_events && (
                 <span
                   role="button"
                   tabIndex={0}
-                  className="hidden md:block absolute bottom-1 left-2 text-xs font-bold text-gray-500 hover:text-basmati-black hover:underline z-10 cursor-pointer"
+                  className="hidden md:block absolute bottom-2 left-2 text-[10px] font-black uppercase text-gray-400 hover:text-basmati-black hover:underline transition-colors z-10 cursor-pointer"
                   onClick={(e) => {
                     e.stopPropagation();
                     onDateChange(current_day_date);
@@ -481,12 +482,12 @@ const CalendarGrid: React.FC<{
                   }}
                   aria-label={`Ver más eventos del día ${day_index}`}
                 >
-                  Ver más
+                  Ver más...
                 </span>
               )}
 
               {/* Eventos en móvil (lista simple) */}
-              <div className="md:hidden mt-6 flex flex-col gap-1 px-1">
+              <div className="md:hidden mt-8 flex flex-col gap-1 px-1">
                 {day_events.map((event: Event_Model) => {
                   const event_color = event.color || "#EBBE4D";
                   const multi_day = is_multi_day_event(event);
@@ -558,7 +559,7 @@ const CalendarGrid: React.FC<{
 
           {/* Capa de eventos multi-día superpuestos (solo en desktop) */}
           <div
-            className="hidden md:block absolute top-8 left-0 right-0 pointer-events-none"
+            className="hidden md:block absolute top-9 left-0 right-0 pointer-events-none"
             style={{ zIndex: 5 }}
           >
             {events_to_render
@@ -836,10 +837,10 @@ const CalendarGrid: React.FC<{
                     {days_labels[idx].substring(0, 3)}
                   </div>
                   <time
-                    className={`text-2xl font-black ${
+                    className={`font-black flex items-center justify-center mx-auto ${
                       is_today
-                        ? "bg-basmati-blue text-white rounded-full w-10 h-10 flex items-center justify-center mx-auto"
-                        : ""
+                        ? "bg-basmati-yellow text-basmati-black border-3 border-basmati-black rounded-full w-12 h-12 shadow-[4px_4px_0px_0px_rgba(26,26,26,1)] text-xl"
+                        : "text-2xl h-12"
                     }`}
                     dateTime={date.toISOString()}
                   >
@@ -1076,6 +1077,10 @@ const CalendarGrid: React.FC<{
   }
 
   if (view === "day") {
+    const is_today =
+      get_date_only(currentDate).getTime() ===
+      get_date_only(new Date()).getTime();
+
     const day_events = events.filter((e) => {
       const e_date = new Date(e.start_time);
       return (
@@ -1100,13 +1105,18 @@ const CalendarGrid: React.FC<{
           day_events.length !== 1 ? "s" : ""
         }`}
       >
-        <h3 className="font-black text-2xl mb-4">
+        <h3 className="font-black text-2xl mb-4 flex items-center gap-2">
           {
             days_labels[
               currentDate.getDay() === 0 ? 6 : currentDate.getDay() - 1
             ]
           }{" "}
           {currentDate.getDate()}
+          {is_today && (
+            <span className="bg-basmati-yellow text-basmati-black text-xs px-2 py-0.5 border-2 border-basmati-black shadow-[2px_2px_0px_0px_rgba(26,26,26,1)] rounded uppercase ml-2">
+              Hoy
+            </span>
+          )}
         </h3>
         <div className="space-y-4">
           {/* Simple list for now, could be a timeline */}
