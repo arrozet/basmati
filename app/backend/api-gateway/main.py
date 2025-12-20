@@ -247,78 +247,26 @@ async def calendars_v2_route(path: str, request: Request):
     full_path = f"v2/calendars/{path}" if path else "v2/calendars"
     return await proxy_request("calendars", full_path, request)
 
-@app.api_route("/v2/teamup/{path:path}", methods=["GET", "POST", "PUT", "DELETE"])
-async def integrations_teamup_v2_route(path: str, request: Request):
+@app.api_route("/v2/integrations/{path:path}", methods=["GET", "POST", "PUT", "DELETE"])
+async def integrations_v2_route(path: str, request: Request):
     """
-    Proxy para el Integration Service V2 (Teamup).
-    """
-    full_path = f"v2/teamup/{path}" if path else "v2/teamup"
-    return await proxy_request("integrations", full_path, request)
-
-@app.api_route("/v2/google/{path:path}", methods=["GET", "POST", "PUT", "DELETE"])
-async def integrations_google_v2_route(path: str, request: Request):
-    """
-    Proxy para el Integration Service V2 (Google).
-    """
-    full_path = f"v2/google/{path}" if path else "v2/google"
-    return await proxy_request("integrations", full_path, request)
-
-@app.api_route("/v2/osm/{path:path}", methods=["GET", "POST", "PUT", "DELETE"])
-async def integrations_osm_v2_route(path: str, request: Request):
-    """
-    Proxy para el Integration Service V2 (OpenStreetMap).
+    Proxy para el Integration Service V2.
     
-    Endpoints disponibles:
-        GET /v2/osm/geocode?address=...&limit=5 → Geocodificar dirección
-        GET /v2/osm/reverse-geocode?latitude=...&longitude=... → Geocodificación inversa
-        GET /v2/osm/search-places?query=...&limit=5 → Buscar lugares
+    Ejemplos:
+        POST /v2/integrations/google/import
+        GET /v2/integrations/osm/geocode
+        POST /v2/integrations/s3/upload-direct
     """
-    full_path = f"v2/osm/{path}" if path else "v2/osm"
+    full_path = f"v2/integrations/{path}" if path else "v2/integrations"
+    
+    # Manejar multipart específicamente para S3 si es necesario
+    if "s3/" in full_path and request.method == "POST":
+        return await proxy_request_multipart("integrations", full_path, request)
+        
     return await proxy_request("integrations", full_path, request)
 
 
-@app.api_route("/v2/s3/{path:path}", methods=["GET", "POST", "PUT", "DELETE"])
-async def integrations_s3_v2_route(path: str, request: Request):
-    """
-    Proxy para el Integration Service V2 (S3 Images).
-    
-    Endpoints disponibles:
-        POST /v2/s3/upload-direct → Subir imagen con compresión automática
-        POST /v2/s3/upload → Obtener URL presigned para subir
-        GET /v2/s3/images → Listar imágenes
-        GET /v2/s3/images/{key} → Obtener metadatos de imagen
-        DELETE /v2/s3/images/{key} → Eliminar imagen
-    """
-    full_path = f"v2/s3/{path}" if path else "v2/s3"
-    return await proxy_request_multipart("integrations", full_path, request)
-
-
-@app.api_route("/v2/email/{path:path}", methods=["GET", "POST", "PUT", "DELETE"])
-async def integrations_email_v2_route(path: str, request: Request):
-    """
-    Proxy para el Integration Service V2 (Email).
-    
-    Endpoints disponibles:
-        POST /v2/email/send → Enviar correo electrónico
-        POST /v2/email/send-digest → Enviar resumen diario
-        POST /v2/email/send-comment-notification → Enviar notificación de comentario
-    """
-    full_path = f"v2/email/{path}" if path else "v2/email"
-    return await proxy_request("integrations", full_path, request)
-
-
-@app.api_route("/v2/digest/{path:path}", methods=["GET", "POST", "PUT", "DELETE"])
-async def integrations_digest_v2_route(path: str, request: Request):
-    """
-    Proxy para el Integration Service V2 (Daily Digest).
-    
-    Endpoints disponibles:
-        POST /v2/digest/send-all → Enviar digest a todos los usuarios
-        POST /v2/digest/send-user → Enviar digest a un usuario específico
-        GET /v2/digest/preview/{user_id} → Vista previa del digest
-    """
-    full_path = f"v2/digest/{path}" if path else "v2/digest"
-    return await proxy_request("integrations", full_path, request)
+@app.api_route("/v2/events/{path:path}", methods=["GET", "POST", "PUT", "DELETE"])
 
 
 async def proxy_request_multipart(service_name: str, path: str, request: Request):

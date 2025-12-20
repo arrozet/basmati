@@ -10,12 +10,12 @@ import { api_client } from "../api/axios_client";
 
 export class Http_Integration_Repository implements Integration_Repository_Interface {
     async import_google_calendar(request: Google_Import_Request): Promise<Import_Response> {
-        const response = await api_client.post('/v1/integrations/google/import', request);
+        const response = await api_client.post('/v2/integrations/google/import', request);
         return response.data;
     }
 
     async import_teamup_calendar(request: Teamup_Import_Request): Promise<Import_Response> {
-        const response = await api_client.post('/v2/teamup/import', request);
+        const response = await api_client.post('/v2/integrations/teamup/import', request);
         return response.data;
     }
 
@@ -26,7 +26,7 @@ export class Http_Integration_Repository implements Integration_Repository_Inter
      * @param limit Número máximo de resultados (default: 5)
      */
     async geocode_address(address: string, limit: number = 5): Promise<Geocode_Response> {
-        const response = await api_client.get('/v2/osm/geocode', {
+        const response = await api_client.get('/v2/integrations/osm/geocode', {
             params: { address, limit }
         });
         return response.data;
@@ -38,7 +38,7 @@ export class Http_Integration_Repository implements Integration_Repository_Inter
      * @param longitude Longitud
      */
     async reverse_geocode(latitude: number, longitude: number): Promise<Reverse_Geocode_Response> {
-        const response = await api_client.get('/v2/osm/reverse-geocode', {
+        const response = await api_client.get('/v2/integrations/osm/reverse-geocode', {
             params: { latitude, longitude }
         });
         return response.data;
@@ -61,7 +61,7 @@ export class Http_Integration_Repository implements Integration_Repository_Inter
         if (near_latitude !== undefined) params.near_latitude = near_latitude;
         if (near_longitude !== undefined) params.near_longitude = near_longitude;
         
-        const response = await api_client.get('/v2/osm/search-places', { params });
+        const response = await api_client.get('/v2/integrations/osm/search-places', { params });
         return response.data;
     }
 }

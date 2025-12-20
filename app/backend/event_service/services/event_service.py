@@ -371,7 +371,7 @@ class EventService(IEventService):
                 }
                 
                 email_response = await client.post(
-                    f"{settings.integration_service_url}/v2/email/send-comment-notification",
+                    f"{settings.integration_service_url}/v2/integrations/email/send-comment-notification",
                     json=email_payload
                 )
                 

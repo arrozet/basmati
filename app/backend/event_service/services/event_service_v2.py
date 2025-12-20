@@ -277,7 +277,7 @@ class EventServiceV2(EventService):
         try:
             async with httpx.AsyncClient(timeout=30.0) as client:
                 await client.post(
-                    f"{self.integration_service_url}/v2/email/send-comment-notification",
+                    f"{self.integration_service_url}/v2/integrations/email/send-comment-notification",
                     json={
                         "to_email": to_email,
                         "event_title": event_title,

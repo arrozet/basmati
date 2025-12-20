@@ -20,7 +20,7 @@ export class Http_S3_Repository implements S3_Repository_Interface {
 
         try {
             // Usamos el API Gateway (api_client ya tiene la baseURL del gateway)
-            const response = await api_client.post(`/v2/s3/upload-direct`, formData, {
+            const response = await api_client.post(`/v2/integrations/s3/upload-direct`, formData, {
                 headers: {
                     'Content-Type': 'multipart/form-data',
                 },
