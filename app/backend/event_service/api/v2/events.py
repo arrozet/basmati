@@ -202,5 +202,144 @@ Ejemplo de uso:
             )
         return new_comment
 
+    # ========================================================================
+    # BÚSQUEDA DE TEXTO - NUEVO EN V2
+    # ========================================================================
+
+    @router.get(
+        "/search/by-text",
+        response_model=list[EventResponse],
+        summary="Búsqueda full-text en eventos",
+        description="""
+Busca en título, descripción y ubicación.
+
+**Nuevo en V2**: Este endpoint no existe en V1.
+        """,
+        responses={
+            200: {"description": "Lista de eventos que coinciden."},
+            500: {"description": "Error interno del servidor."}
+        }
+    )
+    async def search_by_text(
+        query: str = Query(..., description="Término de búsqueda"),
+        service: IEventService = Depends(get_service_dependency),
+    ):
+        """Realiza una búsqueda full-text en eventos.
+        
+        Busca en los campos:
+        - title
+        - description
+        - location.address
+        - location.place_name
+        
+        Args:
+            query: Término de búsqueda
+            service: Servicio de eventos inyectado
+            
+        Returns:
+            list[EventResponse]: Lista de eventos encontrados
+        """
+        return await service.search_by_text(query)
+
+    @router.get(
+        "/search/by-calendar-title",
+        response_model=list[EventResponse],
+        summary="Buscar eventos por título del calendario",
+        description="""
+Busca eventos por título del calendario (campo denormalizado).
+
+**Nuevo en V2**: Este endpoint no existe en V1.
+        """,
+        responses={
+            200: {"description": "Lista de eventos del calendario."},
+            500: {"description": "Error interno del servidor."}
+        }
+    )
+    async def search_by_calendar_title(
+        calendar_title: str = Query(..., description="Título del calendario"),
+        service: IEventService = Depends(get_service_dependency),
+    ):
+        """Busca eventos por título del calendario.
+        
+        Args:
+            calendar_title: Título o parte del título del calendario
+            service: Servicio de eventos inyectado
+            
+        Returns:
+            list[EventResponse]: Eventos del calendario con ese título
+        """
+        return await service.search_by_calendar_title(calendar_title)
+
+    @router.get(
+        "/search/by-location",
+        response_model=list[EventResponse],
+        summary="Buscar eventos por ubicación",
+        description="""
+Busca eventos por dirección o nombre del lugar.
+
+**Nuevo en V2**: Este endpoint no existe en V1.
+        """,
+        responses={
+            200: {"description": "Lista de eventos en esa ubicación."},
+            500: {"description": "Error interno del servidor."}
+        }
+    )
+    async def search_by_location(
+        location_query: str = Query(..., description="Término de búsqueda para ubicación"),
+        service: IEventService = Depends(get_service_dependency),
+    ):
+        """Busca eventos por ubicación.
+        
+        Busca en los campos:
+        - location.address
+        - location.place_name
+        
+        Args:
+            location_query: Término de búsqueda para la ubicación
+            service: Servicio de eventos inyectado
+            
+        Returns:
+            list[EventResponse]: Eventos en esa ubicación
+        """
+        return await service.search_by_location(location_query)
+
+    @router.get(
+        "/search/advanced",
+        response_model=list[EventResponse],
+        summary="Búsqueda avanzada de eventos",
+        description="""
+Busca por título, organizador (calendario) y palabras clave (descripción).
+
+**Nuevo en V2**: Este endpoint no existe en V1.
+        """,
+        responses={
+            200: {"description": "Lista de eventos que coinciden."},
+            500: {"description": "Error interno del servidor."}
+        }
+    )
+    async def search_advanced(
+        title: str | None = Query(None, description="Título del evento"),
+        organizer: str | None = Query(None, description="Organizador (Título del calendario)"),
+        keywords: str | None = Query(None, description="Palabras clave (Descripción)"),
+        service: IEventService = Depends(get_service_dependency),
+    ):
+        """Realiza una búsqueda avanzada en eventos.
+        
+        Combina múltiples criterios de búsqueda con lógica AND:
+        - title: Busca en el título del evento
+        - organizer: Busca en calendar_title
+        - keywords: Busca en la descripción
+        
+        Args:
+            title: Título del evento (opcional)
+            organizer: Título del calendario (opcional)
+            keywords: Palabras clave en descripción (opcional)
+            service: Servicio de eventos inyectado
+            
+        Returns:
+            list[EventResponse]: Eventos que coinciden con todos los criterios
+        """
+        return await service.search_advanced(title, organizer, keywords)
+
     return router
 

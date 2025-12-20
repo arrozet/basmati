@@ -6,11 +6,14 @@ Los endpoints sin cambios deben usarse desde /v1/.
 Cambios en V2:
 - get_all_calendars: Nuevo endpoint para obtener todos los calendarios
 - delete_calendar_recursive: Nuevo endpoint para eliminar calendario recursivamente
+- search_by_text: Nuevo endpoint para búsqueda de texto completo
+- search_by_creator_name: Nuevo endpoint para buscar por nombre de creador
+- add_comment: Nuevo endpoint para agregar comentarios a calendarios
 """
-from fastapi import APIRouter, Depends, HTTPException, Query, Path, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Path, Body, status
 
 from core.interface import ICalendarService
-from schemas.calendar import CalendarResponse
+from schemas.calendar import CalendarResponse, CalendarComment, CommentCreate
 
 
 def create_v2_calendars_router(get_service_dependency) -> APIRouter:
@@ -112,6 +115,170 @@ Ejemplo de uso:
             raise HTTPException(status_code=404, detail=str(exc))
         except Exception as exc:
             raise HTTPException(status_code=500, detail=str(exc))
+
+    # ========================================================================
+    # BÚSQUEDA DE TEXTO - NUEVO EN V2
+    # ========================================================================
+
+    @router.get(
+        "/search/by-text",
+        response_model=list[CalendarResponse],
+        summary="Búsqueda de texto completo en calendarios",
+        description="""
+Búsqueda full-text en calendarios. Busca en los campos: title, description y keywords del calendario.
+
+**Nuevo en V2**: Este endpoint no existe en V1.
+        """,
+        responses={
+            200: {"description": "Lista de calendarios encontrados."},
+            500: {"description": "Error interno del servidor."}
+        }
+    )
+    async def search_by_text(
+        query: str = Query(..., description="Término de búsqueda"),
+        service: ICalendarService = Depends(get_service_dependency),
+    ):
+        """Búsqueda full-text en calendarios.
+
+        Busca en los campos: title, description y keywords del calendario.
+
+        Args:
+            query: Término de búsqueda
+            service: Servicio de calendarios inyectado
+
+        Returns:
+            list[CalendarResponse]: Lista de calendarios encontrados
+        """
+        return await service.search_by_text(query)
+
+    @router.get(
+        "/search/full-text",
+        response_model=list[CalendarResponse],
+        summary="Búsqueda de texto completo (alias)",
+        description="""
+Búsqueda full-text en calendarios. Busca en los campos: title, description y keywords del calendario.
+
+**Nuevo en V2**: Este endpoint no existe en V1.
+Alias de /search/by-text para compatibilidad.
+        """,
+        responses={
+            200: {"description": "Lista de calendarios encontrados."},
+            500: {"description": "Error interno del servidor."}
+        }
+    )
+    async def search_full_text(
+        q: str = Query(..., description="Texto a buscar"),
+        service: ICalendarService = Depends(get_service_dependency),
+    ):
+        """Búsqueda full-text en calendarios (alias).
+
+        Args:
+            q: Término de búsqueda
+            service: Servicio de calendarios inyectado
+
+        Returns:
+            list[CalendarResponse]: Lista de calendarios encontrados
+        """
+        return await service.search_by_text(q)
+
+    @router.get(
+        "/search/by-creator-name",
+        response_model=list[CalendarResponse],
+        summary="Buscar calendarios por nombre del creador",
+        description="""
+Busca calendarios por nombre del creador.
+
+**Nuevo en V2**: Este endpoint no existe en V1.
+        """,
+        responses={
+            200: {"description": "Lista de calendarios encontrados."},
+            500: {"description": "Error interno del servidor."}
+        }
+    )
+    async def search_by_creator_name(
+        name: str = Query(..., description="Nombre del creador"),
+        service: ICalendarService = Depends(get_service_dependency),
+    ):
+        """Busca calendarios por nombre del creador.
+
+        Args:
+            name: Nombre o parte del nombre del creador
+            service: Servicio de calendarios inyectado
+
+        Returns:
+            list[CalendarResponse]: Calendarios creados por usuarios con ese nombre
+        """
+        return await service.search_by_creator_name(name)
+
+    # ========================================================================
+    # COMENTARIOS - NUEVO EN V2
+    # ========================================================================
+
+    @router.post(
+        "/{calendar_id}/comments",
+        response_model=CalendarComment,
+        status_code=status.HTTP_201_CREATED,
+        summary="Agregar comentario a un calendario",
+        description="""
+Agrega un comentario a un calendario público o unlisted.
+
+**Nuevo en V2**: Este endpoint no existe en V1.
+        """,
+        responses={
+            201: {"description": "Comentario creado exitosamente."},
+            403: {"description": "No tienes permiso para comentar en este calendario."},
+            404: {"description": "Calendario no encontrado."},
+            400: {"description": "Error de validación."}
+        }
+    )
+    async def add_comment(
+        calendar_id: str = Path(..., description="ID del calendario"),
+        comment: CommentCreate = Body(..., description="Datos del comentario"),
+        current_user_id: str = Query(..., description="ID del usuario actual"),
+        service: ICalendarService = Depends(get_service_dependency),
+    ):
+        """Agrega un comentario a un calendario.
+        
+        Nuevo en V2:
+        - Permite comentar en calendarios públicos y unlisted
+        - Verifica permisos de visualización antes de permitir comentar
+        
+        Args:
+            calendar_id: ID del calendario
+            comment: Datos del comentario
+            current_user_id: ID del usuario que comenta
+            service: Servicio de calendarios inyectado
+            
+        Returns:
+            CalendarComment: Comentario agregado
+            
+        Raises:
+            403: Si el usuario no puede ver el calendario
+            404: Si el calendario no existe
+            400: Si hay error de validación
+        """
+        # Verificar que el usuario puede ver el calendario (para comentar debe poder verlo)
+        can_view = await service.can_view_calendar(calendar_id, current_user_id)
+        if not can_view:
+            raise HTTPException(
+                status_code=403, 
+                detail="No tienes permiso para comentar en este calendario"
+            )
+        
+        try:
+            new_comment = await service.add_comment(calendar_id, comment)
+        except ValueError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=str(exc),
+            )
+
+        if not new_comment:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Calendario no encontrado",
+            )
+        return new_comment
 
     return router
 

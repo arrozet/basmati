@@ -143,39 +143,6 @@ def create_calendars_router(get_service_dependency) -> APIRouter:
         service: ICalendarService = Depends(get_service_dependency),
     ):
         return await service.search_by_visibility(visibility)
-    
-    @router.get(
-        "/search/by-text",
-        response_model=list[CalendarResponse],
-        summary="Búsqueda de texto completo en calendarios",
-    )
-    async def search_by_text(
-        query: str = Query(..., description="Texto a buscar"),
-        service: ICalendarService = Depends(get_service_dependency),
-    ):
-        return await service.search_by_text(query)
-
-    @router.get(
-        "/search/full-text",
-        response_model=list[CalendarResponse],
-        summary="Búsqueda de texto completo",
-    )
-    async def search_full_text(
-        q: str = Query(..., description="Texto a buscar"),
-        service: ICalendarService = Depends(get_service_dependency),
-    ):
-        return await service.search_by_text(q)
-
-    @router.get(
-        "/search/by-creator-name",
-        response_model=list[CalendarResponse],
-        summary="Buscar calendarios por nombre del creador",
-    )
-    async def search_by_creator_name(
-        name: str = Query(..., description="Nombre del creador"),
-        service: ICalendarService = Depends(get_service_dependency),
-    ):
-        return await service.search_by_creator_name(name)
 
     # ========================================================================
     # JERARQUÍA
@@ -205,48 +172,6 @@ def create_calendars_router(get_service_dependency) -> APIRouter:
         if not hierarchy:
             raise HTTPException(status_code=404, detail="Calendario no encontrado")
         return hierarchy
-
-    # ========================================================================
-    # COMENTARIOS
-    # ========================================================================
-
-    @router.post(
-        "/{calendar_id}/comments",
-        response_model=CalendarComment,
-        status_code=status.HTTP_201_CREATED,
-        summary="Agregar comentario a un calendario",
-        description="Agrega un comentario a un calendario público o unlisted.",
-    )
-    async def add_comment(
-        calendar_id: str = Path(..., description="ID del calendario"),
-        comment: CommentCreate = Body(..., description="Datos del comentario"),
-        current_user_id: str = Query(..., description="ID del usuario actual"),
-        service: ICalendarService = Depends(get_service_dependency),
-    ):
-        """Agrega un comentario a un calendario."""
-        # Verificar que el usuario puede ver el calendario (para comentar debe poder verlo)
-        can_view = await service.can_view_calendar(calendar_id, current_user_id)
-        if not can_view:
-            raise HTTPException(
-                status_code=403, 
-                detail="No tienes permiso para comentar en este calendario"
-            )
-        
-        try:
-            new_comment = await service.add_comment(calendar_id, comment)
-        except ValueError as exc:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=str(exc),
-            )
-
-        if not new_comment:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Calendario no encontrado",
-            )
-        return new_comment
-
 
     # ========================================================================
     # V2 EXCLUSIVE (Available in V1 interface but implemented differently or exposed here for uniformity)
