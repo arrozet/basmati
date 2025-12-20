@@ -6,7 +6,7 @@ Los endpoints sin cambios deben usarse desde /v1/.
 Cambios en V2:
 - get_all_calendars: Nuevo endpoint para obtener todos los calendarios
 - delete_calendar_recursive: Nuevo endpoint para eliminar calendario recursivamente
-- search_by_text: Nuevo endpoint para búsqueda de texto completo
+- search_by_text: Búsqueda de texto completo en calendarios
 - search_by_creator_name: Nuevo endpoint para buscar por nombre de creador
 - add_comment: Nuevo endpoint para agregar comentarios a calendarios
 """
@@ -150,36 +150,6 @@ Búsqueda full-text en calendarios. Busca en los campos: title, description y ke
             list[CalendarResponse]: Lista de calendarios encontrados
         """
         return await service.search_by_text(query)
-
-    @router.get(
-        "/search/full-text",
-        response_model=list[CalendarResponse],
-        summary="Búsqueda de texto completo (alias)",
-        description="""
-Búsqueda full-text en calendarios. Busca en los campos: title, description y keywords del calendario.
-
-**Nuevo en V2**: Este endpoint no existe en V1.
-Alias de /search/by-text para compatibilidad.
-        """,
-        responses={
-            200: {"description": "Lista de calendarios encontrados."},
-            500: {"description": "Error interno del servidor."}
-        }
-    )
-    async def search_full_text(
-        q: str = Query(..., description="Texto a buscar"),
-        service: ICalendarService = Depends(get_service_dependency),
-    ):
-        """Búsqueda full-text en calendarios (alias).
-
-        Args:
-            q: Término de búsqueda
-            service: Servicio de calendarios inyectado
-
-        Returns:
-            list[CalendarResponse]: Lista de calendarios encontrados
-        """
-        return await service.search_by_text(q)
 
     @router.get(
         "/search/by-creator-name",
