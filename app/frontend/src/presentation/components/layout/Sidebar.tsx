@@ -151,11 +151,20 @@ const CalendarTreeItem: React.FC<CalendarTreeItemProps> = ({
           onClick={() => onCalendarClick(calendar.id)}
           aria-label={`Ver calendario ${calendar.title}`}
         >
-          <div
-            className="w-3 h-3 border-2 border-basmati-black shrink-0"
-            style={{ backgroundColor: calendar.color || "#EBBE4D" }}
-            aria-hidden="true"
-          ></div>
+          {calendar.icon ? (
+            <img
+              src={calendar.icon}
+              alt=""
+              className="w-5 h-5 border-2 border-basmati-black shrink-0 object-cover"
+              aria-hidden="true"
+            />
+          ) : (
+            <div
+              className="w-3 h-3 border-2 border-basmati-black shrink-0"
+              style={{ backgroundColor: calendar.color || "#EBBE4D" }}
+              aria-hidden="true"
+            ></div>
+          )}
           <span className="truncate text-sm">{calendar.title}</span>
         </button>
 

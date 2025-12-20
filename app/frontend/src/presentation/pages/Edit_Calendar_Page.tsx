@@ -37,6 +37,8 @@ export const Edit_Calendar_Page = () => {
     is_public: false,
     parent_id: "",
   });
+  const [selected_file, set_selected_file] = useState<File | null>(null);
+  const [icon_preview, set_icon_preview] = useState<string | null>(null);
 
   useEffect(() => {
     const fetch_calendar = async () => {
@@ -53,6 +55,10 @@ export const Edit_Calendar_Page = () => {
             is_public: fetched_calendar.is_public,
             parent_id: fetched_calendar.parent_id || "",
           });
+          // Si el calendario ya tiene un icono, mostrarlo como preview
+          if (fetched_calendar.icon) {
+            set_icon_preview(fetched_calendar.icon);
+          }
         } else {
           set_error("Calendario no encontrado");
         }
@@ -80,6 +86,39 @@ export const Edit_Calendar_Page = () => {
     });
   };
 
+  const handle_file_change = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // Validar tipo de archivo
+      if (!file.type.match(/^image\/(png|jpeg|jpg)$/)) {
+        set_error("Por favor selecciona un archivo PNG o JPG");
+        return;
+      }
+      
+      // Validar tamaño (por ejemplo, máximo 2MB)
+      if (file.size > 2 * 1024 * 1024) {
+        set_error("El archivo debe ser menor a 2MB");
+        return;
+      }
+
+      set_selected_file(file);
+      
+      // Crear preview
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        set_icon_preview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+      
+      set_error(null);
+    }
+  };
+
+  const clear_file = () => {
+    set_selected_file(null);
+    set_icon_preview(null);
+  };
+
   const handle_submit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!calendar) return;
@@ -88,12 +127,27 @@ export const Edit_Calendar_Page = () => {
     set_error(null);
 
     try {
+      let icon_url = form_data.icon;
+
+      // Si se seleccionó un archivo nuevo, subirlo primero
+      if (selected_file) {
+        // TODO: Implementar subida de archivo al backend
+        // const uploaded_icon_url = await upload_icon(selected_file);
+        // icon_url = uploaded_icon_url;
+        
+        // Por ahora, usar el preview como placeholder
+        // En producción esto debe reemplazarse con la URL del servidor
+        console.warn("La subida de archivos aún no está implementada. El icono no se guardará.");
+        set_error("Advertencia: La funcionalidad de subida de iconos aún no está disponible.");
+        icon_url = icon_preview || form_data.icon;
+      }
+
       await update_calendar({
         id: calendar.id,
         title: form_data.title,
         color: form_data.color,
         owner_id: form_data.owner_id,
-        icon: form_data.icon,
+        icon: icon_url,
         is_public: form_data.is_public,
         parent_id: form_data.parent_id || undefined,
       });
@@ -301,21 +355,50 @@ export const Edit_Calendar_Page = () => {
               </p>
             </div>
 
-            <div className="flex flex-col gap-1">
-              <label
-                htmlFor="calendar-icon"
-                className="font-bold text-sm text-basmati-black"
-              >
+            <div className="flex flex-col gap-2">
+              <label className="font-bold text-sm text-basmati-black">
                 Icono
               </label>
-              <input
-                type="file"
-                id="calendar-icon"
-                name="icon"
-                accept="image/png,image/jpeg,image/jpg"
-                className="border-3 border-basmati-black px-3 py-2 focus:outline-none focus:ring-4 focus:ring-basmati-yellow ring-offset-2 transition-all bg-white file:mr-4 file:py-2 file:px-4 file:border-0 file:font-semibold file:bg-basmati-yellow file:text-basmati-black hover:file:bg-basmati-yellow/80"
-                aria-describedby="icon-hint"
-              />
+              <div className="flex flex-col md:flex-row gap-3 items-start">
+                <div className="flex-1 w-full">
+                  <input
+                    type="file"
+                    id="calendar-icon"
+                    name="icon"
+                    accept="image/png,image/jpeg,image/jpg"
+                    onChange={handle_file_change}
+                    className="hidden"
+                    aria-describedby="icon-hint"
+                  />
+                  <label
+                    htmlFor="calendar-icon"
+                    className="inline-block w-full cursor-pointer border-3 border-basmati-black px-4 py-3 bg-basmati-yellow hover:bg-basmati-yellow/80 transition-colors font-semibold text-basmati-black text-center focus-within:ring-4 focus-within:ring-basmati-yellow focus-within:ring-offset-2"
+                  >
+                    {selected_file ? selected_file.name : "Elegir archivo"}
+                  </label>
+                </div>
+                {selected_file && (
+                  <button
+                    type="button"
+                    onClick={clear_file}
+                    className="px-4 py-3 border-3 border-basmati-black bg-basmati-red text-white font-semibold hover:bg-basmati-red/80 transition-colors"
+                  >
+                    Eliminar
+                  </button>
+                )}
+              </div>
+              {icon_preview && (
+                <div className="mt-2">
+                  <p className="text-xs font-semibold text-basmati-black mb-1">
+                    Vista previa:
+                  </p>
+                  <img
+                    src={icon_preview}
+                    alt="Vista previa del icono"
+                    className="w-16 h-16 border-3 border-basmati-black object-cover"
+                  />
+                </div>
+              )}
               <span id="icon-hint" className="text-xs text-gray-600">
                 Carga una imagen 256x256 píxeles. Formatos: PNG, JPG.
               </span>

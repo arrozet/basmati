@@ -178,10 +178,20 @@ export const Calendar_Detail_Page = () => {
               )}
             </div>
 
-            {/* Título */}
-            <h1 className="text-3xl md:text-4xl font-black mb-6 leading-tight text-basmati-black">
-              {calendar.title}
-            </h1>
+            {/* Título con icono */}
+            <div className="flex items-center gap-4 mb-6">
+              {calendar.icon && (
+                <img
+                  src={calendar.icon}
+                  alt=""
+                  className="w-16 h-16 border-3 border-basmati-black object-cover shadow-hard shrink-0"
+                  aria-hidden="true"
+                />
+              )}
+              <h1 className="text-3xl md:text-4xl font-black leading-tight text-basmati-black">
+                {calendar.title}
+              </h1>
+            </div>
 
             {/* Información en grid */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
