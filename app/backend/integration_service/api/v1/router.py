@@ -8,4 +8,4 @@ from api.v1.endpoints import integrations
 api_router = APIRouter()
 
 # Incluir routers de endpoints
-api_router.include_router(integrations.router, prefix="/integrations", tags=["Integration: General"])
+api_router.include_router(integrations.router, prefix="/integrations", tags=["Integration: Imports"])

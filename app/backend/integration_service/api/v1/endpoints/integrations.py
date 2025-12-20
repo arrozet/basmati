@@ -20,7 +20,7 @@ def get_integration_service() -> IntegrationService:
 
 
 @router.post(
-    "/google/import",
+    "/google",
     response_model=ImportResponse,
     status_code=status.HTTP_201_CREATED,
     summary="Importar calendarios desde Google Calendar",
@@ -54,7 +54,7 @@ async def import_from_google_calendar(
 
 
 @router.post(
-    "/teamup/import",
+    "/teamup",
     response_model=ImportResponse,
     status_code=status.HTTP_201_CREATED,
     summary="Importar calendarios desde Teamup",

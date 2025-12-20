@@ -12,7 +12,7 @@ from core.database import (
 # Metadata de tags para organizar la documentación
 tags_metadata = [
     {
-        "name": "Integration: General",
+        "name": "Integration: Imports",
         "description": "Importación de calendarios desde servicios externos (Google Calendar, Teamup).",
     },
     {

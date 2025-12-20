@@ -10,12 +10,12 @@ import { api_client } from "../api/axios_client";
 
 export class Http_Integration_Repository implements Integration_Repository_Interface {
     async import_google_calendar(request: Google_Import_Request): Promise<Import_Response> {
-        const response = await api_client.post('/v2/integrations/imports/google/import', request);
+        const response = await api_client.post('/v2/integrations/imports/google', request);
         return response.data;
     }
 
     async import_teamup_calendar(request: Teamup_Import_Request): Promise<Import_Response> {
-        const response = await api_client.post('/v2/integrations/imports/teamup/import', request);
+        const response = await api_client.post('/v2/integrations/imports/teamup', request);
         return response.data;
     }
 

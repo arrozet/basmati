@@ -20,7 +20,7 @@ def get_import_service_v2() -> ImportServiceV2:
 
 
 @router.post(
-    "/google/import",
+    "/google",
     response_model=ImportResponse,
     status_code=status.HTTP_201_CREATED,
     summary="Importar calendarios desde Google Calendar (V2)",
@@ -54,7 +54,7 @@ async def import_from_google_calendar(
 
 
 @router.post(
-    "/teamup/import",
+    "/teamup",
     response_model=ImportResponse,
     status_code=status.HTTP_201_CREATED,
     summary="Importar calendarios desde Teamup (V2)",
