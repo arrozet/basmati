@@ -3,7 +3,6 @@ import { useNavigate, useParams } from "react-router-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faPencil,
-  faArrowLeft,
   faClock,
   faEye,
   faEyeSlash,
@@ -13,6 +12,7 @@ import {
 import { MainLayout } from "../components/layout/MainLayout";
 import { Neo_Card } from "../components/ui/Neo_Card";
 import { Neo_Button } from "../components/ui/Neo_Button";
+import { Back_Button } from "../components/ui/Back_Button";
 import { Comments_Section } from "../components/ui/Comments_Section";
 import { Http_Calendar_Repository } from "../../infrastructure/repositories/http_calendar_repository";
 import { Calendar_Model } from "../../domain/models/calendar_model";
@@ -103,13 +103,7 @@ export const Calendar_Detail_Page = () => {
           <div className="text-xl font-bold text-basmati-red mb-4 border-2 border-basmati-black p-4 bg-red-50 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
             {error || "Calendario no encontrado"}
           </div>
-          <Neo_Button
-            onClick={() => navigate("/dashboard")}
-            variant="secondary"
-          >
-            <FontAwesomeIcon icon={faArrowLeft} className="mr-2" /> Volver al
-            Dashboard
-          </Neo_Button>
+          <Back_Button to="/dashboard" />
         </div>
       </MainLayout>
     );
@@ -143,9 +137,7 @@ export const Calendar_Detail_Page = () => {
     <MainLayout>
       <div className="max-w-6xl mx-auto pb-10">
         <div className="mb-4">
-          <Neo_Button onClick={() => navigate(-1)} variant="secondary">
-            <FontAwesomeIcon icon={faArrowLeft} className="mr-2" /> Volver
-          </Neo_Button>
+          <Back_Button />
         </div>
 
         {/* Detalles del Calendario - Compacto */}

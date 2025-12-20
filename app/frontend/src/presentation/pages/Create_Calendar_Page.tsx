@@ -1,11 +1,11 @@
 import React, { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faArrowLeft } from "@fortawesome/free-solid-svg-icons";
 import { MainLayout } from "../components/layout/MainLayout";
 import { Neo_Card } from "../components/ui/Neo_Card";
 import { Neo_Input } from "../components/ui/Neo_Input";
 import { Neo_Button } from "../components/ui/Neo_Button";
+import { Back_Button } from "../components/ui/Back_Button";
 import { use_calendars } from "../hooks/use_calendars";
 import { use_page_title } from "../hooks/use_page_title";
 import { use_user_context } from "../context/UserContext";
@@ -163,16 +163,9 @@ export const Create_Calendar_Page = () => {
     <MainLayout>
       <div className="flex justify-center">
         <div className="w-full max-w-4xl">
-          <Link to="/dashboard" className="inline-block mb-4">
-            <Neo_Button
-              variant="secondary"
-              className="flex items-center gap-2 text-sm font-bold px-4 py-2"
-              aria-label="Volver al dashboard"
-            >
-              <FontAwesomeIcon icon={faArrowLeft} />
-              <span>Volver</span>
-            </Neo_Button>
-          </Link>
+          <div className="mb-4">
+            <Back_Button to="/dashboard" />
+          </div>
           <Neo_Card className="w-full" title="Crear calendario">
             <form
               onSubmit={handle_submit}

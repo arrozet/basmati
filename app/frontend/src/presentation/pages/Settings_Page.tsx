@@ -1,9 +1,10 @@
 import React, { useState, FormEvent, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { MainLayout } from "../components/layout/MainLayout";
 import { Neo_Button } from "../components/ui/Neo_Button";
 import { Neo_Input } from "../components/ui/Neo_Input";
 import { Neo_Card } from "../components/ui/Neo_Card";
+import { Back_Button } from "../components/ui/Back_Button";
 import { Avatar } from "../components/ui/Avatar";
 import {
   use_user_context,
@@ -13,7 +14,6 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faUser,
   faBell,
-  faArrowLeft,
   faCheck,
   faExclamationCircle,
   faSignOutAlt,
@@ -439,16 +439,9 @@ export const Settings_Page: React.FC = () => {
       <div className="max-w-4xl mx-auto py-8 px-4">
         {/* Header */}
         <header className="mb-8">
-          <Link to="/dashboard" className="inline-block mb-4">
-            <Neo_Button
-              variant="secondary"
-              className="flex items-center gap-2 text-sm font-bold px-4 py-2"
-              aria-label="Volver al dashboard"
-            >
-              <FontAwesomeIcon icon={faArrowLeft} aria-hidden="true" />
-              <span>Volver</span>
-            </Neo_Button>
-          </Link>
+          <div className="mb-4">
+            <Back_Button to="/dashboard" />
+          </div>
           <h1 className="text-4xl font-black uppercase">Configuración</h1>
           <p className="text-gray-600 mt-2">
             Conectado como:{" "}

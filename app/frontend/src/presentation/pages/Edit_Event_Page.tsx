@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faArrowLeft } from "@fortawesome/free-solid-svg-icons";
 import { MainLayout } from "../components/layout/MainLayout";
 import { Neo_Card } from "../components/ui/Neo_Card";
 import { Neo_Input } from "../components/ui/Neo_Input";
 import { Neo_Button } from "../components/ui/Neo_Button";
 import { Neo_Modal } from "../components/ui/Neo_Modal";
+import { Back_Button } from "../components/ui/Back_Button";
 import { Location_Picker } from "../components/ui/Location_Picker";
 import { Image_Uploader } from "../components/ui/Image_Uploader";
 import { Http_Event_Repository } from "../../infrastructure/repositories/http_event_repository";
@@ -242,9 +242,7 @@ export const Edit_Event_Page = () => {
       <div className="flex justify-center">
         <div className="w-full max-w-4xl">
           <div className="mb-4">
-            <Neo_Button onClick={() => navigate(-1)} variant="secondary">
-              <FontAwesomeIcon icon={faArrowLeft} className="mr-2" /> Volver
-            </Neo_Button>
+            <Back_Button />
           </div>
           <Neo_Card className="w-full">
             <header className="mb-4 flex justify-between items-center">

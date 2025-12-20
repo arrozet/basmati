@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from "react";
-import { useSearchParams, Link, useNavigate } from "react-router-dom";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import { use_global_search } from "../hooks/use_global_search";
 import { use_page_title } from "../hooks/use_page_title";
 import { Neo_Card } from "../components/ui/Neo_Card";
 import { Neo_Input } from "../components/ui/Neo_Input";
 import { Neo_Button } from "../components/ui/Neo_Button";
+import { Back_Button } from "../components/ui/Back_Button";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faSearch,
-  faArrowLeft,
   faCalendarAlt,
   faClipboardList,
   faClock,
@@ -91,16 +91,9 @@ export const Search_Page: React.FC = () => {
 
   return (
     <main className="p-4 md:p-8 w-full max-w-6xl mx-auto">
-      <Link to="/dashboard" className="inline-block mb-6">
-        <Neo_Button
-          variant="secondary"
-          className="flex items-center gap-2 text-sm font-bold px-4 py-2"
-          aria-label="Volver al calendario principal"
-        >
-          <FontAwesomeIcon icon={faArrowLeft} />
-          <span>Volver al calendario</span>
-        </Neo_Button>
-      </Link>
+      <div className="mb-6">
+        <Back_Button to="/dashboard" />
+      </div>
 
       <header className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
         <div className="flex items-center gap-3 w-full">

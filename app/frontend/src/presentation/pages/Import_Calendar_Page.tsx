@@ -1,11 +1,11 @@
 import React, { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faArrowLeft } from "@fortawesome/free-solid-svg-icons";
 import { MainLayout } from "../components/layout/MainLayout";
 import { Neo_Card } from "../components/ui/Neo_Card";
 import { Neo_Button } from "../components/ui/Neo_Button";
 import { Neo_Input } from "../components/ui/Neo_Input";
+import { Back_Button } from "../components/ui/Back_Button";
 import { Http_Integration_Repository } from "../../infrastructure/repositories/http_integration_repository";
 import { Import_Google_Calendar_Use_Case } from "../../application/integration/import_google_calendar_use_case";
 import { Import_Teamup_Calendar_Use_Case } from "../../application/integration/import_teamup_calendar_use_case";
@@ -87,16 +87,9 @@ export const Import_Calendar_Page = () => {
     <MainLayout>
       <div className="flex justify-center">
         <div className="w-full max-w-2xl">
-          <Link to="/dashboard" className="inline-block mb-6">
-            <Neo_Button
-              variant="secondary"
-              className="flex items-center gap-2 text-sm font-bold px-4 py-2"
-              aria-label="Volver al dashboard"
-            >
-              <FontAwesomeIcon icon={faArrowLeft} />
-              <span>Volver</span>
-            </Neo_Button>
-          </Link>
+          <div className="mb-6">
+            <Back_Button to="/dashboard" />
+          </div>
           <h1 className="text-3xl font-black uppercase mb-6">
             Importar Calendario
           </h1>

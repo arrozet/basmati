@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faArrowLeft } from "@fortawesome/free-solid-svg-icons";
 import { MainLayout } from "../components/layout/MainLayout";
 import { Neo_Card } from "../components/ui/Neo_Card";
 import { Neo_Input } from "../components/ui/Neo_Input";
 import { Neo_Button } from "../components/ui/Neo_Button";
+import { Back_Button } from "../components/ui/Back_Button";
 import { use_calendars } from "../hooks/use_calendars";
 import { Calendar_Model } from "../../domain/models/calendar_model";
 import { use_page_title } from "../hooks/use_page_title";
@@ -237,9 +237,7 @@ export const Edit_Calendar_Page = () => {
     <MainLayout>
       <div className="flex flex-col items-center">
         <div className="w-full max-w-4xl mb-4 flex justify-start">
-          <Neo_Button onClick={() => navigate(-1)} variant="secondary">
-            <FontAwesomeIcon icon={faArrowLeft} className="mr-2" /> Volver
-          </Neo_Button>
+          <Back_Button />
         </div>
         <Neo_Card className="w-full max-w-4xl" title="Modificar calendario">
           <form

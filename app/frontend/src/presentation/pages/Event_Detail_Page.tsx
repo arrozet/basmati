@@ -3,7 +3,6 @@ import { useNavigate, useParams } from "react-router-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faPencil,
-  faArrowLeft,
   faClock,
   faAlignLeft,
   faMapMarkerAlt,
@@ -14,6 +13,7 @@ import {
 import { MainLayout } from "../components/layout/MainLayout";
 import { Neo_Card } from "../components/ui/Neo_Card";
 import { Neo_Button } from "../components/ui/Neo_Button";
+import { Back_Button } from "../components/ui/Back_Button";
 import { Comments_Section } from "../components/ui/Comments_Section";
 import { Http_Event_Repository } from "../../infrastructure/repositories/http_event_repository";
 import { Http_Calendar_Repository } from "../../infrastructure/repositories/http_calendar_repository";
@@ -121,13 +121,7 @@ export const Event_Detail_Page = () => {
           <div className="text-xl font-bold text-basmati-red mb-4 border-2 border-basmati-black p-4 bg-red-50 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
             {error || "Evento no encontrado"}
           </div>
-          <Neo_Button
-            onClick={() => navigate("/dashboard")}
-            variant="secondary"
-          >
-            <FontAwesomeIcon icon={faArrowLeft} className="mr-2" /> Volver al
-            Dashboard
-          </Neo_Button>
+          <Back_Button to="/dashboard" />
         </div>
       </MainLayout>
     );
@@ -159,16 +153,9 @@ export const Event_Detail_Page = () => {
   return (
     <MainLayout>
       <div className="max-w-6xl mx-auto">
-        {/* Botón Volver */}
-        <Neo_Button
-          onClick={() => navigate(-1)}
-          variant="secondary"
-          className="flex items-center gap-2 text-sm font-bold px-4 py-2 mb-6"
-          aria-label="Volver"
-        >
-          <FontAwesomeIcon icon={faArrowLeft} />
-          <span>Volver</span>
-        </Neo_Button>
+        <div className="mb-6">
+          <Back_Button />
+        </div>
 
         <div className="md:h-[calc(100vh-180px)] h-auto flex flex-col md:flex-row gap-6 pb-10 md:pb-0">
           {/* Columna Izquierda: Tarjeta Principal del Evento */}
