@@ -238,7 +238,7 @@ export class Http_Calendar_Repository implements Calendar_Repository_Interface {
     display_name: string
   ): Promise<any> {
     const response = await api_client.post(
-      `/v1/calendars/${calendar_id}/comments`,
+      `/v2/calendars/${calendar_id}/comments`,
       {
         author_external_id: user_id,
         author_display_name: display_name,
