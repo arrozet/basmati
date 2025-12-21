@@ -312,3 +312,4 @@ typings/
 # Output of 'npm pack'
 *.tgz
 /.vscode
+/docs/deliverables/P3-Frontend/code
