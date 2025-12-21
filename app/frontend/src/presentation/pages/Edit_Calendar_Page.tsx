@@ -94,7 +94,7 @@ export const Edit_Calendar_Page = () => {
         set_error("Por favor selecciona un archivo PNG o JPG");
         return;
       }
-      
+
       // Validar tamaño (por ejemplo, máximo 2MB)
       if (file.size > 2 * 1024 * 1024) {
         set_error("El archivo debe ser menor a 2MB");
@@ -102,14 +102,14 @@ export const Edit_Calendar_Page = () => {
       }
 
       set_selected_file(file);
-      
+
       // Crear preview
       const reader = new FileReader();
       reader.onloadend = () => {
         set_icon_preview(reader.result as string);
       };
       reader.readAsDataURL(file);
-      
+
       set_error(null);
     }
   };
@@ -129,17 +129,9 @@ export const Edit_Calendar_Page = () => {
     try {
       let icon_url = form_data.icon;
 
-      // Si se seleccionó un archivo nuevo, subirlo primero
-      if (selected_file) {
-        // TODO: Implementar subida de archivo al backend
-        // const uploaded_icon_url = await upload_icon(selected_file);
-        // icon_url = uploaded_icon_url;
-        
-        // Por ahora, usar el preview como placeholder
-        // En producción esto debe reemplazarse con la URL del servidor
-        console.warn("La subida de archivos aún no está implementada. El icono no se guardará.");
-        set_error("Advertencia: La funcionalidad de subida de iconos aún no está disponible.");
-        icon_url = icon_preview || form_data.icon;
+      // Si se seleccionó un archivo nuevo, usar el preview
+      if (selected_file && icon_preview) {
+        icon_url = icon_preview;
       }
 
       await update_calendar({
