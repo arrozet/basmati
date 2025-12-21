@@ -176,7 +176,7 @@ export class Http_Calendar_Repository implements Calendar_Repository_Interface {
    */
   async search(query: string): Promise<Calendar_Model[]> {
     try {
-      const response = await api_client.get(`/v1/calendars/search/by-text`, {
+      const response = await api_client.get(`/v2/calendars/search/by-text`, {
         params: { query },
       });
       return response.data.map((item: any) => ({
@@ -205,7 +205,7 @@ export class Http_Calendar_Repository implements Calendar_Repository_Interface {
   ): Promise<Calendar_Model[]> {
     try {
       const response = await api_client.get(
-        `/v1/calendars/search/by-creator-name`,
+        `/v2/calendars/search/by-creator-name`,
         {
           params: { name: creator_name },
         }

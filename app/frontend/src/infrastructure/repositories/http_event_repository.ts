@@ -145,8 +145,8 @@ export class Http_Event_Repository implements Event_Repository_Interface {
     }
 
     async search_events(query: string): Promise<Event_Model[]> {
-        // Usar V1 para búsqueda de texto (V2 no tiene este endpoint)
-        const response = await api_client.get(`/v1/events/search/by-text`, {
+        // Usar V2 para búsqueda de texto
+        const response = await api_client.get(`/v2/events/search/by-text`, {
             params: { query }
         });
         
@@ -154,8 +154,8 @@ export class Http_Event_Repository implements Event_Repository_Interface {
     }
 
     async search_advanced(params: { title?: string; organizer?: string; keywords?: string }): Promise<Event_Model[]> {
-        // Usar V1 para búsqueda avanzada (V2 no tiene este endpoint)
-        const response = await api_client.get(`/v1/events/search/advanced`, {
+        // Usar V2 para búsqueda avanzada
+        const response = await api_client.get(`/v2/events/search/advanced`, {
             params
         });
         
