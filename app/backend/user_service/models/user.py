@@ -32,6 +32,7 @@ class NotificationPreferences(BaseModel):
     in_app: bool = True
     email: bool = True
     email_address: str | None = None
+    frequency: str = "instant"  # "instant" o "daily" - solo para nuevos documentos
 
 class UserModel(BaseModel):
     """Modelo de usuario en MongoDB"""

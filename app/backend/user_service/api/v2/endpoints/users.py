@@ -243,11 +243,23 @@ async def update_user_v2(
     
     # Si hay preferencias de notificación con frequency, actualizarlas directamente
     if "notification_preferences" in update_dict and update_dict["notification_preferences"]:
-        # Actualizar directamente en el repositorio
-        await service.get_raw_repository().update(user_id, {
-            "notification_preferences": update_dict["notification_preferences"]
-        })
-        updated_user = await service.get_user(user_id)
+        # Intentar guardar las preferencias con frequency
+        try:
+            await service.get_raw_repository().update(user_id, {
+                "notification_preferences": update_dict["notification_preferences"]
+            })
+            updated_user = await service.get_user(user_id)
+        except Exception as e:
+            # Si falla (esquema antiguo), remover frequency y reintentar
+            if "frequency" in str(e):
+                prefs_to_save = update_dict["notification_preferences"].copy()
+                prefs_to_save.pop("frequency", None)
+                await service.get_raw_repository().update(user_id, {
+                    "notification_preferences": prefs_to_save
+                })
+                updated_user = await service.get_user(user_id)
+            else:
+                raise
     
     # Convertir a V2
     user_dict = updated_user.model_dump()
@@ -351,9 +363,18 @@ async def update_notification_preferences_v2(
         )
     
     # Actualizar directamente las preferencias
-    await service.get_raw_repository().update(user_id, {
-        "notification_preferences": preferences.model_dump()
-    })
+    try:
+        await service.get_raw_repository().update(user_id, {
+            "notification_preferences": preferences.model_dump()
+        })
+    except Exception as e:
+        # Si falla (esquema antiguo), remover frequency y reintentar
+        if "frequency" in str(e):
+            prefs_to_save = preferences.model_dump()
+            prefs_to_save.pop("frequency", None)
+            await service.get_raw_repository().update(user_id, {
+                "notification_preferences": prefs_to_save
+            })
     
     return preferences
 

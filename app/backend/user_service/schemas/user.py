@@ -8,6 +8,7 @@ class NotificationPreferencesSchema(BaseModel):
     in_app: bool = True
     email: bool = True
     email_address: str | None = None
+    frequency: Literal["instant", "daily"] = "instant"
 
 class UserCreate(BaseModel):
     """Schema base de usuario"""
