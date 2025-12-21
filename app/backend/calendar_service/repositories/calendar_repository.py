@@ -92,6 +92,7 @@ class CalendarRepository(ICalendarRepository):
         Actualiza un calendario existente.
         
         Valida los campos que se actualizan antes de hacer la operación.
+        Si se actualiza parent_calendar_id, recalcula el campo path.
         
         Args:
             calendar_id: ID del calendario
@@ -107,13 +108,44 @@ class CalendarRepository(ICalendarRepository):
         if not update_dict:
             return await self.find_by_id(calendar_id)
         
+        # Obtener el calendario actual
+        current_calendar = await self.find_by_id(calendar_id)
+        if not current_calendar:
+            return None
+        
+        # Si se está actualizando parent_calendar_id, recalcular path
+        if "parent_calendar_id" in update_dict:
+            parent_id = update_dict["parent_calendar_id"]
+            
+            if parent_id:
+                # Convertir a ObjectId si es string
+                if isinstance(parent_id, str):
+                    parent_id = ObjectId(parent_id)
+                    update_dict["parent_calendar_id"] = parent_id
+                
+                # Verificar que el padre exista
+                parent = await self.find_by_id(str(parent_id))
+                if not parent:
+                    raise ValueError(f"El calendario padre con ID '{parent_id}' no existe")
+                
+                # Prevenir ciclos: el padre no puede ser el mismo calendario ni un descendiente
+                if str(parent_id) == calendar_id:
+                    raise ValueError("Un calendario no puede ser su propio padre")
+                
+                # Verificar que el padre no sea un descendiente del calendario actual
+                parent_path = parent.get("path", [])
+                if ObjectId(calendar_id) in parent_path or str(parent.get("_id")) == calendar_id:
+                    raise ValueError("No se puede crear un ciclo en la jerarquía de calendarios")
+                
+                # Recalcular path: path del padre + ID del padre
+                update_dict["path"] = parent_path + [parent_id]
+            else:
+                # Si parent_calendar_id es None, el calendario se convierte en raíz
+                update_dict["parent_calendar_id"] = None
+                update_dict["path"] = []
+        
         # Validar campos actualizables contra CalendarModel
         try:
-            # Obtener el calendario actual
-            current_calendar = await self.find_by_id(calendar_id)
-            if not current_calendar:
-                return None
-            
             # Fusionar datos actuales con actualizaciones
             updated_calendar = {**current_calendar, **update_dict}
             updated_calendar["updated_at"] = datetime.now(timezone.utc)

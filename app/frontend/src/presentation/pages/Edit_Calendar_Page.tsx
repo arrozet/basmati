@@ -141,7 +141,7 @@ export const Edit_Calendar_Page = () => {
         owner_id: form_data.owner_id,
         icon: icon_url,
         is_public: form_data.is_public,
-        parent_id: form_data.parent_id || undefined,
+        parent_id: form_data.parent_id || null,
       });
       navigate("/dashboard");
     } catch (err: any) {

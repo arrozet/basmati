@@ -94,7 +94,7 @@ export class Http_Calendar_Repository implements Calendar_Repository_Interface {
         color: calendar.color,
         icon: calendar.icon,
         visibility: calendar.is_public ? "public" : "private",
-        parent_calendar_id: calendar.parent_id,
+        parent_calendar_id: calendar.parent_id || null,
       },
       {
         params: { current_user_id: calendar.owner_id },

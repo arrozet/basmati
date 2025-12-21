@@ -37,6 +37,7 @@ class CalendarUpdate(BaseModel):
     keywords: list[str] | None = None
     color: str | None = None
     icon: str | None = None
+    parent_calendar_id: str | None = None
     description: str | None = None
     visibility: Literal["public", "private", "unlisted"] | None = None
     
@@ -45,7 +46,8 @@ class CalendarUpdate(BaseModel):
             "example": {
                 "title": "Calendario de Marketing 2024",
                 "keywords": ["marketing", "ventas", "campañas", "2024"],
-                "color": "#00A8E8"
+                "color": "#00A8E8",
+                "parent_calendar_id": "507f1f77bcf86cd799439011"
             }
         }
     )
