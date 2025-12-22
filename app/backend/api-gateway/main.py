@@ -7,8 +7,9 @@ from fastapi import FastAPI, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 import httpx
-from core.config import SERVICES
+from core.config import SERVICES, settings
 from core.openapi_aggregator import aggregate_openapi_specs
+from core.auth_middleware import AuthMiddleware
 
 # Variable para cachear el schema OpenAPI customizado
 _custom_openapi_schema = None
@@ -64,6 +65,10 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Middleware de autenticación
+# NOTA: Desactivado por defecto para desarrollo. Activar en producción.
+# app.add_middleware(AuthMiddleware)
 
 def custom_openapi():
     """
@@ -216,6 +221,20 @@ async def integrations_route(path: str, request: Request):
     """
     full_path = f"v1/integrations/{path}" if path else "v1/integrations"
     return await proxy_request("integrations", full_path, request)
+
+@app.api_route("/v1/auth/{path:path}", methods=["GET", "POST"])
+async def auth_route(path: str, request: Request):
+    """
+    Proxy para el Auth Service.
+    
+    Ejemplos:
+        GET /v1/auth/google → http://auth-service:8005/v1/auth/google
+        GET /v1/auth/google/callback → http://auth-service:8005/v1/auth/google/callback
+        POST /v1/auth/google/verify → http://auth-service:8005/v1/auth/google/verify
+        POST /v1/auth/verify → http://auth-service:8005/v1/auth/verify
+    """
+    full_path = f"v1/auth/{path}" if path else "v1/auth"
+    return await proxy_request("auth", full_path, request)
 
 @app.api_route("/v2/events/{path:path}", methods=["GET", "POST", "PUT", "DELETE"])
 async def events_v2_route(path: str, request: Request):

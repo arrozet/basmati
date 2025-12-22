@@ -32,12 +32,14 @@ services:
       - EVENT_SERVICE_URL=http://event-service:8003
       - NOTIFICATION_SERVICE_URL=http://notification-service:8004
       - INTEGRATION_SERVICE_URL=http://integration-service:8006
+      - AUTH_SERVICE_URL=http://auth-service:8005
     depends_on:
       - user-service
       - calendar-service
       - event-service
       - notification-service
       - integration-service
+      - auth-service
     networks:
       - basmati-network
 
@@ -150,6 +152,30 @@ services:
       - event-service
       - user-service
       - notification-service
+    networks:
+      - basmati-network
+
+  # Auth Service - OAuth y autenticación
+  auth-service:
+    build:
+      context: ./backend
+      dockerfile: auth_service/Dockerfile
+    container_name: basmati-auth-service
+    ports:
+      - "8005:8005"
+    environment:
+      - MONGO_URI=${MONGO_URI}
+      - SERVICE_PORT=8005
+      - DATABASE_NAME=basmati
+      - USER_SERVICE_URL=http://user-service:8001
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+      - GOOGLE_REDIRECT_URI=http://localhost:8000/v1/auth/google/callback
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY:-basmati-secret-key-dev}
+      - JWT_EXPIRE_MINUTES=10080
+      - FRONTEND_URL=${FRONTEND_URL:-http://localhost:5173}
+    depends_on:
+      - user-service
     networks:
       - basmati-network
 

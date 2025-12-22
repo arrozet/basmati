@@ -5,6 +5,16 @@ class APIGatewaySettings(Settings):
     """Configuración específica del API Gateway"""
     service_port: int = 8000
     service_name: str = "api-gateway"
+    auth_service_url: str = "http://auth-service:8005"
+    
+    # Rutas que NO requieren autenticación
+    public_routes: list[str] = [
+        "/health",
+        "/docs",
+        "/openapi.json",
+        "/redoc",
+        "/v1/auth/",  # Todas las rutas de auth son públicas
+    ]
 
 # Instancia de configuración para este servicio
 settings = APIGatewaySettings()
@@ -16,4 +26,5 @@ SERVICES = {
     "events": settings.event_service_url,
     "notifications": settings.notification_service_url,
     "integrations": settings.integration_service_url,
+    "auth": settings.auth_service_url,
 }

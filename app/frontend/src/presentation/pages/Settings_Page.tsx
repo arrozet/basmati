@@ -37,6 +37,7 @@ export const Settings_Page: React.FC = () => {
     error: context_error,
     update_user,
     update_preferences,
+    logout,
   } = use_user_context();
 
   const [active_tab, set_active_tab] = useState<SettingsTab>("profile");
@@ -129,7 +130,7 @@ export const Settings_Page: React.FC = () => {
   };
 
   const handle_logout = () => {
-    localStorage.removeItem("basmati_current_user");
+    logout();
     navigate("/login");
   };
 
