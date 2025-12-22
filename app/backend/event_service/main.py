@@ -41,3 +41,11 @@ async def health_check():
         "service": "event-service",
         "port": settings.service_port,
     }
+
+# Lambda handler usando Mangum
+try:
+    from mangum import Mangum
+    handler = Mangum(app, lifespan="off")
+except ImportError:
+    # Mangum no disponible en desarrollo local
+    handler = None

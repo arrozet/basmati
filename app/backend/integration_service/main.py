@@ -49,6 +49,14 @@ async def shutdown_event():
     """Evento de cierre: desconecta de MongoDB"""
     await close_mongo_connection()
 
+# Lambda handler usando Mangum
+try:
+    from mangum import Mangum
+    handler = Mangum(app, lifespan="off")
+except ImportError:
+    # Mangum no disponible en desarrollo local
+    handler = None
+
 @app.get("/health")
 async def health_check():
     return {"status": "healthy", "service": "integration-service", "port": settings.service_port}

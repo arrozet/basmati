@@ -1,0 +1,9 @@
+{
+  "httpMethod": "POST",
+  "path": "/v1/users",
+  "headers": {
+    "Content-Type": "application/json"
+  },
+  "body": "{\"external_id\":\"google_test_123\",\"provider\":\"google\",\"email\":\"test@example.com\",\"display_name\":\"Test User\"}",
+  "isBase64Encoded": false
+}

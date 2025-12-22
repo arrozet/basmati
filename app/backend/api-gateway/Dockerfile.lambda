@@ -1,0 +1,24 @@
+# Dockerfile para AWS Lambda - API Gateway
+FROM public.ecr.aws/lambda/python:3.11
+
+# Copiar requirements
+COPY api-gateway/requirements.txt ${LAMBDA_TASK_ROOT}/
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Instalar Mangum para adaptador FastAPI -> Lambda
+RUN pip install --no-cache-dir mangum
+
+# Copiar código del servicio
+COPY api-gateway/main.py ${LAMBDA_TASK_ROOT}/
+COPY api-gateway/core/ ${LAMBDA_TASK_ROOT}/core/
+
+# Copiar shared
+COPY shared/ ${LAMBDA_TASK_ROOT}/shared/
+
+# Configurar PYTHONPATH para que Python encuentre el módulo shared
+ENV PYTHONPATH="${LAMBDA_TASK_ROOT}:${PYTHONPATH}"
+
+# Lambda buscará el handler en main.handler
+CMD ["main.handler"]
+
+

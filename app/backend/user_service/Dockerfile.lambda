@@ -1,0 +1,27 @@
+# Dockerfile para AWS Lambda - User Service
+FROM public.ecr.aws/lambda/python:3.11
+
+# Copiar requirements
+COPY user_service/requirements.txt ${LAMBDA_TASK_ROOT}/
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Instalar Mangum
+RUN pip install --no-cache-dir mangum
+
+# Copiar código del servicio
+COPY user_service/main.py ${LAMBDA_TASK_ROOT}/
+COPY user_service/api/ ${LAMBDA_TASK_ROOT}/api/
+COPY user_service/core/ ${LAMBDA_TASK_ROOT}/core/
+COPY user_service/models/ ${LAMBDA_TASK_ROOT}/models/
+COPY user_service/repositories/ ${LAMBDA_TASK_ROOT}/repositories/
+COPY user_service/schemas/ ${LAMBDA_TASK_ROOT}/schemas/
+COPY user_service/services/ ${LAMBDA_TASK_ROOT}/services/
+
+# Copiar shared
+COPY shared/ ${LAMBDA_TASK_ROOT}/shared/
+
+# Configurar PYTHONPATH para que Python encuentre el módulo shared
+ENV PYTHONPATH="${LAMBDA_TASK_ROOT}:${PYTHONPATH}"
+
+# Lambda buscará el handler en main.handler
+CMD ["main.handler"]

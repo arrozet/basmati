@@ -31,9 +31,13 @@ async def connect_to_mongo():
     Establece conexión con MongoDB Atlas.
     
     Se debe llamar en el evento startup de FastAPI.
-    Crea la conexión usando la URI desde las variables de entorno.
+    Crea la conexión usando la URI desde las variables de entorno o Secrets Manager.
     """
-    db.client = AsyncIOMotorClient(settings.mongo_uri)
+    mongo_uri = settings.get_mongo_uri_with_fallback()
+    if not mongo_uri:
+        raise ValueError("No se pudo obtener MONGO_URI. Verifica configuración o Secrets Manager")
+    
+    db.client = AsyncIOMotorClient(mongo_uri)
     db.db = db.client[settings.database_name]
     print(f"✅ Conectado a MongoDB: {settings.database_name}")
 

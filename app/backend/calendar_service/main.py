@@ -42,3 +42,11 @@ async def health_check():
         dict: Estado del servicio
     """
     return {"status": "healthy", "service": "calendar-service", "port": settings.service_port}
+
+# Lambda handler usando Mangum
+try:
+    from mangum import Mangum
+    handler = Mangum(app, lifespan="off")
+except ImportError:
+    # Mangum no disponible en desarrollo local
+    handler = None

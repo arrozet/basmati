@@ -1,0 +1,22 @@
+{
+  "httpMethod": "GET",
+  "path": "/health",
+  "headers": {
+    "Content-Type": "application/json",
+    "User-Agent": "SAM-Local-Test"
+  },
+  "queryStringParameters": null,
+  "pathParameters": null,
+  "body": null,
+  "isBase64Encoded": false,
+  "requestContext": {
+    "accountId": "123456789012",
+    "apiId": "local-api",
+    "domainName": "localhost",
+    "requestId": "test-request-id",
+    "routeKey": "GET /health",
+    "stage": "local",
+    "time": "22/Dec/2025:12:00:00 +0000",
+    "timeEpoch": 1703246400000
+  }
+}

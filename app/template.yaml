@@ -1,0 +1,384 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Basmati Application - Serverless Stack con Lambda Container Images
+
+# Parámetros configurables
+Parameters:
+  MongoUri:
+    Type: String
+    Description: URI de conexión a MongoDB Atlas
+    NoEcho: true
+  
+  DevUser1Email:
+    Type: String
+    Default: "amcgil@uma.es"
+    Description: Email del primer usuario de desarrollo
+  
+  DevUser2Email:
+    Type: String
+    Default: "rubenoliva@uma.es"
+    Description: Email del segundo usuario de desarrollo
+  
+  DevUser3Email:
+    Type: String
+    Default: "daily_digest_test@example.com"
+    Description: Email del tercer usuario de desarrollo
+  
+  AwsS3BucketName:
+    Type: String
+    Description: Nombre del bucket S3 para imágenes
+    Default: "basmati-uploads"
+  
+  SendGridApiKey:
+    Type: String
+    Description: API Key de SendGrid para envío de emails
+    NoEcho: true
+    Default: ""
+  
+  SenderEmail:
+    Type: String
+    Description: Email remitente para notificaciones
+    Default: "amcgil@uma.es"
+  
+  FrontendUrl:
+    Type: String
+    Description: URL del frontend alojado en S3/CloudFront
+    Default: "https://your-cloudfront-url.cloudfront.net"
+
+# Configuración global para todas las funciones Lambda
+Globals:
+  Function:
+    Timeout: 30
+    MemorySize: 512
+    Architectures:
+      - x86_64
+    Environment:
+      Variables:
+        DATABASE_NAME: basmati
+        # Ya no pasamos MONGO_URI como variable de entorno
+        # Se lee desde Secrets Manager en tiempo de ejecución
+
+Resources:
+  # ===== API GATEWAY HTTP API =====
+  BasmatiApiGateway:
+    Type: AWS::Serverless::HttpApi
+    Properties:
+      CorsConfiguration:
+        AllowOrigins:
+          - "*"
+        AllowHeaders:
+          - "*"
+        AllowMethods:
+          - GET
+          - POST
+          - PUT
+          - DELETE
+          - PATCH
+          - OPTIONS
+        MaxAge: 300
+      Description: API Gateway para Basmati Application
+
+  # ===== API GATEWAY SERVICE =====
+  ApiGatewayFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      PackageType: Image
+      Policies:
+        - Statement:
+          - Effect: Allow
+            Action:
+              - secretsmanager:GetSecretValue
+            Resource:
+              - !Sub 'arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:basmati/mongo-uri-*'
+              - !Sub 'arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:basmati/sendgrid-key-*'
+      Events:
+        HealthCheck:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref BasmatiApiGateway
+            Path: /health
+            Method: GET
+        OpenAPISpec:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref BasmatiApiGateway
+            Path: /openapi.json
+            Method: GET
+        ApiDocs:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref BasmatiApiGateway
+            Path: /docs
+            Method: GET
+      Environment:
+        Variables:
+          SERVICE_PORT: "8000"
+          # Las siguientes URLs no se usan en Lambda - cada servicio responde directamente a sus rutas
+          # USER_SERVICE_URL: !GetAtt UserServiceFunction.Arn
+          # CALENDAR_SERVICE_URL: !GetAtt CalendarServiceFunction.Arn
+          # EVENT_SERVICE_URL: !GetAtt EventServiceFunction.Arn
+          # NOTIFICATION_SERVICE_URL: !GetAtt NotificationServiceFunction.Arn
+          # INTEGRATION_SERVICE_URL: !GetAtt IntegrationServiceFunction.Arn
+    Metadata:
+      DockerTag: latest
+      DockerContext: ./backend
+      Dockerfile: api-gateway/Dockerfile.lambda
+
+  # ===== USER SERVICE =====
+  UserServiceFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      PackageType: Image
+      Policies:
+        - Statement:
+          - Effect: Allow
+            Action:
+              - secretsmanager:GetSecretValue
+            Resource:
+              - !Sub 'arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:basmati/mongo-uri-*'
+              - !Sub 'arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:basmati/sendgrid-key-*'
+      Events:
+        UsersV1:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref BasmatiApiGateway
+            Path: /v1/users/{proxy+}
+            Method: ANY
+        UsersV2:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref BasmatiApiGateway
+            Path: /v2/users/{proxy+}
+            Method: ANY
+      Environment:
+        Variables:
+          SERVICE_PORT: "8001"
+          DEV_USER_1_EMAIL: !Ref DevUser1Email
+          DEV_USER_2_EMAIL: !Ref DevUser2Email
+          DEV_USER_3_EMAIL: !Ref DevUser3Email
+    Metadata:
+      DockerTag: latest
+      DockerContext: ./backend
+      Dockerfile: user_service/Dockerfile.lambda
+
+  # ===== CALENDAR SERVICE =====
+  CalendarServiceFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      PackageType: Image
+      Policies:
+        - Statement:
+          - Effect: Allow
+            Action:
+              - secretsmanager:GetSecretValue
+            Resource:
+              - !Sub 'arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:basmati/mongo-uri-*'
+              - !Sub 'arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:basmati/sendgrid-key-*'
+      Events:
+        CalendarsV1:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref BasmatiApiGateway
+            Path: /v1/calendars/{proxy+}
+            Method: ANY
+        CalendarsV2:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref BasmatiApiGateway
+            Path: /v2/calendars/{proxy+}
+            Method: ANY
+      Environment:
+        Variables:
+          SERVICE_PORT: "8002"
+          USER_SERVICE_URL: !GetAtt UserServiceFunction.Arn
+          EVENT_SERVICE_URL: !GetAtt EventServiceFunction.Arn
+    Metadata:
+      DockerTag: latest
+      DockerContext: ./backend
+      Dockerfile: calendar_service/Dockerfile.lambda
+
+  # ===== EVENT SERVICE =====
+  EventServiceFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      PackageType: Image
+      Policies:
+        - Statement:
+          - Effect: Allow
+            Action:
+              - secretsmanager:GetSecretValue
+            Resource:
+              - !Sub 'arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:basmati/mongo-uri-*'
+              - !Sub 'arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:basmati/sendgrid-key-*'
+      Events:
+        EventsV1:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref BasmatiApiGateway
+            Path: /v1/events/{proxy+}
+            Method: ANY
+        EventsV2:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref BasmatiApiGateway
+            Path: /v2/events/{proxy+}
+            Method: ANY
+      Environment:
+        Variables:
+          SERVICE_PORT: "8003"
+          NOTIFICATION_SERVICE_URL: !GetAtt NotificationServiceFunction.Arn
+          CALENDAR_SERVICE_URL: !GetAtt CalendarServiceFunction.Arn
+          USER_SERVICE_URL: !GetAtt UserServiceFunction.Arn
+          INTEGRATION_SERVICE_URL: !GetAtt IntegrationServiceFunction.Arn
+    Metadata:
+      DockerTag: latest
+      DockerContext: ./backend
+      Dockerfile: event_service/Dockerfile.lambda
+
+  # ===== NOTIFICATION SERVICE =====
+  NotificationServiceFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      PackageType: Image
+      Policies:
+        - Statement:
+          - Effect: Allow
+            Action:
+              - secretsmanager:GetSecretValue
+            Resource:
+              - !Sub 'arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:basmati/mongo-uri-*'
+              - !Sub 'arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:basmati/sendgrid-key-*'
+      Events:
+        NotificationsV1:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref BasmatiApiGateway
+            Path: /v1/notifications/{proxy+}
+            Method: ANY
+      Environment:
+        Variables:
+          SERVICE_PORT: "8004"
+          USER_SERVICE_URL: !GetAtt UserServiceFunction.Arn
+          EMAIL_SERVICE_API_KEY: !Ref SendGridApiKey
+    Metadata:
+      DockerTag: latest
+      DockerContext: ./backend
+      Dockerfile: notification_service/Dockerfile.lambda
+
+  # ===== INTEGRATION SERVICE =====
+  IntegrationServiceFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      PackageType: Image
+      Policies:
+        - S3CrudPolicy:
+            BucketName: !Ref AwsS3BucketName
+        - Statement:
+          - Effect: Allow
+            Action:
+              - secretsmanager:GetSecretValue
+            Resource:
+              - !Sub 'arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:basmati/mongo-uri-*'
+              - !Sub 'arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:basmati/sendgrid-key-*'
+      Events:
+        IntegrationsV1:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref BasmatiApiGateway
+            Path: /v1/integrations/{proxy+}
+            Method: ANY
+        IntegrationsV2:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref BasmatiApiGateway
+            Path: /v2/integrations/{proxy+}
+            Method: ANY
+      Environment:
+        Variables:
+          SERVICE_PORT: "8006"
+          CALENDAR_SERVICE_URL: !GetAtt CalendarServiceFunction.Arn
+          EVENT_SERVICE_URL: !GetAtt EventServiceFunction.Arn
+          USER_SERVICE_URL: !GetAtt UserServiceFunction.Arn
+          NOTIFICATION_SERVICE_URL: !GetAtt NotificationServiceFunction.Arn
+          AWS_S3_BUCKET_NAME: !Ref AwsS3BucketName
+          SENDGRID_API_KEY: !Ref SendGridApiKey
+          SENDER_EMAIL: !Ref SenderEmail
+          FRONTEND_URL: !Ref FrontendUrl
+    Metadata:
+      DockerTag: latest
+      DockerContext: ./backend
+      Dockerfile: integration_service/Dockerfile.lambda
+
+  # ===== S3 BUCKET PARA IMÁGENES =====
+  ImagesBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Ref AwsS3BucketName
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: false
+        BlockPublicPolicy: false
+        IgnorePublicAcls: false
+        RestrictPublicBuckets: false
+      CorsConfiguration:
+        CorsRules:
+          - AllowedOrigins:
+              - "*"
+            AllowedMethods:
+              - GET
+              - PUT
+              - POST
+            AllowedHeaders:
+              - "*"
+
+  # Política para permitir lectura pública de imágenes
+  ImagesBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref ImagesBucket
+      PolicyDocument:
+        Statement:
+          - Sid: PublicReadGetObject
+            Effect: Allow
+            Principal: "*"
+            Action: "s3:GetObject"
+            Resource: !Sub "${ImagesBucket.Arn}/*"
+
+# Outputs para obtener información del deployment
+Outputs:
+  ApiUrl:
+    Description: URL del API Gateway
+    Value: !Sub "https://${BasmatiApiGateway}.execute-api.${AWS::Region}.amazonaws.com"
+    Export:
+      Name: !Sub "${AWS::StackName}-ApiUrl"
+  
+  ApiGatewayFunctionArn:
+    Description: ARN de la función Lambda del API Gateway
+    Value: !GetAtt ApiGatewayFunction.Arn
+  
+  UserServiceFunctionArn:
+    Description: ARN de la función Lambda del User Service
+    Value: !GetAtt UserServiceFunction.Arn
+  
+  CalendarServiceFunctionArn:
+    Description: ARN de la función Lambda del Calendar Service
+    Value: !GetAtt CalendarServiceFunction.Arn
+  
+  EventServiceFunctionArn:
+    Description: ARN de la función Lambda del Event Service
+    Value: !GetAtt EventServiceFunction.Arn
+  
+  NotificationServiceFunctionArn:
+    Description: ARN de la función Lambda del Notification Service
+    Value: !GetAtt NotificationServiceFunction.Arn
+  
+  IntegrationServiceFunctionArn:
+    Description: ARN de la función Lambda del Integration Service
+    Value: !GetAtt IntegrationServiceFunction.Arn
+  
+  ImagesBucketName:
+    Description: Nombre del bucket S3 para imágenes
+    Value: !Ref ImagesBucket
+  
+  ImagesBucketUrl:
+    Description: URL del bucket S3
+    Value: !GetAtt ImagesBucket.WebsiteURL

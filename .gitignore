@@ -316,3 +316,13 @@ typings/
 /docs/deliverables/P1-Arquitectura/entrega
 /docs/deliverables/P2-Backend/entrega
 /docs/deliverables/P3-Frontend/entrega
+
+# -----------------
+# AWS SAM
+# -----------------
+.aws-sam/
+samconfig.toml
+.env.production
+
+# AWS credentials
+.aws/

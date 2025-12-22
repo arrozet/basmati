@@ -126,6 +126,15 @@ async def proxy_request(service_name: str, path: str, request: Request):
         raise HTTPException(status_code=404, detail=f"Servicio {service_name} no encontrado")
     
     service_url = SERVICES[service_name]
+    
+    # Validar que la URL tenga protocolo HTTP/HTTPS
+    if not service_url.startswith(('http://', 'https://')):
+        # En SAM local o testing, las rutas son manejadas directamente por cada Lambda
+        raise HTTPException(
+            status_code=503,
+            detail=f"Servicio {service_name} no disponible en este entorno. Las rutas específicas (/v1/{service_name}/*) son manejadas directamente por cada servicio."
+        )
+    
     full_url = f"{service_url}/{path}"
     
     # Agregar query parameters si existen
@@ -332,3 +341,10 @@ async def proxy_request_multipart(service_name: str, path: str, request: Request
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+# Lambda handler usando Mangum
+try:
+    from mangum import Mangum
+    handler = Mangum(app, lifespan="off")
+except ImportError:
+    # Mangum no disponible en desarrollo local
+    handler = None
