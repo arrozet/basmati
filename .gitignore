@@ -313,3 +313,6 @@ typings/
 *.tgz
 /.vscode
 /docs/deliverables/P3-Frontend/code
+/docs/deliverables/P1-Arquitectura/entrega
+/docs/deliverables/P2-Backend/entrega
+/docs/deliverables/P3-Frontend/entrega
