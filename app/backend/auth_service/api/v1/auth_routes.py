@@ -46,9 +46,38 @@ async def get_or_create_user(google_user: GoogleUserInfo) -> tuple[dict, bool]:
             )
             
             if response.status_code == 200:
-                # Usuario existe, retornarlo
+                # Usuario existe, verificar si necesita actualización
                 user_data = response.json()
-                return user_data, False
+                user_id = user_data.get("_id") or user_data.get("id")
+                
+                # Verificar si cambió la información de Google
+                needs_update = (
+                    user_data.get("email") != google_user.email or
+                    user_data.get("display_name") != google_user.name or
+                    user_data.get("avatar_url") != google_user.picture
+                )
+                
+                if needs_update:
+                    # Actualizar solo si cambió algo
+                    update_data = {
+                        "email": google_user.email,
+                        "display_name": google_user.name,
+                        "avatar_url": google_user.picture
+                    }
+                    
+                    update_response = await client.put(
+                        f"{settings.user_service_url}/v1/users/{user_id}",
+                        json=update_data
+                    )
+                    
+                    if update_response.status_code == 200:
+                        return update_response.json(), False
+                    else:
+                        # Si falla la actualización, devolver usuario sin actualizar
+                        return user_data, False
+                else:
+                    # No hay cambios, devolver usuario tal cual
+                    return user_data, False
                 
         except httpx.RequestError:
             raise HTTPException(
