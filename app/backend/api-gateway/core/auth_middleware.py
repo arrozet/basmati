@@ -32,6 +32,10 @@ class AuthMiddleware(BaseHTTPMiddleware):
         """
         path = request.url.path
         
+        # Permitir peticiones OPTIONS (CORS preflight) sin autenticación
+        if request.method == "OPTIONS":
+            return await call_next(request)
+        
         # Verificar si es una ruta pública
         if self._is_public_route(path):
             return await call_next(request)
