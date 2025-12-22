@@ -26,8 +26,13 @@ export const Auth_Callback_Page = () => {
     useEffect(() => {
         const process_callback = async () => {
             try {
+                console.log('🔐 Procesando callback OAuth...', location.search);
+                
                 // Parsear parámetros de la URL
                 const { token, is_new_user, redirect_to } = parse_callback_params(location.search);
+                
+                console.log('Token recibido:', token ? '✅' : '❌');
+                console.log('Redirect to:', redirect_to);
 
                 if (!token) {
                     throw new Error('No se recibió token de autenticación');

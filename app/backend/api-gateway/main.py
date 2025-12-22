@@ -5,7 +5,7 @@ Punto de entrada centralizado para todos los servicios de backend.
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, RedirectResponse
 import httpx
 from core.config import SERVICES, settings
 from core.openapi_aggregator import aggregate_openapi_specs
@@ -138,13 +138,20 @@ async def proxy_request(service_name: str, path: str, request: Request):
         full_url = f"{full_url}?{request.url.query}"
     
     try:
-        async with httpx.AsyncClient(timeout=30.0) as client:
+        async with httpx.AsyncClient(timeout=30.0, follow_redirects=False) as client:
             response = await client.request(
                 method=request.method,
                 url=full_url,
                 headers=dict(request.headers),
                 content=await request.body()
             )
+            
+            # Si es un redirect, pasarlo directamente al cliente
+            if response.status_code in (301, 302, 303, 307, 308):
+                location = response.headers.get("location")
+                if location:
+                    return RedirectResponse(url=location, status_code=response.status_code)
+            
             return JSONResponse(
                 status_code=response.status_code,
                 content=response.json() if response.text else {}

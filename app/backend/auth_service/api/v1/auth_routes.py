@@ -5,16 +5,16 @@ from fastapi import APIRouter, HTTPException, Query
 from fastapi.responses import RedirectResponse
 import httpx
 
-from ..core.config import settings
-from ..core.google_oauth import (
+from core.config import settings
+from core.google_oauth import (
     get_google_auth_url,
     exchange_code_for_tokens,
     get_google_user_info,
     verify_google_id_token,
     GoogleUserInfo
 )
-from ..core.jwt_handler import create_access_token, verify_token
-from ..schemas import (
+from core.jwt_handler import create_access_token, verify_token
+from schemas import (
     GoogleLoginRequest,
     TokenResponse,
     UserInfo,
@@ -39,14 +39,14 @@ async def get_or_create_user(google_user: GoogleUserInfo) -> tuple[dict, bool]:
     external_id = f"google_{google_user.id}"
     
     async with httpx.AsyncClient(timeout=10.0) as client:
-        # Intentar obtener usuario existente
+        # Intentar obtener usuario existente por external_id
         try:
             response = await client.get(
-                f"{settings.user_service_url}/v1/users/{external_id}"
+                f"{settings.user_service_url}/v2/users/by-external-id/{external_id}"
             )
             
             if response.status_code == 200:
-                # Usuario existe, actualizar last_login
+                # Usuario existe, retornarlo
                 user_data = response.json()
                 return user_data, False
                 
@@ -56,39 +56,58 @@ async def get_or_create_user(google_user: GoogleUserInfo) -> tuple[dict, bool]:
                 detail="No se pudo conectar con el servicio de usuarios"
             )
         
-        # Usuario no existe, crear uno nuevo
-        try:
-            new_user = {
-                "external_id": external_id,
-                "provider": "google",
-                "email": google_user.email,
-                "display_name": google_user.name,
-                "avatar_url": google_user.picture,
-                "notification_preferences": {
-                    "in_app": True,
-                    "email": True,
-                    "email_address": None,
-                    "frequency": "instant"
+        # Usuario no existe (404), crear uno nuevo
+        if response.status_code == 404:
+            try:
+                new_user = {
+                    "external_id": external_id,
+                    "provider": "google",
+                    "email": google_user.email,
+                    "display_name": google_user.name,
+                    "avatar_url": google_user.picture,
+                    "notification_preferences": {
+                        "in_app": True,
+                        "email": True,
+                        "email_address": None,
+                        "frequency": "instant"
+                    }
                 }
-            }
-            
-            response = await client.post(
-                f"{settings.user_service_url}/v1/users",
-                json=new_user
-            )
-            
-            if response.status_code in (200, 201):
-                return response.json(), True
-            else:
-                raise HTTPException(
-                    status_code=500,
-                    detail=f"Error al crear usuario: {response.text}"
+                
+                create_response = await client.post(
+                    f"{settings.user_service_url}/v1/users",
+                    json=new_user
                 )
                 
-        except httpx.RequestError as e:
+                if create_response.status_code in (200, 201):
+                    return create_response.json(), True
+                elif create_response.status_code == 400 or create_response.status_code == 409:
+                    # Usuario ya existe (race condition), intentar obtenerlo de nuevo
+                    get_response = await client.get(
+                        f"{settings.user_service_url}/v2/users/by-external-id/{external_id}"
+                    )
+                    if get_response.status_code == 200:
+                        return get_response.json(), False
+                    else:
+                        raise HTTPException(
+                            status_code=500,
+                            detail=f"Error al obtener usuario después de conflicto: {get_response.text}"
+                        )
+                else:
+                    raise HTTPException(
+                        status_code=500,
+                        detail=f"Error al crear usuario: {create_response.text}"
+                    )
+                    
+            except httpx.RequestError as e:
+                raise HTTPException(
+                    status_code=503,
+                    detail=f"No se pudo crear el usuario: {str(e)}"
+                )
+        else:
+            # Otro error del user service
             raise HTTPException(
-                status_code=503,
-                detail=f"No se pudo crear el usuario: {str(e)}"
+                status_code=response.status_code,
+                detail=f"Error del servicio de usuarios: {response.text}"
             )
 
 
@@ -208,8 +227,7 @@ async def verify_google_token(request: GoogleLoginRequest):
     # Obtener o crear usuario
     user_data, is_new = await get_or_create_user(google_user)
     
-    # Crear token de sesión
-    from ..core.config import settings as auth_settings
+    # Crear token de sesión (settings ya está importado al inicio del archivo)
     session_token = create_access_token(
         external_id=user_data["external_id"],
         email=user_data["email"],
