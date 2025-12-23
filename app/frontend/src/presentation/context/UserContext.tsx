@@ -34,7 +34,7 @@ interface User_Context_Type {
     update_user: (updates: Partial<User_Model_V2>) => Promise<void>;
     update_preferences: (preferences: Notification_Preferences_V2) => Promise<void>;
     switch_user: (external_id: string) => Promise<void>;
-    refresh: () => Promise<void>;
+    refresh: (external_id?: string) => Promise<void>;
     logout: () => void;
 }
 
@@ -80,10 +80,13 @@ export const User_Provider: React.FC<User_Provider_Props> = ({ children }) => {
 
     /**
      * Carga los datos del usuario actual.
+     * @param external_id_override - Si se proporciona, usa este ID en lugar del estado actual
      */
-    const load_user = async () => {
+    const load_user = async (external_id_override?: string) => {
+        const id_to_load = external_id_override || current_external_id;
+        
         // Si no hay external_id, no intentar cargar
-        if (!current_external_id) {
+        if (!id_to_load) {
             set_loading(false);
             set_user(null);
             return;
@@ -94,7 +97,7 @@ export const User_Provider: React.FC<User_Provider_Props> = ({ children }) => {
 
         try {
             // Buscar usuario por external_id
-            const user_data = await user_repository.get_user(current_external_id);
+            const user_data = await user_repository.get_user(id_to_load);
             
             // Asegurar que tenga preferencias V2
             const user_v2: User_Model_V2 = {
@@ -106,6 +109,11 @@ export const User_Provider: React.FC<User_Provider_Props> = ({ children }) => {
             };
             
             set_user(user_v2);
+            
+            // Actualizar el external_id del estado si cambió
+            if (external_id_override && external_id_override !== current_external_id) {
+                set_current_external_id(external_id_override);
+            }
         } catch (err: any) {
             console.error('Error loading user:', err);
             

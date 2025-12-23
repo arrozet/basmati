@@ -4,12 +4,12 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faSearch,
   faBars,
-  faSignOutAlt,
   faFilter,
 } from "@fortawesome/free-solid-svg-icons";
 import { Neo_Input } from "../ui/Neo_Input";
 import { Notification_Bell } from "../ui/Notification_Bell";
 import { Avatar } from "../ui/Avatar";
+import { Logout_Button } from "../ui/Logout_Button";
 import { use_user_context } from "../../context/UserContext";
 
 interface NavbarProps {
@@ -41,11 +41,6 @@ export const Navbar: React.FC<NavbarProps> = ({ onMenuClick }) => {
     if (search_query.trim()) {
       navigate(`/search?q=${encodeURIComponent(search_query)}`);
     }
-  };
-
-  const handle_logout = () => {
-    localStorage.removeItem("basmati_current_user");
-    navigate("/login");
   };
 
   return (
@@ -137,15 +132,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onMenuClick }) => {
           />
         </Link>
 
-        <button
-          type="button"
-          onClick={handle_logout}
-          className="hidden md:inline-flex p-2 text-gray-600 hover:text-basmati-red transition-colors focus:outline-none focus:ring-4 focus:ring-basmati-yellow focus:ring-offset-2 rounded"
-          aria-label="Cerrar sesión"
-          title="Cerrar sesión"
-        >
-          <FontAwesomeIcon icon={faSignOutAlt} />
-        </button>
+        <Logout_Button variant="icon" />
       </div>
     </nav>
   );

@@ -46,16 +46,18 @@ export const Auth_Callback_Page = () => {
                 const payload = token.split('.')[1];
                 const decoded = JSON.parse(atob(payload));
 
+                const user_external_id = decoded.sub;
+
                 save_user({
-                    external_id: decoded.sub,
+                    external_id: user_external_id,
                     email: decoded.email,
                     display_name: decoded.display_name,
                     avatar_url: null,
                     provider: decoded.provider
                 });
 
-                // Refrescar el contexto de usuario
-                await refresh();
+                // Refrescar el contexto de usuario con el external_id del token OAuth
+                await refresh(user_external_id);
 
                 set_status('success');
 
