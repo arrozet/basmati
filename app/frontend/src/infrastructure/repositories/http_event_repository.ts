@@ -1,6 +1,7 @@
 import { Event_Repository_Interface } from "../../domain/repositories/event_repository_interface";
 import { Event_Model, Event_Attachment, Event_Comment } from "../../domain/models/event_model";
 import { api_client } from "../api/axios_client";
+import { Http_Calendar_Repository } from "./http_calendar_repository";
 
 /**
  * Parsea una fecha que viene del backend en UTC.
@@ -16,6 +17,12 @@ const parse_utc_date = (date_string: string): Date => {
 };
 
 export class Http_Event_Repository implements Event_Repository_Interface {
+    private calendar_repository: Http_Calendar_Repository;
+
+    constructor() {
+        this.calendar_repository = new Http_Calendar_Repository();
+    }
+
     /**
      * Obtiene todos los eventos del sistema usando el nuevo endpoint v2.
      * Una sola petición en lugar de múltiples.
@@ -49,14 +56,23 @@ export class Http_Event_Repository implements Event_Repository_Interface {
              calendar_id = "507f1f77bcf86cd799439011"; // Default mock ID
         }
 
-        // Obtener el usuario actual de localStorage
-        const current_user = localStorage.getItem('basmati_current_user') || 'user_dev_1';
+        // Obtener el calendario para usar su creator_external_id
+        const calendar = await this.calendar_repository.get_by_id(calendar_id);
+        if (!calendar) {
+            throw new Error("Calendario no encontrado");
+        }
+
+        // Usar el owner_id del calendario (que mapea a creator_external_id del backend)
+        // como creator_external_id del evento. Esto asegura que el evento tenga
+        // el mismo creador que el calendario, especialmente importante para calendarios
+        // creados con Google OAuth.
+        const creator_external_id = calendar.owner_id;
         
         // Construir payload con ubicación si existe
         const payload: Record<string, any> = {
             calendar_id: calendar_id,
-            calendar_title: "Personal",
-            creator_external_id: current_user, // Usuario de la sesión actual
+            calendar_title: calendar.title || "Personal",
+            creator_external_id: creator_external_id, // Usar el creator_external_id del calendario
             title: event.title,
             description: event.description,
             visibility: "private",
