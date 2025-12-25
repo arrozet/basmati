@@ -43,5 +43,3 @@ print("   - Campo 'frequency' ahora permitido en notification_preferences");
 print("   - Documentos existentes NO son afectados");
 print("   - Nuevos documentos y actualizaciones incluirán el campo frequency\n");
 
-
-
