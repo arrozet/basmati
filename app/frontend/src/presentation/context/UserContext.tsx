@@ -47,6 +47,21 @@ const user_repository = new Http_User_Repository();
 // ID del usuario por defecto para desarrollo
 const DEFAULT_USER_EXTERNAL_ID = 'user_dev_1';
 
+/**
+ * Determina el external_id actual: primero del token OAuth, luego del localStorage de desarrollo.
+ * Esta función se define fuera del componente para evitar recrearla en cada render.
+ */
+const get_current_external_id = (): string | null => {
+    // Primero intentar obtener del token OAuth
+    const stored_user = get_stored_user();
+    if (stored_user && is_authenticated()) {
+        return stored_user.external_id;
+    }
+    
+    // Fallback a usuario de desarrollo
+    return localStorage.getItem('basmati_current_user') || null;
+};
+
 interface User_Provider_Props {
     children: ReactNode;
 }
@@ -61,18 +76,6 @@ export const User_Provider: React.FC<User_Provider_Props> = ({ children }) => {
     const [user, set_user] = useState<User_Model_V2 | null>(null);
     const [loading, set_loading] = useState(true);
     const [error, set_error] = useState<string | null>(null);
-    
-    // Determinar el external_id: primero del token OAuth, luego del localStorage de desarrollo
-    const get_current_external_id = (): string | null => {
-        // Primero intentar obtener del token OAuth
-        const stored_user = get_stored_user();
-        if (stored_user && is_authenticated()) {
-            return stored_user.external_id;
-        }
-        
-        // Fallback a usuario de desarrollo
-        return localStorage.getItem('basmati_current_user') || null;
-    };
 
     const [current_external_id, set_current_external_id] = useState<string | null>(
         get_current_external_id()
