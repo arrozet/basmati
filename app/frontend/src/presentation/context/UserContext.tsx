@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useRef } from 'react';
 import { User_Model, Notification_Preferences } from '../../domain/models/user_model';
 import { Http_User_Repository } from '../../infrastructure/repositories/http_user_repository';
 import { 
@@ -78,6 +78,9 @@ export const User_Provider: React.FC<User_Provider_Props> = ({ children }) => {
         get_current_external_id()
     );
 
+    // Evitar peticiones duplicadas simultáneas
+    const is_loading_ref = useRef(false);
+
     /**
      * Carga los datos del usuario actual.
      * @param external_id_override - Si se proporciona, usa este ID en lugar del estado actual
@@ -85,13 +88,16 @@ export const User_Provider: React.FC<User_Provider_Props> = ({ children }) => {
     const load_user = async (external_id_override?: string) => {
         const id_to_load = external_id_override || current_external_id;
         
-        // Si no hay external_id, no intentar cargar
-        if (!id_to_load) {
-            set_loading(false);
-            set_user(null);
+        // Si no hay external_id o ya se está cargando, no hacer nada
+        if (!id_to_load || is_loading_ref.current) {
+            if (!id_to_load) {
+                set_loading(false);
+                set_user(null);
+            }
             return;
         }
 
+        is_loading_ref.current = true;
         set_loading(true);
         set_error(null);
 
@@ -125,6 +131,7 @@ export const User_Provider: React.FC<User_Provider_Props> = ({ children }) => {
             set_user(null);
         } finally {
             set_loading(false);
+            is_loading_ref.current = false;
         }
     };
 
