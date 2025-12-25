@@ -23,7 +23,7 @@ class Settings(BaseSettings):
     # Google OAuth
     google_client_id: str = ""
     google_client_secret: str = ""
-    google_redirect_uri: str = "http://localhost:8000/v1/auth/google/callback"
+    google_redirect_uri: str = "http://api-gateway:8000/v1/auth/google/callback"
     
     # JWT para tokens propios de sesión
     jwt_secret_key: str = "basmati-secret-key-change-in-production"
