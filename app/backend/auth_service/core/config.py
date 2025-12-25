@@ -34,6 +34,9 @@ class Settings(BaseSettings):
     user_service_url: str = "http://user-service:8001"
     frontend_url: str = "http://localhost:5173"
     
+    # CORS
+    cors_origins: str = "*"  # En desarrollo permite todos. En producción usar lista separada por comas
+    
     model_config = {
         "env_file": ".env",
         "env_file_encoding": "utf-8",
