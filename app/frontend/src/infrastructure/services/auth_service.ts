@@ -50,6 +50,17 @@ export async function verify_google_token(id_token: string): Promise<TokenRespon
 }
 
 /**
+ * Intercambia un código de autorización temporal por un token JWT.
+ * @param auth_code Código de autorización recibido del callback de OAuth
+ */
+export async function exchange_auth_code(auth_code: string): Promise<TokenResponse> {
+    const response = await api_client.get('/v1/auth/token', {
+        params: { code: auth_code }
+    });
+    return response.data;
+}
+
+/**
  * Guarda el token de autenticación en localStorage.
  * @param token Token JWT de sesión
  */
@@ -115,17 +126,17 @@ export async function logout(): Promise<void> {
 }
 
 /**
- * Parsea el token del callback URL.
+ * Parsea los parámetros del callback URL.
  * @param url_search La query string de la URL
  */
 export function parse_callback_params(url_search: string): {
-    token: string | null;
+    auth_code: string | null;
     is_new_user: boolean;
     redirect_to: string;
 } {
     const params = new URLSearchParams(url_search);
     return {
-        token: params.get('token'),
+        auth_code: params.get('auth_code'),
         is_new_user: params.get('new_user') === 'true',
         redirect_to: params.get('redirect_to') || '/dashboard'
     };

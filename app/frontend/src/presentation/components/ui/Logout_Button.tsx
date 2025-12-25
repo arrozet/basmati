@@ -2,6 +2,7 @@ import React from "react";
 import { useNavigate } from "react-router-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faSignOutAlt } from "@fortawesome/free-solid-svg-icons";
+import { use_user_context } from "../../context/UserContext";
 
 interface LogoutButtonProps {
   /**
@@ -34,10 +35,11 @@ export const Logout_Button: React.FC<LogoutButtonProps> = ({
   "aria-label": ariaLabel = "Cerrar sesión",
 }) => {
   const navigate = useNavigate();
+  const { logout } = use_user_context();
 
   const handle_logout = () => {
-    // Eliminar el usuario actual del localStorage
-    localStorage.removeItem("basmati_current_user");
+    // Usar logout del contexto para limpiar todo correctamente
+    logout();
     // Redirigir al login
     navigate("/login");
   };

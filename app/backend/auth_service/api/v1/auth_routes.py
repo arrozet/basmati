@@ -1,6 +1,16 @@
 """
 Rutas de autenticación OAuth.
+
+Implementa el flujo OAuth con Google usando códigos de autorización temporales:
+1. GET /auth/google → Redirige a Google para autenticación
+2. GET /auth/google/callback → Recibe código de Google, genera auth_code temporal y redirige al frontend
+3. GET /auth/token?code=XXX → Valida el código temporal y devuelve el token JWT
+4. POST /auth/logout → Endpoint informativo (el logout real es en el frontend)
+
+Los códigos temporales se almacenan en memoria y son de un solo uso con expiración de 60 segundos.
 """
+import uuid
+from datetime import datetime, timezone, timedelta
 from fastapi import APIRouter, HTTPException, Query
 from fastapi.responses import RedirectResponse
 import httpx
@@ -24,6 +34,97 @@ from schemas import (
 )
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
+
+
+# =============================================================================
+# ALMACÉN DE CÓDIGOS DE AUTORIZACIÓN TEMPORALES (EN MEMORIA)
+# =============================================================================
+
+# Diccionario para almacenar códigos de autorización temporales
+# Key: código UUID
+# Value: {"user_data": dict, "access_token": str, "expires_at": datetime, "used": bool, "is_new_user": bool}
+_authorization_codes: dict[str, dict] = {}
+
+# Tiempo de expiración de los códigos (60 segundos)
+AUTH_CODE_EXPIRATION_SECONDS = 60
+
+
+def _generate_auth_code(
+    user_data: dict,
+    access_token: str,
+    is_new_user: bool
+) -> str:
+    """
+    Genera un código de autorización temporal y lo almacena en memoria.
+    
+    Args:
+        user_data: Datos del usuario (external_id, email, display_name, etc.)
+        access_token: Token JWT generado para el usuario
+        is_new_user: Si es un usuario nuevo
+    
+    Returns:
+        str: Código UUID único
+    """
+    # Limpiar códigos expirados antes de generar uno nuevo
+    _cleanup_expired_codes()
+    
+    auth_code = str(uuid.uuid4())
+    expires_at = datetime.now(timezone.utc) + timedelta(seconds=AUTH_CODE_EXPIRATION_SECONDS)
+    
+    _authorization_codes[auth_code] = {
+        "user_data": user_data,
+        "access_token": access_token,
+        "expires_at": expires_at,
+        "used": False,
+        "is_new_user": is_new_user
+    }
+    
+    return auth_code
+
+
+def _validate_and_consume_auth_code(auth_code: str) -> dict | None:
+    """
+    Valida un código de autorización y lo marca como usado.
+    
+    Args:
+        auth_code: Código a validar
+    
+    Returns:
+        dict con los datos si es válido, None si no existe, expiró o ya fue usado
+    """
+    if auth_code not in _authorization_codes:
+        return None
+    
+    code_data = _authorization_codes[auth_code]
+    
+    # Verificar si ya fue usado
+    if code_data["used"]:
+        return None
+    
+    # Verificar si expiró
+    if datetime.now(timezone.utc) > code_data["expires_at"]:
+        # Eliminar código expirado
+        del _authorization_codes[auth_code]
+        return None
+    
+    # Marcar como usado (un solo uso)
+    code_data["used"] = True
+    
+    return code_data
+
+
+def _cleanup_expired_codes() -> None:
+    """
+    Elimina códigos expirados del diccionario.
+    Se llama automáticamente al generar nuevos códigos.
+    """
+    now = datetime.now(timezone.utc)
+    expired_codes = [
+        code for code, data in _authorization_codes.items()
+        if now > data["expires_at"]
+    ]
+    for code in expired_codes:
+        del _authorization_codes[code]
 
 
 async def get_or_create_user(google_user: GoogleUserInfo) -> tuple[dict, bool]:
@@ -168,7 +269,7 @@ async def get_google_login_url(
 @router.get(
     "/google/callback",
     summary="Callback de Google OAuth",
-    description="Endpoint al que Google redirige después de la autorización"
+    description="Endpoint al que Google redirige después de la autorización. Genera un código temporal para obtener el token."
 )
 async def google_callback(
     code: str = Query(..., description="Código de autorización de Google"),
@@ -178,15 +279,18 @@ async def google_callback(
     Procesa el callback de Google OAuth.
     
     Este endpoint es llamado por Google después de que el usuario autoriza.
-    Intercambia el código por tokens, obtiene info del usuario, y redirige
-    al frontend con el token de sesión.
+    Intercambia el código por tokens, obtiene info del usuario, genera un
+    código de autorización temporal, y redirige al frontend.
+    
+    El frontend recibe un auth_code temporal (no el token JWT directamente).
+    Para obtener el token, el frontend debe llamar a GET /auth/token?code=XXX
     
     Args:
         code: Código de autorización de Google
         state: URL del frontend para redirigir
     
     Returns:
-        Redirect al frontend con el token en la URL
+        Redirect al frontend con auth_code en la URL
     """
     try:
         # Intercambiar código por tokens
@@ -210,10 +314,18 @@ async def google_callback(
             provider="google"
         )
         
-        # Redirigir al frontend con el token
-        redirect_url = f"{settings.frontend_url}/auth/callback?token={session_token}&new_user={str(is_new).lower()}"
+        # Generar código de autorización temporal (expira en 60 segundos, un solo uso)
+        auth_code = _generate_auth_code(
+            user_data=user_data,
+            access_token=session_token,
+            is_new_user=is_new
+        )
+        
+        # Construir URL de redirección con el código temporal
+        redirect_url = f"{settings.frontend_url}/auth/callback?auth_code={auth_code}"
         if state and state != "/dashboard":
             redirect_url += f"&redirect_to={state}"
+        redirect_url += f"&new_user={str(is_new).lower()}"
         
         return RedirectResponse(url=redirect_url)
         
@@ -267,7 +379,7 @@ async def verify_google_token(request: GoogleLoginRequest):
     return TokenResponse(
         access_token=session_token,
         token_type="bearer",
-        expires_in=auth_settings.jwt_expire_minutes * 60,
+        expires_in=settings.jwt_expire_minutes * 60,
         is_new_user=is_new,
         user=UserInfo(
             external_id=user_data["external_id"],
@@ -355,18 +467,85 @@ async def get_current_user(
     )
 
 
+@router.get(
+    "/token",
+    response_model=TokenResponse,
+    summary="Obtener token del usuario identificado",
+    description="""
+    Devuelve el token JWT del usuario autenticado para usar en la API.
+    
+    Este endpoint recibe el código de autorización temporal generado
+    en el callback de Google y devuelve el token JWT.
+    
+    Flujo típico:
+    1. Usuario hace login: GET /auth/google → redirige a Google
+    2. Google callback: GET /auth/google/callback → genera auth_code y redirige al frontend
+    3. Usuario obtiene token: GET /auth/token?code=XXX → devuelve token JWT
+    4. Usuario usa la API: Authorization: Bearer <token>
+    
+    IMPORTANTE: El código es de un solo uso y expira en 60 segundos.
+    """
+)
+async def get_token(
+    code: str = Query(..., description="Código de autorización temporal recibido del callback")
+):
+    """
+    Obtiene el token JWT del usuario que se ha identificado.
+    
+    Valida el código de autorización temporal recibido del callback de OAuth
+    y devuelve el token JWT en formato JSON para que el cliente pueda usarlo
+    en las peticiones posteriores a la API.
+    
+    Args:
+        code: Código de autorización temporal (UUID)
+    
+    Returns:
+        TokenResponse con el token y datos del usuario
+    
+    Raises:
+        HTTPException 401: Si el código es inválido, expirado o ya fue usado
+    """
+    # Validar y consumir el código (un solo uso)
+    code_data = _validate_and_consume_auth_code(code)
+    
+    if not code_data:
+        raise HTTPException(
+            status_code=401,
+            detail="Código inválido, expirado o ya utilizado. Inicie sesión nuevamente con GET /auth/google."
+        )
+    
+    user_data = code_data["user_data"]
+    
+    # Devolver el token con información del usuario
+    return TokenResponse(
+        access_token=code_data["access_token"],
+        token_type="bearer",
+        expires_in=settings.jwt_expire_minutes * 60,
+        is_new_user=code_data["is_new_user"],
+        user=UserInfo(
+            external_id=user_data["external_id"],
+            email=user_data["email"],
+            display_name=user_data["display_name"],
+            avatar_url=user_data.get("avatar_url"),
+            provider=user_data.get("provider", "google")
+        )
+    )
+
+
 @router.post(
     "/logout",
     summary="Cerrar sesión",
-    description="Invalida el token actual (actualmente solo para uso del frontend)"
+    description="Endpoint informativo de logout. El logout real se realiza en el frontend eliminando el token."
 )
 async def logout():
     """
     Endpoint de logout.
     
     Con tokens JWT sin estado, el logout real se maneja en el frontend
-    borrando el token. Este endpoint existe por completitud de la API.
+    borrando el token almacenado. Este endpoint existe por completitud
+    de la API.
     
-    En el futuro se podría implementar una blacklist de tokens.
+    Returns:
+        Mensaje de confirmación
     """
-    return {"message": "Sesión cerrada correctamente"}
+    return {"message": "Sesión cerrada correctamente. Elimine el token del cliente."}

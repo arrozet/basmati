@@ -37,14 +37,22 @@ api_client.interceptors.response.use(
     (response) => response,
     (error) => {
         if (error.response?.status === 401) {
-            // Token inválido o expirado
-            localStorage.removeItem(TOKEN_KEY);
-            localStorage.removeItem('basmati_user');
+            // No limpiar token si estamos en el proceso de autenticación
+            const request_url = error.config?.url || '';
+            const is_auth_request = request_url.includes('/auth/token') || 
+                                    request_url.includes('/auth/google') ||
+                                    request_url.includes('/auth/verify');
             
-            // Solo redirigir si no estamos ya en login o callback
-            const current_path = window.location.pathname;
-            if (!current_path.includes('/login') && !current_path.includes('/auth/callback')) {
-                window.location.href = '/login';
+            if (!is_auth_request) {
+                // Token inválido o expirado - limpiar solo si no es petición de auth
+                localStorage.removeItem(TOKEN_KEY);
+                localStorage.removeItem('basmati_user');
+                
+                // Solo redirigir si no estamos ya en login o callback
+                const current_path = window.location.pathname;
+                if (!current_path.includes('/login') && !current_path.includes('/auth/callback')) {
+                    window.location.href = '/login';
+                }
             }
         }
         return Promise.reject(error);

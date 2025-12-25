@@ -1,10 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Neo_Card } from '../components/ui/Neo_Card';
 import { use_page_title } from '../hooks/use_page_title';
 import { use_user_context } from '../context/UserContext';
 import { 
     parse_callback_params, 
+    exchange_auth_code,
     save_token, 
     save_user 
 } from '../../infrastructure/services/auth_service';
@@ -12,8 +13,8 @@ import {
 /**
  * Página de callback para OAuth.
  * 
- * Esta página recibe el token del backend después del flujo OAuth
- * y lo guarda en el contexto/localStorage antes de redirigir.
+ * Esta página recibe el auth_code del backend después del flujo OAuth,
+ * lo intercambia por un token JWT, y guarda la sesión antes de redirigir.
  */
 export const Auth_Callback_Page = () => {
     use_page_title('Autenticando...');
@@ -22,47 +23,52 @@ export const Auth_Callback_Page = () => {
     const { refresh } = use_user_context();
     const [status, set_status] = useState<'processing' | 'success' | 'error'>('processing');
     const [error_message, set_error_message] = useState<string | null>(null);
+    
+    // Ref para evitar ejecuciones duplicadas (React StrictMode)
+    const is_processing = useRef(false);
 
     useEffect(() => {
         const process_callback = async () => {
+            // Evitar ejecuciones duplicadas
+            if (is_processing.current) {
+                console.log('⏳ Ya se está procesando el callback, ignorando...');
+                return;
+            }
+            is_processing.current = true;
+            
             try {
                 console.log('🔐 Procesando callback OAuth...', location.search);
                 
                 // Parsear parámetros de la URL
-                const { token, is_new_user, redirect_to } = parse_callback_params(location.search);
+                const { auth_code, is_new_user, redirect_to } = parse_callback_params(location.search);
                 
-                console.log('Token recibido:', token ? '✅' : '❌');
+                console.log('Auth code recibido:', auth_code ? '✅' : '❌');
                 console.log('Redirect to:', redirect_to);
 
-                if (!token) {
-                    throw new Error('No se recibió token de autenticación');
+                if (!auth_code) {
+                    throw new Error('No se recibió código de autenticación');
                 }
 
-                // Guardar token
-                save_token(token);
+                // Intercambiar auth_code por token JWT
+                console.log('🔄 Intercambiando código por token...');
+                const token_response = await exchange_auth_code(auth_code);
+                
+                console.log('Token obtenido:', token_response.access_token ? '✅' : '❌');
 
-                // Decodificar el token para obtener la información del usuario
-                // El token tiene formato JWT: header.payload.signature
-                const payload = token.split('.')[1];
-                const decoded = JSON.parse(atob(payload));
+                // Guardar token ANTES de cualquier otra operación
+                save_token(token_response.access_token);
+                console.log('💾 Token guardado en localStorage');
 
-                const user_external_id = decoded.sub;
+                // Guardar información del usuario
+                save_user(token_response.user);
 
-                save_user({
-                    external_id: user_external_id,
-                    email: decoded.email,
-                    display_name: decoded.display_name,
-                    avatar_url: null,
-                    provider: decoded.provider
-                });
-
-                // Refrescar el contexto de usuario con el external_id del token OAuth
-                await refresh(user_external_id);
+                // Refrescar el contexto de usuario con el external_id
+                await refresh(token_response.user.external_id);
 
                 set_status('success');
 
                 // Mostrar mensaje de bienvenida si es nuevo usuario
-                if (is_new_user) {
+                if (is_new_user || token_response.is_new_user) {
                     console.log('¡Bienvenido! Tu cuenta ha sido creada.');
                 }
 

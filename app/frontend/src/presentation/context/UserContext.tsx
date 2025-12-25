@@ -204,8 +204,13 @@ export const User_Provider: React.FC<User_Provider_Props> = ({ children }) => {
      * Limpia tokens y datos de localStorage.
      */
     const logout = () => {
+        // Limpiar token de auth
         remove_token();
+        // Limpiar datos de usuario (OAuth)
+        localStorage.removeItem('basmati_user');
+        // Limpiar usuario actual (dev)
         localStorage.removeItem('basmati_current_user');
+        // Limpiar estado
         set_user(null);
         set_current_external_id(null);
     };
