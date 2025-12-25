@@ -173,6 +173,7 @@ services:
       - GOOGLE_REDIRECT_URI=${GOOGLE_REDIRECT_URI:-http://localhost:8000/v1/auth/google/callback}
       - JWT_SECRET_KEY=${JWT_SECRET_KEY:-basmati-secret-key-dev}
       - JWT_EXPIRE_MINUTES=10080
+      # JWT_EXPIRE_MINUTES is in minutes; 7 days = 60 * 24 * 7 = 10080
       - FRONTEND_URL=${FRONTEND_URL:-http://localhost:5173}
     depends_on:
       - user-service
