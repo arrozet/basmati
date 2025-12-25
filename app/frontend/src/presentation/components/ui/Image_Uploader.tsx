@@ -3,6 +3,7 @@ import { Neo_Button } from './Neo_Button';
 import { Event_Attachment } from '../../../domain/models/event_model';
 import { Http_S3_Repository } from '../../../infrastructure/repositories/http_s3_repository';
 import { Upload_Image_Use_Case } from '../../../application/s3/upload_image_use_case';
+import { use_current_user_id } from '../../context/UserContext';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faCamera, faTimes } from '@fortawesome/free-solid-svg-icons';
 
@@ -27,6 +28,9 @@ export const Image_Uploader: React.FC<ImageUploaderProps> = ({
     const [error, setError] = useState<string | null>(null);
     const [isDragging, setIsDragging] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
+    
+    // Obtener el ID del usuario actual del contexto
+    const current_user_id = use_current_user_id();
 
     const processFiles = async (files: File[]) => {
         setUploading(true);
@@ -35,8 +39,8 @@ export const Image_Uploader: React.FC<ImageUploaderProps> = ({
         try {
             const newAttachments: Event_Attachment[] = [];
             
-            // Subir imágenes en paralelo
-            const uploadPromises = files.map(file => upload_image_use_case.execute(file));
+            // Subir imágenes en paralelo, pasando el ID del usuario actual
+            const uploadPromises = files.map(file => upload_image_use_case.execute(file, current_user_id));
             const results = await Promise.all(uploadPromises);
             
             newAttachments.push(...results);
