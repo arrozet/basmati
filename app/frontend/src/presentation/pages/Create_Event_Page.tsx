@@ -17,8 +17,8 @@ import { use_user_context } from "../context/UserContext";
 import { Event_Location } from "../../domain/models/integration_models";
 import { Event_Attachment } from "../../domain/models/event_model";
 
-const event_repository = new Http_Event_Repository();
 const calendar_repository = new Http_Calendar_Repository();
+const event_repository = new Http_Event_Repository(calendar_repository);
 const create_event_use_case = new Create_Event_Use_Case(
   event_repository,
   calendar_repository

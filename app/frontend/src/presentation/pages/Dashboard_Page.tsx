@@ -20,8 +20,8 @@ import { Http_Event_Repository } from "../../infrastructure/repositories/http_ev
 import { Http_Calendar_Repository } from "../../infrastructure/repositories/http_calendar_repository";
 import { use_page_title } from "../hooks/use_page_title";
 
-const event_repository = new Http_Event_Repository();
 const calendar_repository = new Http_Calendar_Repository();
+const event_repository = new Http_Event_Repository(calendar_repository);
 const delete_event_use_case = new Delete_Event_Use_Case(
   event_repository,
   calendar_repository

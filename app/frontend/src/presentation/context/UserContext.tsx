@@ -1,6 +1,11 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode, useRef } from 'react';
 import { User_Model, Notification_Preferences } from '../../domain/models/user_model';
 import { Http_User_Repository } from '../../infrastructure/repositories/http_user_repository';
+import { 
+    get_stored_user, 
+    remove_token, 
+    is_authenticated
+} from '../../infrastructure/services/auth_service';
 
 /**
  * Preferencias de notificación V2 con frecuencia.
@@ -23,10 +28,12 @@ interface User_Context_Type {
     user: User_Model_V2 | null;
     loading: boolean;
     error: string | null;
+    is_authenticated: boolean;
     update_user: (updates: Partial<User_Model_V2>) => Promise<void>;
     update_preferences: (preferences: Notification_Preferences_V2) => Promise<void>;
     switch_user: (external_id: string) => Promise<void>;
-    refresh: () => Promise<void>;
+    refresh: (external_id?: string) => Promise<void>;
+    logout: () => void;
 }
 
 // Contexto de usuario
@@ -38,6 +45,21 @@ const user_repository = new Http_User_Repository();
 // ID del usuario por defecto para desarrollo
 const DEFAULT_USER_EXTERNAL_ID = 'user_dev_1';
 
+/**
+ * Determina el external_id actual: primero del token OAuth, luego del localStorage de desarrollo.
+ * Esta función se define fuera del componente para evitar recrearla en cada render.
+ */
+const get_current_external_id = (): string | null => {
+    // Primero intentar obtener del token OAuth
+    const stored_user = get_stored_user();
+    if (stored_user && is_authenticated()) {
+        return stored_user.external_id;
+    }
+    
+    // Fallback a usuario de desarrollo
+    return localStorage.getItem('basmati_current_user') || null;
+};
+
 interface User_Provider_Props {
     children: ReactNode;
 }
@@ -46,28 +68,43 @@ interface User_Provider_Props {
  * Proveedor del contexto de usuario.
  * Gestiona el estado del usuario actual de la sesión.
  * 
- * En desarrollo usa el usuario user_dev_1 por defecto.
- * En producción usaría el token JWT de OAuth para identificar al usuario.
+ * Soporta autenticación OAuth (con token JWT) y login de desarrollo.
  */
 export const User_Provider: React.FC<User_Provider_Props> = ({ children }) => {
     const [user, set_user] = useState<User_Model_V2 | null>(null);
     const [loading, set_loading] = useState(true);
     const [error, set_error] = useState<string | null>(null);
-    const [current_external_id, set_current_external_id] = useState<string>(
-        localStorage.getItem('basmati_current_user') || DEFAULT_USER_EXTERNAL_ID
+
+    const [current_external_id, set_current_external_id] = useState<string | null>(
+        get_current_external_id()
     );
+
+    // Evitar peticiones duplicadas simultáneas
+    const is_loading_ref = useRef(false);
 
     /**
      * Carga los datos del usuario actual.
+     * @param external_id_override - Si se proporciona, usa este ID en lugar del estado actual
      */
-    const load_user = async () => {
+    const load_user = async (external_id_override?: string) => {
+        const id_to_load = external_id_override || current_external_id;
+        
+        // Si no hay external_id o ya se está cargando, no hacer nada
+        if (!id_to_load || is_loading_ref.current) {
+            if (!id_to_load) {
+                set_loading(false);
+                set_user(null);
+            }
+            return;
+        }
+
+        is_loading_ref.current = true;
         set_loading(true);
         set_error(null);
 
         try {
-            // Buscar usuario por external_id usando el endpoint de búsqueda OAuth
-            // Como es desarrollo, buscamos directamente con el ID
-            const user_data = await user_repository.get_user(current_external_id);
+            // Buscar usuario por external_id
+            const user_data = await user_repository.get_user(id_to_load);
             
             // Asegurar que tenga preferencias V2
             const user_v2: User_Model_V2 = {
@@ -79,19 +116,23 @@ export const User_Provider: React.FC<User_Provider_Props> = ({ children }) => {
             };
             
             set_user(user_v2);
+            
+            // Actualizar el external_id del estado si cambió
+            if (external_id_override && external_id_override !== current_external_id) {
+                set_current_external_id(external_id_override);
+            }
         } catch (err: any) {
             console.error('Error loading user:', err);
             
-            // Si no se encuentra el usuario, crear uno por defecto para desarrollo
             if (err.response?.status === 404) {
-                set_error('Usuario no encontrado. Creando usuario de desarrollo...');
-                // El usuario se creará automáticamente en el seed del backend
+                set_error('Usuario no encontrado.');
             } else {
                 set_error(err.message || 'Error al cargar usuario');
             }
             set_user(null);
         } finally {
             set_loading(false);
+            is_loading_ref.current = false;
         }
     };
 
@@ -159,6 +200,22 @@ export const User_Provider: React.FC<User_Provider_Props> = ({ children }) => {
         set_user(user_v2);
     };
 
+    /**
+     * Cierra la sesión del usuario.
+     * Limpia tokens y datos de localStorage.
+     */
+    const logout = () => {
+        // Limpiar token de auth
+        remove_token();
+        // Limpiar datos de usuario (OAuth)
+        localStorage.removeItem('basmati_user');
+        // Limpiar usuario actual (dev)
+        localStorage.removeItem('basmati_current_user');
+        // Limpiar estado
+        set_user(null);
+        set_current_external_id(null);
+    };
+
     // Cargar usuario al montar o cuando cambia el external_id
     useEffect(() => {
         load_user();
@@ -168,10 +225,12 @@ export const User_Provider: React.FC<User_Provider_Props> = ({ children }) => {
         user,
         loading,
         error,
+        is_authenticated: is_authenticated() || user !== null,
         update_user,
         update_preferences,
         switch_user,
-        refresh: load_user
+        refresh: load_user,
+        logout
     };
 
     return (

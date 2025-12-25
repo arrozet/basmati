@@ -1,11 +1,13 @@
 import { useState, useEffect } from "react";
 import { Get_Events_By_Date_Range_Use_Case } from "../../application/event/get_events_by_date_range_use_case";
 import { Http_Event_Repository } from "../../infrastructure/repositories/http_event_repository";
+import { Http_Calendar_Repository } from "../../infrastructure/repositories/http_calendar_repository";
 import { Event_Model } from "../../domain/models/event_model";
 import { use_user_calendars } from "./use_user_calendars";
 import { Calendar_Model } from "../../domain/models/calendar_model";
 
-const repository = new Http_Event_Repository();
+const calendar_repository = new Http_Calendar_Repository();
+const repository = new Http_Event_Repository(calendar_repository);
 const get_events_use_case = new Get_Events_By_Date_Range_Use_Case(repository);
 
 // Helper to recursively find all descendant IDs

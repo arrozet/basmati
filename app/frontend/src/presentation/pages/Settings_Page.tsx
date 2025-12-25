@@ -16,8 +16,8 @@ import {
   faBell,
   faCheck,
   faExclamationCircle,
-  faSignOutAlt,
 } from "@fortawesome/free-solid-svg-icons";
+import { Logout_Button } from "../components/ui/Logout_Button";
 import { use_page_title } from "../hooks/use_page_title";
 
 type SettingsTab = "profile" | "notifications";
@@ -128,11 +128,6 @@ export const Settings_Page: React.FC = () => {
     }
   };
 
-  const handle_logout = () => {
-    localStorage.removeItem("basmati_current_user");
-    navigate("/login");
-  };
-
   /**
    * Renderiza el contenido de la pestaña activa.
    */
@@ -144,15 +139,10 @@ export const Settings_Page: React.FC = () => {
             <h2 id="profile-heading" className="text-2xl font-black">
               Mi perfil
             </h2>
-            <button
-              type="button"
-              onClick={handle_logout}
-              className="flex items-center gap-2 text-basmati-red hover:text-white hover:bg-basmati-red px-3 py-1 rounded border-2 border-transparent hover:border-basmati-black transition-all font-bold text-sm"
+            <Logout_Button
+              variant="text"
               title="Cerrar sesión de la cuenta actual"
-            >
-              <FontAwesomeIcon icon={faSignOutAlt} />
-              <span>Cerrar sesión</span>
-            </button>
+            />
           </div>
 
           <form onSubmit={handle_profile_submit} className="space-y-6">

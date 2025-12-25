@@ -327,16 +327,43 @@ class S3ImageService:
                 CacheControl='max-age=31536000',  # Cache de 1 año
             )
             
-            # Obtener metadatos de la imagen subida
-            metadata = await self.get_image_metadata(image_key)
+            # Construir metadatos directamente sin necesidad de otra llamada a S3
+            # Esto es más eficiente y evita problemas de consistencia eventual
             
-            if not metadata:
-                raise Exception("Error al obtener metadatos después de subir")
+            # Extraer nombre original del archivo de la key
+            extracted_filename = image_key.split('/')[-1]
+            if '_' in extracted_filename:
+                # Formato: uuid_filename.ext -> extraer filename.ext
+                extracted_filename = '_'.join(extracted_filename.split('_')[1:])
+            
+            metadata = ImageMetadata(
+                key=image_key,
+                filename=extracted_filename,
+                url=self._get_public_url(image_key),
+                size=len(image_data),
+                content_type=content_type,
+                last_modified=datetime.now()
+            )
             
             return metadata
             
         except ClientError as e:
-            raise Exception(f"Error al subir imagen a S3: {str(e)}")
+            error_code = e.response.get('Error', {}).get('Code', 'Unknown')
+            error_message = e.response.get('Error', {}).get('Message', str(e))
+            
+            # Mensajes más descriptivos según el tipo de error
+            if error_code == 'InvalidAccessKeyId':
+                raise Exception(f"Credenciales de AWS inválidas: La Access Key ID proporcionada no existe. Verifica las variables de entorno AWS_ACCESS_KEY_ID y AWS_SECRET_ACCESS_KEY.")
+            elif error_code == 'SignatureDoesNotMatch':
+                raise Exception(f"Credenciales de AWS inválidas: La Secret Access Key no coincide con la Access Key ID. Verifica AWS_SECRET_ACCESS_KEY.")
+            elif error_code == 'NoSuchBucket':
+                raise Exception(f"Bucket de S3 no encontrado: El bucket '{self.bucket_name}' no existe en la región '{self.region}'. Verifica AWS_S3_BUCKET_NAME y AWS_REGION.")
+            elif error_code == 'AccessDenied':
+                raise Exception(f"Acceso denegado: La Access Key no tiene permisos para escribir en el bucket '{self.bucket_name}'. Verifica los permisos IAM.")
+            else:
+                raise Exception(f"Error al subir imagen a S3 ({error_code}): {error_message}")
+        except NoCredentialsError:
+            raise Exception("Credenciales de AWS no configuradas correctamente")
     
     async def generate_upload_url(
         self, 

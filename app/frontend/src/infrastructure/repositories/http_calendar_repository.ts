@@ -13,7 +13,8 @@ export class Http_Calendar_Repository implements Calendar_Repository_Interface {
    */
   async get_all_calendars(limit: number = 200): Promise<Calendar_Model[]> {
     try {
-      const response = await api_client.get(`/v2/calendars`, {
+      // Añadir slash final para evitar 307 redirect
+      const response = await api_client.get(`/v2/calendars/`, {
         params: { limit },
       });
       return response.data.map((item: any) => ({
