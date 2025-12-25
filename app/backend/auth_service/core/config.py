@@ -47,3 +47,11 @@ class Settings(BaseSettings):
 
 # Instancia global de configuración
 settings = Settings()
+
+# Validación de seguridad: prevenir uso de clave secreta por defecto en producción
+DEFAULT_SECRET_KEY = "basmati-secret-key-change-in-production"
+if settings.environment == "production" and settings.jwt_secret_key == DEFAULT_SECRET_KEY:
+    raise ValueError(
+        "❌ ERROR DE SEGURIDAD: No se puede usar la clave secreta JWT por defecto en producción. "
+        "Configure JWT_SECRET_KEY con una clave segura mediante variable de entorno."
+    )
