@@ -6,6 +6,7 @@ class APIGatewaySettings(Settings):
     service_port: int = 8000
     service_name: str = "api-gateway"
     auth_service_url: str = "http://auth-service:8005"
+    enable_auth_middleware: bool = False  # Desactivado por defecto para desarrollo
     
     # Rutas que NO requieren autenticación
     public_routes: list[str] = [

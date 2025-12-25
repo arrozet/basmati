@@ -68,7 +68,8 @@ app.add_middleware(
 
 # Middleware de autenticación
 # NOTA: Desactivado por defecto para desarrollo. Activar en producción.
-app.add_middleware(AuthMiddleware)
+if settings.enable_auth_middleware:
+    app.add_middleware(AuthMiddleware)
 
 def custom_openapi():
     """
