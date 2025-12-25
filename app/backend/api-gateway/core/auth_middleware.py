@@ -5,7 +5,7 @@ Valida tokens JWT en las peticiones y rechaza las no autenticadas
 para rutas protegidas.
 """
 import httpx
-from fastapi import Request, HTTPException
+from fastapi import Request
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import JSONResponse
 from .config import settings
