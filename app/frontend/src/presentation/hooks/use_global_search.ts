@@ -7,8 +7,8 @@ import { Event_Model } from "../../domain/models/event_model";
 import { Calendar_Model } from "../../domain/models/calendar_model";
 
 // Inyección de dependencias
-const event_repository = new Http_Event_Repository();
 const calendar_repository = new Http_Calendar_Repository();
+const event_repository = new Http_Event_Repository(calendar_repository);
 
 const search_events_use_case = new Search_Events_Use_Case(event_repository);
 const search_calendars_use_case = new Search_Calendars_Use_Case(

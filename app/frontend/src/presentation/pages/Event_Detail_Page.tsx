@@ -24,8 +24,8 @@ import { use_page_title } from "../hooks/use_page_title";
 import { use_user_context } from "../context/UserContext";
 
 // Dependencies
-const event_repository = new Http_Event_Repository();
 const calendar_repository = new Http_Calendar_Repository();
+const event_repository = new Http_Event_Repository(calendar_repository);
 
 const get_event_use_case = new Get_Event_Use_Case(event_repository);
 const add_comment_use_case = new Add_Comment_Use_Case(event_repository);

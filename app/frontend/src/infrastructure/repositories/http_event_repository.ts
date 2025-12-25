@@ -19,8 +19,8 @@ const parse_utc_date = (date_string: string): Date => {
 export class Http_Event_Repository implements Event_Repository_Interface {
     private calendar_repository: Http_Calendar_Repository;
 
-    constructor() {
-        this.calendar_repository = new Http_Calendar_Repository();
+    constructor(calendar_repository: Http_Calendar_Repository) {
+        this.calendar_repository = calendar_repository;
     }
 
     /**

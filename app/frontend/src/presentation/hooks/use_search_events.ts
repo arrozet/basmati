@@ -1,10 +1,12 @@
 import { useState, useEffect } from "react";
 import { Search_Events_Use_Case } from "../../application/event/search_events_use_case";
 import { Http_Event_Repository } from "../../infrastructure/repositories/http_event_repository";
+import { Http_Calendar_Repository } from "../../infrastructure/repositories/http_calendar_repository";
 import { Event_Model } from "../../domain/models/event_model";
 
 // Inyección de dependencias manual
-const repository = new Http_Event_Repository();
+const calendar_repository = new Http_Calendar_Repository();
+const repository = new Http_Event_Repository(calendar_repository);
 const search_events_use_case = new Search_Events_Use_Case(repository);
 
 export const use_search_events = (query: string | { title?: string; organizer?: string; keywords?: string }) => {
