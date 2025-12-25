@@ -150,10 +150,24 @@ async def upload_image_direct(
             detail=str(e)
         )
     except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error al subir imagen: {str(e)}"
-        )
+        error_message = str(e)
+        # Mejorar mensajes de error para problemas de AWS
+        if "Credenciales de AWS" in error_message or "NoCredentialsError" in error_message:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="Servicio S3 no disponible: Credenciales de AWS no configuradas correctamente"
+            )
+        elif "Error al subir imagen a S3" in error_message:
+            # Error específico de S3 (permisos, bucket, etc.)
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail=error_message  # Ya incluye el mensaje descriptivo del servicio
+            )
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Error al subir imagen: {error_message}"
+            )
 
 
 @router.post(
