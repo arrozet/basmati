@@ -2,11 +2,9 @@ import React, { createContext, useContext, useState, useEffect, ReactNode, useRe
 import { User_Model, Notification_Preferences } from '../../domain/models/user_model';
 import { Http_User_Repository } from '../../infrastructure/repositories/http_user_repository';
 import { 
-    get_token, 
     get_stored_user, 
     remove_token, 
-    is_authenticated,
-    AuthUser 
+    is_authenticated
 } from '../../infrastructure/services/auth_service';
 
 /**
