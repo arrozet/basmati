@@ -262,7 +262,7 @@ class GoogleCalendarImporter(ICalendarImporter):
                     )
                     
                     response = await client.post(
-                        f"{self._event_service_url}/v2/events",
+                        f"{self._event_service_url}/v1/events",
                         json=payload
                     )
                     

@@ -135,19 +135,19 @@ class TeamupConnector(ICalendarConnector):
         
         Args:
             calendar_id: Calendar Key de Teamup
-            start_date: Fecha inicio (por defecto: hoy)
-            end_date: Fecha fin (por defecto: hoy + 90 días)
+            start_date: Fecha inicio (por defecto: hoy - 365 días)
+            end_date: Fecha fin (por defecto: hoy + 365 días)
             
         Returns:
             ConnectionResult: Lista de eventos o error
         """
         url = f"{self.BASE_URL}/{calendar_id}/events"
         
-        # Configurar rango de fechas
+        # Configurar rango de fechas amplio para incluir pasado y futuro
         if start_date is None:
-            start_date = datetime.utcnow()
+            start_date = datetime.utcnow() - timedelta(days=365)
         if end_date is None:
-            end_date = start_date + timedelta(days=90)
+            end_date = datetime.utcnow() + timedelta(days=365)
         
         # Teamup usa formato de fecha simple: YYYY-MM-DD
         params = {

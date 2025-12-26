@@ -59,12 +59,14 @@ class ExternalEvent:
         
         if self.description:
             payload["description"] = self.description
-            
-        if self.location:
-            payload["location"] = {
-                "address": self.location,
-                "place_name": self.location
-            }
+        
+        # Nota: No incluimos location porque el schema de Basmati requiere 
+        # latitude/longitude que no tenemos de los proveedores externos.
+        # La dirección de texto se puede agregar en description si es necesario.
+        if self.location and self.description:
+            payload["description"] = f"{self.description}\n\n📍 {self.location}"
+        elif self.location:
+            payload["description"] = f"📍 {self.location}"
             
         return payload
 

@@ -293,6 +293,20 @@ async def integrations_v2_route(path: str, request: Request):
     return await proxy_request("integrations", full_path, request)
 
 
+@app.api_route("/v3/integrations/{path:path}", methods=["GET", "POST", "PUT", "DELETE"])
+async def integrations_v3_route(path: str, request: Request):
+    """
+    Proxy para el Integration Service V3 (Abstract Factory Pattern).
+    
+    Ejemplos:
+        GET /v3/integrations/imports/providers
+        POST /v3/integrations/imports/google
+        POST /v3/integrations/imports/teamup
+    """
+    full_path = f"v3/integrations/{path}" if path else "v3/integrations"
+    return await proxy_request("integrations", full_path, request)
+
+
 @app.api_route("/v2/events/{path:path}", methods=["GET", "POST", "PUT", "DELETE"])
 
 
