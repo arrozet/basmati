@@ -25,7 +25,9 @@ GOOGLE_USERINFO_URL = "https://www.googleapis.com/oauth2/v2/userinfo"
 # Scopes de Google OAuth
 # - openid, email, profile: básicos para autenticación
 # - calendar.readonly: para importar calendarios de Google Calendar
-GOOGLE_SCOPES = "openid email profile"
+# GOOGLE_SCOPES = "openid email profile"
+GOOGLE_SCOPES = "openid email profile https://www.googleapis.com/auth/calendar.readonly"
+
 
 
 def get_google_auth_url(state: str | None = None) -> str:

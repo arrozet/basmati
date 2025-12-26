@@ -36,6 +36,7 @@ export interface Google_Import_Request_V3 {
     user_external_id: string;
     access_token: string;
     calendar_ids: string[];
+    calendar_name?: string;
 }
 
 /**
@@ -45,6 +46,7 @@ export interface Teamup_Import_Request_V3 {
     user_external_id: string;
     calendar_ids: string[];
     api_key?: string;
+    calendar_name?: string;
 }
 
 /**
@@ -55,6 +57,7 @@ export interface Generic_Import_Request_V3 {
     user_external_id: string;
     calendar_ids: string[];
     credentials: Record<string, string>;
+    calendar_name?: string;
 }
 
 /**

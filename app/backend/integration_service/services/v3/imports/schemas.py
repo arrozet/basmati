@@ -40,6 +40,10 @@ class BaseImportRequest(BaseModel):
         description="Lista de IDs de calendarios a importar",
         min_length=1
     )
+    calendar_name: Optional[str] = Field(
+        None,
+        description="Nombre personalizado para el calendario importado (usa el nombre original si no se especifica)"
+    )
     
     model_config = ConfigDict(
         str_strip_whitespace=True,
@@ -108,6 +112,10 @@ class GenericImportRequest(BaseModel):
         ...,
         description="Lista de IDs/keys de calendarios a importar",
         min_length=1
+    )
+    calendar_name: Optional[str] = Field(
+        None,
+        description="Nombre personalizado para el calendario importado"
     )
     credentials: dict[str, Any] = Field(
         default_factory=dict,

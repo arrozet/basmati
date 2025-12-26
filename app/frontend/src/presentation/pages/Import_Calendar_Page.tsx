@@ -17,6 +17,7 @@ import {
 } from "../../domain/models/integration_models";
 import { use_page_title } from "../hooks/use_page_title";
 import { get_google_token } from "../../infrastructure/services/auth_service";
+import { use_user_context } from "../context/UserContext";
 
 const repository = new Http_Integration_Repository();
 const import_google_use_case = new Import_Google_Calendar_Use_Case_V3(repository);
@@ -127,6 +128,10 @@ const Provider_Info_Badge: React.FC<{ provider: Provider_Capabilities }> = ({ pr
 export const Import_Calendar_Page = () => {
   use_page_title("Import calendar");
   const navigate = useNavigate();
+  const { user } = use_user_context();
+  
+  // ID del usuario actual (logeado o fallback a dev)
+  const current_user_id = user?.external_id || "user_dev_1";
   
   // Estado general
   const [active_tab, set_active_tab] = useState<Provider_Type>("google");
@@ -140,11 +145,13 @@ export const Import_Calendar_Page = () => {
   const stored_google_token = get_google_token();
   const [google_token, set_google_token] = useState(stored_google_token || "");
   const [google_calendar_ids, set_google_calendar_ids] = useState("");
+  const [google_calendar_name, set_google_calendar_name] = useState("");
   const has_stored_token = Boolean(stored_google_token);
 
   // Teamup Form State
   const [teamup_key, set_teamup_key] = useState("");
   const [teamup_api_key, set_teamup_api_key] = useState("");
+  const [teamup_calendar_name, set_teamup_calendar_name] = useState("");
 
   // Cargar proveedores al montar
   useEffect(() => {
@@ -176,11 +183,26 @@ export const Import_Calendar_Page = () => {
         ? google_calendar_ids.split(",").map((id) => id.trim()).filter(Boolean)
         : ["primary"];
 
+      // Usar token manual si se proporciona, sino el almacenado
+      const token_to_use = google_token || stored_google_token;
+      
+      if (!token_to_use) {
+        set_error("Se requiere un token de Google. Introduce uno manualmente o inicia sesión con Google.");
+        set_loading(false);
+        return;
+      }
+
       const result = await import_google_use_case.execute({
-        user_external_id: "user_dev_1", // Hardcoded for dev as per AGENTS.md
-        access_token: google_token,
+        user_external_id: current_user_id,
+        access_token: token_to_use,
         calendar_ids: calendar_ids,
+        calendar_name: google_calendar_name || undefined,
       });
+      
+      // Si hay errores en el resultado, mostrarlos
+      if (!result.success && result.errors && result.errors.length > 0) {
+        set_error(result.errors.join(". "));
+      }
       
       set_import_result(result);
     } catch (err: any) {
@@ -203,9 +225,10 @@ export const Import_Calendar_Page = () => {
       }
 
       const result = await import_teamup_use_case.execute({
-        user_external_id: "user_dev_1", // Hardcoded for dev
+        user_external_id: current_user_id,
         calendar_ids: [teamup_key],
         api_key: teamup_api_key || undefined,
+        calendar_name: teamup_calendar_name || undefined,
       });
       
       set_import_result(result);
@@ -287,10 +310,16 @@ export const Import_Calendar_Page = () => {
             <Neo_Card title="Importar desde Google Calendar">
               <form onSubmit={handle_google_import} className="flex flex-col gap-4">
                 {has_stored_token ? (
-                  <div className="bg-green-50 p-4 border-l-4 border-green-500 text-sm mb-2">
-                    <p className="font-bold mb-1">✓ Conectado con Google</p>
+                  <div className="bg-yellow-50 p-4 border-l-4 border-yellow-500 text-sm mb-2">
+                    <p className="font-bold mb-1">⚠️ Limitación de Scopes de Google</p>
+                    <p className="text-gray-600 mb-2">
+                      El token de tu sesión puede no tener permisos para leer calendarios. 
+                      Si la importación falla, necesitarás obtener un token con el scope 
+                      <code className="bg-gray-200 px-1 mx-1 rounded">calendar.readonly</code> 
+                      desde el <a href="https://developers.google.com/oauthplayground/" target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">OAuth Playground de Google</a>.
+                    </p>
                     <p className="text-gray-600">
-                      Tu cuenta de Google ya está conectada. Puedes importar calendarios directamente.
+                      Puedes probar con el token automático primero, o introducir uno manualmente.
                     </p>
                   </div>
                 ) : (
@@ -303,15 +332,13 @@ export const Import_Calendar_Page = () => {
                   </div>
                 )}
 
-                {!has_stored_token && (
-                  <Neo_Input
-                    label="Google Access Token"
-                    placeholder="ya29.a0..."
-                    value={google_token}
-                    onChange={(e) => set_google_token(e.target.value)}
-                    required
-                  />
-                )}
+                <Neo_Input
+                  label={has_stored_token ? "Google Access Token (Opcional - usa el de tu sesión si está vacío)" : "Google Access Token"}
+                  placeholder="ya29.a0..."
+                  value={google_token}
+                  onChange={(e) => set_google_token(e.target.value)}
+                  required={!has_stored_token}
+                />
 
                 <Neo_Input
                   label="Calendar IDs (Opcional)"
@@ -323,9 +350,19 @@ export const Import_Calendar_Page = () => {
                   Separados por comas. Dejar en blanco para importar el calendario principal.
                 </p>
 
+                <Neo_Input
+                  label="Nombre del Calendario (Opcional)"
+                  placeholder="Mi calendario personalizado"
+                  value={google_calendar_name}
+                  onChange={(e) => set_google_calendar_name(e.target.value)}
+                />
+                <p className="text-xs text-gray-500 -mt-3">
+                  Nombre personalizado para el calendario importado. Dejar en blanco para usar el nombre original.
+                </p>
+
                 <Neo_Button 
                   type="submit" 
-                  disabled={loading || !google_token} 
+                  disabled={loading || (!google_token && !stored_google_token)} 
                   className="mt-4"
                 >
                   {loading ? (
@@ -372,6 +409,16 @@ export const Import_Calendar_Page = () => {
                 />
                 <p className="text-xs text-gray-500 -mt-3">
                   Si se deja vacío, se usará la API Key del servidor.
+                </p>
+
+                <Neo_Input
+                  label="Nombre del Calendario (Opcional)"
+                  placeholder="Mi calendario personalizado"
+                  value={teamup_calendar_name}
+                  onChange={(e) => set_teamup_calendar_name(e.target.value)}
+                />
+                <p className="text-xs text-gray-500 -mt-3">
+                  Nombre personalizado para el calendario importado. Dejar en blanco para usar el nombre original.
                 </p>
 
                 <Neo_Button 

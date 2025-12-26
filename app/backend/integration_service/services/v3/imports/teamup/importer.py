@@ -61,7 +61,8 @@ class TeamupCalendarImporter(ICalendarImporter):
     async def import_calendar(
         self,
         external_calendar_id: str,
-        user_external_id: str
+        user_external_id: str,
+        custom_name: Optional[str] = None
     ) -> ImportResult:
         """
         Importa un calendario completo con sus eventos desde Teamup.
@@ -69,6 +70,7 @@ class TeamupCalendarImporter(ICalendarImporter):
         Args:
             external_calendar_id: Calendar Key de Teamup (ej: "ksfogsn8nf72mjdfcv")
             user_external_id: ID del usuario en Basmati
+            custom_name: Nombre personalizado para el calendario (opcional)
             
         Returns:
             ImportResult: Resultado de la importación
@@ -90,11 +92,12 @@ class TeamupCalendarImporter(ICalendarImporter):
         # 2. Parsear información del calendario
         calendar_info = self._parser.parse_calendar_info(calendar_result.data)
         
-        # 3. Crear calendario en Basmati
+        # 3. Crear calendario en Basmati (usando nombre personalizado si se proporciona)
         basmati_calendar_id = await self._create_basmati_calendar(
             calendar_info,
             user_external_id,
-            external_calendar_id
+            external_calendar_id,
+            custom_name=custom_name
         )
         
         if not basmati_calendar_id:
@@ -166,7 +169,8 @@ class TeamupCalendarImporter(ICalendarImporter):
         self,
         calendar_info: ExternalCalendarInfo,
         user_external_id: str,
-        teamup_key: str
+        teamup_key: str,
+        custom_name: Optional[str] = None
     ) -> Optional[str]:
         """
         Crea un calendario en Basmati CalendarService.
@@ -175,16 +179,20 @@ class TeamupCalendarImporter(ICalendarImporter):
             calendar_info: Información del calendario externo
             user_external_id: ID del usuario propietario
             teamup_key: Calendar Key de Teamup para descripción
+            custom_name: Nombre personalizado para el calendario (opcional)
             
         Returns:
             str: ID del calendario creado o None si falla
         """
+        # Usar nombre personalizado si se proporciona, sino el nombre original
+        calendar_name = custom_name if custom_name else calendar_info.name
+        
         description = calendar_info.description or ""
         if not description:
             description = f"Importado desde Teamup (Key: {teamup_key})"
         
         payload = {
-            "title": calendar_info.name,
+            "title": calendar_name,
             "creator_external_id": user_external_id,
             "creator_display_name": "Universidad de Málaga",
             "keywords": ["teamup", "imported", "v3", "uma", "universidad"],

@@ -209,7 +209,8 @@ class ICalendarImporter(ABC):
     async def import_calendar(
         self,
         external_calendar_id: str,
-        user_external_id: str
+        user_external_id: str,
+        custom_name: Optional[str] = None
     ) -> ImportResult:
         """
         Importa un calendario completo con sus eventos.
@@ -217,6 +218,7 @@ class ICalendarImporter(ABC):
         Args:
             external_calendar_id: ID del calendario en el proveedor
             user_external_id: ID del usuario en Basmati
+            custom_name: Nombre personalizado para el calendario (opcional)
             
         Returns:
             ImportResult: Resultado de la importación

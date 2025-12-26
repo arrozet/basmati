@@ -61,7 +61,8 @@ class GoogleCalendarImporter(ICalendarImporter):
     async def import_calendar(
         self,
         external_calendar_id: str,
-        user_external_id: str
+        user_external_id: str,
+        custom_name: Optional[str] = None
     ) -> ImportResult:
         """
         Importa un calendario completo con sus eventos.
@@ -69,6 +70,7 @@ class GoogleCalendarImporter(ICalendarImporter):
         Args:
             external_calendar_id: ID del calendario en Google (o "primary")
             user_external_id: ID del usuario en Basmati
+            custom_name: Nombre personalizado para el calendario (opcional)
             
         Returns:
             ImportResult: Resultado de la importación
@@ -90,10 +92,11 @@ class GoogleCalendarImporter(ICalendarImporter):
         # 2. Parsear información del calendario
         calendar_info = self._parser.parse_calendar_info(calendar_result.data)
         
-        # 3. Crear calendario en Basmati
+        # 3. Crear calendario en Basmati (usando nombre personalizado si se proporciona)
         basmati_calendar_id = await self._create_basmati_calendar(
             calendar_info,
-            user_external_id
+            user_external_id,
+            custom_name=custom_name
         )
         
         if not basmati_calendar_id:
@@ -164,7 +167,8 @@ class GoogleCalendarImporter(ICalendarImporter):
     async def _create_basmati_calendar(
         self,
         calendar_info: ExternalCalendarInfo,
-        user_external_id: str
+        user_external_id: str,
+        custom_name: Optional[str] = None
     ) -> Optional[str]:
         """
         Crea un calendario en Basmati CalendarService.
@@ -172,12 +176,16 @@ class GoogleCalendarImporter(ICalendarImporter):
         Args:
             calendar_info: Información del calendario externo
             user_external_id: ID del usuario propietario
+            custom_name: Nombre personalizado para el calendario (opcional)
             
         Returns:
             str: ID del calendario creado o None si falla
         """
+        # Usar nombre personalizado si se proporciona, sino el nombre original
+        calendar_name = custom_name if custom_name else calendar_info.name
+        
         payload = {
-            "title": calendar_info.name,
+            "title": calendar_name,
             "creator_external_id": user_external_id,
             "creator_display_name": "Usuario importado",
             "keywords": ["google_calendar", "imported", "v3"],

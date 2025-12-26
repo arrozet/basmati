@@ -116,6 +116,7 @@ class ImportServiceV3:
             calendar_ids=request.calendar_ids,
             user_external_id=request.user_external_id,
             provider_type=ProviderType.GOOGLE,
+            calendar_name=request.calendar_name,
         )
     
     async def import_from_teamup(
@@ -159,6 +160,7 @@ class ImportServiceV3:
             calendar_ids=request.calendar_ids,
             user_external_id=request.user_external_id,
             provider_type=ProviderType.TEAMUP,
+            calendar_name=request.calendar_name,
         )
     
     async def import_calendars(
@@ -204,6 +206,7 @@ class ImportServiceV3:
                 user_external_id=request.user_external_id,
                 calendar_ids=request.calendar_ids,
                 access_token=access_token,
+                calendar_name=request.calendar_name,
             )
             return await self.import_from_google(google_request)
         
@@ -212,6 +215,7 @@ class ImportServiceV3:
                 user_external_id=request.user_external_id,
                 calendar_ids=request.calendar_ids,
                 api_key=request.credentials.get("api_key"),
+                calendar_name=request.calendar_name,
             )
             return await self.import_from_teamup(teamup_request)
         
@@ -262,6 +266,7 @@ class ImportServiceV3:
         calendar_ids: list[str],
         user_external_id: str,
         provider_type: ProviderType,
+        calendar_name: Optional[str] = None,
     ) -> ImportResponseV3:
         """
         Ejecuta la importación usando la factoría proporcionada.
@@ -271,6 +276,7 @@ class ImportServiceV3:
             calendar_ids: Lista de IDs de calendarios a importar
             user_external_id: ID del usuario
             provider_type: Tipo de proveedor para el response
+            calendar_name: Nombre personalizado para el calendario (opcional)
             
         Returns:
             ImportResponseV3: Resultado agregado de todas las importaciones
@@ -290,7 +296,8 @@ class ImportServiceV3:
                 
                 result = await importer.import_calendar(
                     external_calendar_id=calendar_id,
-                    user_external_id=user_external_id
+                    user_external_id=user_external_id,
+                    custom_name=calendar_name,
                 )
                 
                 if result.success and result.basmati_calendar_id:
