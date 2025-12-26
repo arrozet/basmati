@@ -148,6 +148,12 @@ ENV/
 env.bak/
 venv.bak/
 
+# AWS SAM artifacts
+.aws-sam/
+samconfig.toml
+samconfig-local.toml
+env-vars.json
+
 # Spyder project settings
 .spyderproject
 .spyproject

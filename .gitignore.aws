@@ -1,0 +1,21 @@
+# SAM build artifacts
+.aws-sam/
+samconfig.toml
+samconfig-local.toml
+env-vars.json
+
+# Environment files
+.env.local
+.env.production
+
+# Frontend build
+app/frontend/dist/
+app/frontend/.env.production
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db

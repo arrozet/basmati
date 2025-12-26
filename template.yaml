@@ -1,0 +1,178 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  Basmati Calendar Application
+  Microservicios backend desplegados como funciones Lambda
+
+Globals:
+  Function:
+    Timeout: 30
+    MemorySize: 512
+    Runtime: python3.11
+    Environment:
+      Variables:
+        MONGO_URI: !Ref MongoURI
+        PYTHONPATH: /var/task
+
+Parameters:
+  MongoURI:
+    Type: String
+    Description: MongoDB Atlas connection string
+    NoEcho: true
+  
+  FrontendBucketName:
+    Type: String
+    Description: Nombre del bucket S3 para el frontend
+    Default: basmati-frontend
+
+Resources:
+  # API Gateway REST API
+  BasmatiApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: prod
+      Cors:
+        AllowMethods: "'*'"
+        AllowHeaders: "'*'"
+        AllowOrigin: "'*'"
+
+  # API Gateway Function
+  ApiGatewayFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: app/backend/api-gateway/
+      Handler: lambda_handler.handler
+      Description: API Gateway principal
+      Events:
+        ApiRoot:
+          Type: Api
+          Properties:
+            RestApiId: !Ref BasmatiApi
+            Path: /
+            Method: ANY
+        ApiProxy:
+          Type: Api
+          Properties:
+            RestApiId: !Ref BasmatiApi
+            Path: /{proxy+}
+            Method: ANY
+      # No environment variables needed - uses defaults from shared/config.py
+      # After first deployment, we can add API_GATEWAY_URL variable
+
+  # User Service Function
+  UserServiceFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: app/backend/user_service/
+      Handler: lambda_handler.handler
+      Description: Servicio de gestión de usuarios
+      Events:
+        UserApi:
+          Type: Api
+          Properties:
+            RestApiId: !Ref BasmatiApi
+            Path: /user/{proxy+}
+            Method: ANY
+
+  # Calendar Service Function
+  CalendarServiceFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: app/backend/calendar_service/
+      Handler: lambda_handler.handler
+      Description: Servicio de gestión de calendarios
+      Events:
+        CalendarApi:
+          Type: Api
+          Properties:
+            RestApiId: !Ref BasmatiApi
+            Path: /calendar/{proxy+}
+            Method: ANY
+
+  # Event Service Function
+  EventServiceFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: app/backend/event_service/
+      Handler: lambda_handler.handler
+      Description: Servicio de gestión de eventos
+      Events:
+        EventApi:
+          Type: Api
+          Properties:
+            RestApiId: !Ref BasmatiApi
+            Path: /event/{proxy+}
+            Method: ANY
+      # No environment variables needed - uses defaults from shared/config.py
+
+  # Notification Service Function
+  NotificationServiceFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: app/backend/notification_service/
+      Handler: lambda_handler.handler
+      Description: Servicio de notificaciones
+      Events:
+        NotificationApi:
+          Type: Api
+          Properties:
+            RestApiId: !Ref BasmatiApi
+            Path: /notification/{proxy+}
+            Method: ANY
+      # No environment variables needed - uses defaults from shared/config.py
+
+  # Integration Service Function
+  IntegrationServiceFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: app/backend/integration_service/
+      Handler: lambda_handler.handler
+      Description: Servicio de integraciones externas
+      Events:
+        IntegrationApi:
+          Type: Api
+          Properties:
+            RestApiId: !Ref BasmatiApi
+            Path: /integration/{proxy+}
+            Method: ANY
+      # No environment variables needed - uses defaults from shared/config.py
+
+  # S3 Bucket para Frontend (Static Website Hosting)
+  FrontendBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Ref FrontendBucketName
+      WebsiteConfiguration:
+        IndexDocument: index.html
+        ErrorDocument: index.html
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: false
+        BlockPublicPolicy: false
+        IgnorePublicAcls: false
+        RestrictPublicBuckets: false
+
+  # Bucket Policy para permitir acceso público de lectura
+  FrontendBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref FrontendBucket
+      PolicyDocument:
+        Statement:
+          - Sid: PublicReadGetObject
+            Effect: Allow
+            Principal: '*'
+            Action: 's3:GetObject'
+            Resource: !Sub '${FrontendBucket.Arn}/*'
+
+Outputs:
+  ApiUrl:
+    Description: "URL del API Gateway"
+    Value: !Sub "https://${BasmatiApi}.execute-api.${AWS::Region}.amazonaws.com/prod/"
+  
+  FrontendUrl:
+    Description: "URL del frontend en S3"
+    Value: !GetAtt FrontendBucket.WebsiteURL
+  
+  FrontendBucketName:
+    Description: "Nombre del bucket S3 del frontend"
+    Value: !Ref FrontendBucket
