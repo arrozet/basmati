@@ -30,6 +30,10 @@ class TokenResponse(BaseModel):
     expires_in: int = Field(..., description="Segundos hasta expiración")
     user: "UserInfo" = Field(..., description="Información del usuario")
     is_new_user: bool = Field(default=False, description="True si es un usuario nuevo")
+    google_access_token: str | None = Field(
+        None, 
+        description="Token de acceso de Google para importar calendarios (solo disponible si el login fue con Google)"
+    )
 
 
 class UserInfo(BaseModel):

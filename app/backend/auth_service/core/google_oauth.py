@@ -22,6 +22,11 @@ GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth"
 GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token"
 GOOGLE_USERINFO_URL = "https://www.googleapis.com/oauth2/v2/userinfo"
 
+# Scopes de Google OAuth
+# - openid, email, profile: básicos para autenticación
+# - calendar.readonly: para importar calendarios de Google Calendar
+GOOGLE_SCOPES = "openid email profile"
+
 
 def get_google_auth_url(state: str | None = None) -> str:
     """
@@ -37,7 +42,7 @@ def get_google_auth_url(state: str | None = None) -> str:
         "client_id": settings.google_client_id,
         "redirect_uri": settings.google_redirect_uri,
         "response_type": "code",
-        "scope": "openid email profile",
+        "scope": GOOGLE_SCOPES,
         "access_type": "offline",
         "prompt": "consent"
     }

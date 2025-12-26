@@ -7,7 +7,8 @@ import {
     parse_callback_params, 
     exchange_auth_code,
     save_token, 
-    save_user 
+    save_user,
+    save_google_token
 } from '../../infrastructure/services/auth_service';
 
 /**
@@ -58,6 +59,12 @@ export const Auth_Callback_Page = () => {
                 // Guardar token ANTES de cualquier otra operación
                 save_token(token_response.access_token);
                 console.log('💾 Token guardado en localStorage');
+
+                // Guardar el token de Google si está disponible (para importar calendarios)
+                if (token_response.google_access_token) {
+                    save_google_token(token_response.google_access_token);
+                    console.log('💾 Google token guardado para importaciones');
+                }
 
                 // Guardar información del usuario
                 save_user(token_response.user);
