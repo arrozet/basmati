@@ -27,7 +27,7 @@ const add_comment_use_case = new Add_Calendar_Comment_Use_Case(
 );
 
 export const Calendar_Detail_Page = () => {
-  use_page_title("Calendar details");
+  use_page_title("Detalles del calendario");
   const { id } = useParams();
   const { user } = use_user_context();
   const current_user_id = user?.external_id || "user_dev_1";

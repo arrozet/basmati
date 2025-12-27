@@ -31,7 +31,7 @@ const get_event_use_case = new Get_Event_Use_Case(event_repository);
 const add_comment_use_case = new Add_Comment_Use_Case(event_repository);
 
 export const Event_Detail_Page = () => {
-  use_page_title("Event details");
+  use_page_title("Detalles del evento");
   const { id } = useParams();
   const { user } = use_user_context();
   const current_user_id = user?.external_id || "user_dev_1";

@@ -29,7 +29,7 @@ type NotificationFrequency = "instant" | "daily";
  * Usa el contexto de usuario para obtener y actualizar datos reales.
  */
 export const Settings_Page: React.FC = () => {
-  use_page_title("Settings");
+  use_page_title("Ajustes");
   const navigate = useNavigate();
   const {
     user,

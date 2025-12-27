@@ -38,7 +38,7 @@ const delete_event_use_case = new Delete_Event_Use_Case(
  * Formulario con labels asociados, botones semánticos y aria-labels.
  */
 export const Edit_Event_Page = () => {
-  use_page_title("Edit event");
+  use_page_title("Editar evento");
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = use_user_context();

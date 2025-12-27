@@ -449,7 +449,7 @@ const CalendarGrid: React.FC<{
                 <span className="md:hidden font-bold text-gray-500 text-xs uppercase">
                   {day_name}
                 </span>
-                
+
                 <time
                   className={`font-bold absolute top-1 right-1 ${
                     is_today
@@ -1181,7 +1181,7 @@ const CalendarGrid: React.FC<{
 };
 
 export const Dashboard_Page = () => {
-  use_page_title("Dashboard");
+  use_page_title("Inicio");
   const [searchParams, setSearchParams] = useSearchParams();
   const calendar_id = searchParams.get("calendar_id") || undefined;
   const { hidden_calendar_ids } = use_calendar_visibility();

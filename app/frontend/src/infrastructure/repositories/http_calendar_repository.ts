@@ -62,10 +62,10 @@ export class Http_Calendar_Repository implements Calendar_Repository_Interface {
       creator_external_id: calendar.owner_id, // Mapeo correcto
       creator_display_name:
         calendar.creator_display_name || "Usuario Desconocido", // Usar el display_name del usuario que crea el calendario
-      keywords: [], // Campo opcional pero recomendado
+      keywords: calendar.keywords || [], // Palabras clave para búsqueda
       icon: calendar.icon,
       visibility: calendar.is_public ? "public" : "private", // Mapeo de booleano a enum
-      description: "",
+      description: calendar.description || "",
       parent_calendar_id: calendar.parent_id,
     };
 
@@ -81,6 +81,8 @@ export class Http_Calendar_Repository implements Calendar_Repository_Interface {
       icon: item.icon,
       is_public: item.visibility === "public",
       parent_id: item.parent_calendar_id,
+      description: item.description || undefined,
+      keywords: item.keywords || [],
     };
   }
 
@@ -96,6 +98,8 @@ export class Http_Calendar_Repository implements Calendar_Repository_Interface {
         icon: calendar.icon,
         visibility: calendar.is_public ? "public" : "private",
         parent_calendar_id: calendar.parent_id || null,
+        description: calendar.description || null,
+        keywords: calendar.keywords || [],
       },
       {
         params: { current_user_id: calendar.owner_id },
@@ -110,6 +114,8 @@ export class Http_Calendar_Repository implements Calendar_Repository_Interface {
       icon: item.icon,
       is_public: item.visibility === "public",
       parent_id: item.parent_calendar_id,
+      description: item.description || undefined,
+      keywords: item.keywords || [],
     };
   }
 
@@ -154,6 +160,8 @@ export class Http_Calendar_Repository implements Calendar_Repository_Interface {
         is_public: item.visibility === "public",
         visibility: item.visibility,
         parent_id: item.parent_calendar_id,
+        description: item.description || undefined,
+        keywords: item.keywords || [],
         created_at: item.created_at ? new Date(item.created_at) : undefined,
         updated_at: item.updated_at ? new Date(item.updated_at) : undefined,
         comments: item.comments
