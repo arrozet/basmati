@@ -29,7 +29,7 @@ const create_event_use_case = new Create_Event_Use_Case(
  * Usa formulario semántico con labels asociados, aria-live para mensajes de error.
  */
 export const Create_Event_Page = () => {
-  use_page_title("Create event");
+  use_page_title("Crear evento");
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { user } = use_user_context();

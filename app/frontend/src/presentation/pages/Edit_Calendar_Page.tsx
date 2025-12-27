@@ -16,7 +16,7 @@ import { use_user_context } from "../context/UserContext";
  * Incluye funcionalidad de modificación y eliminación.
  */
 export const Edit_Calendar_Page = () => {
-  use_page_title("Edit calendar");
+  use_page_title("Editar calendario");
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user } = use_user_context();

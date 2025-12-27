@@ -15,7 +15,7 @@ import { use_user_context } from "../context/UserContext";
  * Formulario accesible basado en los bocetos con HTML semántico.
  */
 export const Create_Calendar_Page = () => {
-  use_page_title("Create calendar");
+  use_page_title("Crear calendario");
   const navigate = useNavigate();
 
   // Obtener el usuario actual del contexto en lugar de hardcodear user_dev_1

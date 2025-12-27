@@ -16,7 +16,7 @@ const import_google_use_case = new Import_Google_Calendar_Use_Case(repository);
 const import_teamup_use_case = new Import_Teamup_Calendar_Use_Case(repository);
 
 export const Import_Calendar_Page = () => {
-  use_page_title("Import calendar");
+  use_page_title("Importar calendario");
   const navigate = useNavigate();
   const [active_tab, set_active_tab] = useState<"google" | "teamup">("google");
   const [loading, set_loading] = useState(false);
