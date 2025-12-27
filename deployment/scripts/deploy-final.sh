@@ -140,12 +140,18 @@ echo -e "${BLUE}📋 Paso 7: Desplegando backend a AWS Lambda...${NC}"
 GOOGLE_CLIENT_ID=$(grep "^GOOGLE_CLIENT_ID=" app/.env | cut -d '=' -f 2-)
 GOOGLE_CLIENT_SECRET=$(grep "^GOOGLE_CLIENT_SECRET=" app/.env | cut -d '=' -f 2-)
 
+if [ -z "$GOOGLE_CLIENT_ID" ] || [ -z "$GOOGLE_CLIENT_SECRET" ]; then
+    echo -e "${RED}❌ Error: Credenciales de Google OAuth no encontradas en app/.env${NC}"
+    exit 1
+fi
+echo -e "${GREEN}✅ Credenciales OAuth cargadas${NC}"
+
 sam deploy \
     --stack-name "${STACK_NAME}" \
     --capabilities CAPABILITY_IAM \
     --region "${AWS_REGION}" \
     --resolve-s3 \
-    --parameter-overrides "MongoDBURI=${MONGO_URI}" "GoogleClientID=${GOOGLE_CLIENT_ID}" "GoogleClientSecret=${GOOGLE_CLIENT_SECRET}" "FrontendBucketName=${FRONTEND_BUCKET}" \
+    --parameter-overrides "MongoURI=${MONGO_URI}" "GoogleClientId=${GOOGLE_CLIENT_ID}" "GoogleClientSecret=${GOOGLE_CLIENT_SECRET}" "FrontendBucketName=${FRONTEND_BUCKET}" \
     --no-confirm-changeset \
     --no-fail-on-empty-changeset
 

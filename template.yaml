@@ -20,6 +20,16 @@ Parameters:
     Description: MongoDB Atlas connection string
     NoEcho: true
   
+  GoogleClientId:
+    Type: String
+    Description: Google OAuth Client ID
+    NoEcho: false
+  
+  GoogleClientSecret:
+    Type: String
+    Description: Google OAuth Client Secret
+    NoEcho: true
+  
   FrontendBucketName:
     Type: String
     Description: Nombre del bucket S3 para el frontend
@@ -49,7 +59,25 @@ Resources:
           Properties:
             RestApiId: !Ref BasmatiApi
             Path: /
-            Method: ANY
+            Method: GET
+        ApiDocs:
+          Type: Api
+          Properties:
+            RestApiId: !Ref BasmatiApi
+            Path: /docs
+            Method: GET
+        ApiOpenAPI:
+          Type: Api
+          Properties:
+            RestApiId: !Ref BasmatiApi
+            Path: /openapi.json
+            Method: GET
+        ApiHealth:
+          Type: Api
+          Properties:
+            RestApiId: !Ref BasmatiApi
+            Path: /health
+            Method: GET
         ApiProxy:
           Type: Api
           Properties:
@@ -67,11 +95,11 @@ Resources:
       Handler: lambda_handler.handler
       Description: Servicio de gestión de usuarios
       Events:
-        UserApi:
+        UserApiV1:
           Type: Api
           Properties:
             RestApiId: !Ref BasmatiApi
-            Path: /user/{proxy+}
+            Path: /v1/users/{proxy+}
             Method: ANY
 
   # Auth Service Function
@@ -82,13 +110,21 @@ Resources:
       Handler: lambda_handler.handler
       Description: Servicio de autenticación (OAuth Google/Facebook)
       Events:
-        AuthApi:
+        AuthApiV1:
           Type: Api
           Properties:
             RestApiId: !Ref BasmatiApi
-            Path: /auth/{proxy+}
+            Path: /v1/auth/{proxy+}
             Method: ANY
-      # Environment variables will be added after first deployment to avoid circular dependency
+      Environment:
+        Variables:
+          GOOGLE_CLIENT_ID: !Ref GoogleClientId
+          GOOGLE_CLIENT_SECRET: !Ref GoogleClientSecret
+          FRONTEND_URL: !Sub "http://${FrontendBucketName}.s3-website.${AWS::Region}.amazonaws.com"
+          # Hardcoded porque crear referencia circular con BasmatiApi causa error
+          API_GATEWAY_URL: "https://e37x0pucbh.execute-api.eu-north-1.amazonaws.com/prod"
+          USER_SERVICE_URL: "https://e37x0pucbh.execute-api.eu-north-1.amazonaws.com/prod"
+          ENVIRONMENT: production
 
   # Calendar Service Function
   CalendarServiceFunction:
@@ -98,11 +134,11 @@ Resources:
       Handler: lambda_handler.handler
       Description: Servicio de gestión de calendarios
       Events:
-        CalendarApi:
+        CalendarApiV1:
           Type: Api
           Properties:
             RestApiId: !Ref BasmatiApi
-            Path: /calendar/{proxy+}
+            Path: /v1/calendars/{proxy+}
             Method: ANY
 
   # Event Service Function
@@ -113,11 +149,11 @@ Resources:
       Handler: lambda_handler.handler
       Description: Servicio de gestión de eventos
       Events:
-        EventApi:
+        EventApiV1:
           Type: Api
           Properties:
             RestApiId: !Ref BasmatiApi
-            Path: /event/{proxy+}
+            Path: /v1/events/{proxy+}
             Method: ANY
       # No environment variables needed - uses defaults from shared/config.py
 
@@ -129,11 +165,11 @@ Resources:
       Handler: lambda_handler.handler
       Description: Servicio de notificaciones
       Events:
-        NotificationApi:
+        NotificationApiV1:
           Type: Api
           Properties:
             RestApiId: !Ref BasmatiApi
-            Path: /notification/{proxy+}
+            Path: /v1/notifications/{proxy+}
             Method: ANY
       # No environment variables needed - uses defaults from shared/config.py
 
@@ -145,11 +181,11 @@ Resources:
       Handler: lambda_handler.handler
       Description: Servicio de integraciones externas
       Events:
-        IntegrationApi:
+        IntegrationApiV1:
           Type: Api
           Properties:
             RestApiId: !Ref BasmatiApi
-            Path: /integration/{proxy+}
+            Path: /v1/integrations/{proxy+}
             Method: ANY
       # No environment variables needed - uses defaults from shared/config.py
 

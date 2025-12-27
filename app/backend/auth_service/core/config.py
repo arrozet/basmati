@@ -23,7 +23,15 @@ class Settings(BaseSettings):
     # Google OAuth
     google_client_id: str = ""
     google_client_secret: str = ""
-    google_redirect_uri: str = "http://api-gateway:8000/v1/auth/google/callback"
+    
+    # URL dinámica del API Gateway (se obtiene de variable de entorno en Lambda)
+    api_gateway_url: str = "http://api-gateway:8000"
+    
+    # Computed property para redirect_uri
+    @property
+    def google_redirect_uri(self) -> str:
+        """Construye la URL de callback de Google OAuth"""
+        return f"{self.api_gateway_url}/v1/auth/google/callback"
     
     # JWT para tokens propios de sesión
     jwt_secret_key: str = "basmati-secret-key-change-in-production"
@@ -31,7 +39,23 @@ class Settings(BaseSettings):
     jwt_expire_minutes: int = 60 * 24 * 7  # 7 días
     
     # URLs de otros servicios
+    # En Lambda, user_service se invoca a través del API Gateway
     user_service_url: str = "http://user-service:8001"
+    
+    # Computed property para obtener la URL correcta según el entorno
+    @property
+    def effective_user_service_url(self) -> str:
+        """
+        Retorna la URL correcta del user service.
+        En Lambda usa API Gateway, en desarrollo usa el servicio directo.
+        """
+        # Si estamos en Lambda (API_GATEWAY_URL está definido), usar API Gateway
+        if self.api_gateway_url.startswith("https://"):
+            return self.api_gateway_url
+        # En desarrollo local, usar el servicio directo
+        return self.user_service_url
+    
+    # URL del frontend (se obtiene de variable de entorno en Lambda)
     frontend_url: str = "http://localhost:5173"
     
     # CORS

@@ -143,7 +143,7 @@ async def get_or_create_user(google_user: GoogleUserInfo) -> tuple[dict, bool]:
         # Intentar obtener usuario existente por external_id
         try:
             response = await client.get(
-                f"{settings.user_service_url}/v2/users/by-external-id/{external_id}"
+                f"{settings.effective_user_service_url}/v2/users/by-external-id/{external_id}"
             )
             
             if response.status_code == 200:
@@ -167,7 +167,7 @@ async def get_or_create_user(google_user: GoogleUserInfo) -> tuple[dict, bool]:
                     }
                     
                     update_response = await client.put(
-                        f"{settings.user_service_url}/v1/users/{user_id}",
+                        f"{settings.effective_user_service_url}/v1/users/{user_id}",
                         json=update_data
                     )
                     
@@ -204,7 +204,7 @@ async def get_or_create_user(google_user: GoogleUserInfo) -> tuple[dict, bool]:
                 }
                 
                 create_response = await client.post(
-                    f"{settings.user_service_url}/v1/users",
+                    f"{settings.effective_user_service_url}/v1/users",
                     json=new_user
                 )
                 
@@ -213,7 +213,7 @@ async def get_or_create_user(google_user: GoogleUserInfo) -> tuple[dict, bool]:
                 elif create_response.status_code == 400 or create_response.status_code == 409:
                     # Usuario ya existe (race condition), intentar obtenerlo de nuevo
                     get_response = await client.get(
-                        f"{settings.user_service_url}/v2/users/by-external-id/{external_id}"
+                        f"{settings.effective_user_service_url}/v2/users/by-external-id/{external_id}"
                     )
                     if get_response.status_code == 200:
                         return get_response.json(), False

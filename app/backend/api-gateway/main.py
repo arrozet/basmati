@@ -19,30 +19,38 @@ async def lifespan(app: FastAPI):
     """
     Gestor del ciclo de vida de la aplicación.
 
-    Startup: Carga el schema OpenAPI agregado de todos los servicios
+    Startup: Carga el schema OpenAPI agregado de todos los servicios (solo en desarrollo)
     Shutdown: Limpieza si fuera necesaria
     """
     global _custom_openapi_schema
 
-    # Startup: Cargar schema OpenAPI de todos los servicios
-    print("🔄 Cargando especificaciones OpenAPI de los servicios backend...")
-    try:
-        _custom_openapi_schema = await aggregate_openapi_specs(force_refresh=True)
-        num_paths = len(_custom_openapi_schema.get('paths', {}))
-        num_schemas = len(_custom_openapi_schema.get('components', {}).get('schemas', {}))
-        print(f"✅ Schema OpenAPI cargado: {num_paths} rutas, {num_schemas} schemas")
+    # En Lambda, no intentar agregar OpenAPI specs (no hay conexión interna entre funciones)
+    is_lambda = settings.environment == "production" or "AWS_LAMBDA_FUNCTION_NAME" in __import__("os").environ
+    
+    if not is_lambda:
+        # Solo en desarrollo local: Cargar schema OpenAPI de todos los servicios
+        print("🔄 Cargando especificaciones OpenAPI de los servicios backend...")
+        try:
+            _custom_openapi_schema = await aggregate_openapi_specs(force_refresh=True)
+            num_paths = len(_custom_openapi_schema.get('paths', {}))
+            num_schemas = len(_custom_openapi_schema.get('components', {}).get('schemas', {}))
+            print(f"✅ Schema OpenAPI cargado: {num_paths} rutas, {num_schemas} schemas")
 
-        # Contar request bodies
-        request_bodies_count = 0
-        for path, path_item in _custom_openapi_schema.get('paths', {}).items():
-            for method, operation in path_item.items():
-                if isinstance(operation, dict) and 'requestBody' in operation:
-                    request_bodies_count += 1
+            # Contar request bodies
+            request_bodies_count = 0
+            for path, path_item in _custom_openapi_schema.get('paths', {}).items():
+                for method, operation in path_item.items():
+                    if isinstance(operation, dict) and 'requestBody' in operation:
+                        request_bodies_count += 1
 
-        print(f"   📝 {request_bodies_count} operaciones con requestBody")
-    except Exception as e:
-        print(f"⚠️  Error cargando OpenAPI specs: {e}")
-        # Continuar sin el schema customizado
+            print(f"   📝 {request_bodies_count} operaciones con requestBody")
+        except Exception as e:
+            print(f"⚠️  Error cargando OpenAPI specs: {e}")
+            # Continuar sin el schema customizado
+            _custom_openapi_schema = None
+    else:
+        print("⚠️  Lambda detectado: OpenAPI aggregation deshabilitado")
+        # En Lambda, usar schema básico del API Gateway
         _custom_openapi_schema = None
 
     yield
@@ -105,7 +113,7 @@ async def get_openapi():
     Endpoint explícito para servir la especificación OpenAPI combinada.
 
     Returns:
-        dict: Especificación OpenAPI agregada de todos los servicios
+        dict: Especificación OpenAPI agregada de todos los servicios (o básica en Lambda)
     """
     global _custom_openapi_schema
 
@@ -113,8 +121,17 @@ async def get_openapi():
     if _custom_openapi_schema is not None:
         return _custom_openapi_schema
 
-    # Si no está cacheado, generarlo (útil para testing)
-    return await aggregate_openapi_specs()
+    # En Lambda, devolver el schema básico de FastAPI
+    import os
+    if "AWS_LAMBDA_FUNCTION_NAME" in os.environ:
+        return app.openapi()
+    
+    # En desarrollo, intentar generarlo
+    try:
+        return await aggregate_openapi_specs()
+    except Exception as e:
+        # Fallback al schema básico
+        return app.openapi()
 
 async def proxy_request(service_name: str, path: str, request: Request):
     """
