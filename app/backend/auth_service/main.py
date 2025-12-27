@@ -57,8 +57,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Incluir rutas
-app.include_router(auth_router, prefix="/v1")
+# Incluir rutas (sin prefijo /v1 porque API Gateway ya enruta a /auth)
+app.include_router(auth_router)
 
 
 @app.get("/health")

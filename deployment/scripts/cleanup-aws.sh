@@ -1,4 +1,8 @@
 #!/bin/bash
+
+# Ir al directorio raíz del proyecto
+cd "$(dirname "$0")/../.." || exit 1
+
 set -e
 
 # Colores

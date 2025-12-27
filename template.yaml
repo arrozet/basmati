@@ -8,7 +8,7 @@ Globals:
   Function:
     Timeout: 30
     MemorySize: 512
-    Runtime: python3.11
+    Runtime: python3.12
     Environment:
       Variables:
         MONGO_URI: !Ref MongoURI
@@ -73,6 +73,22 @@ Resources:
             RestApiId: !Ref BasmatiApi
             Path: /user/{proxy+}
             Method: ANY
+
+  # Auth Service Function
+  AuthServiceFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: app/backend/auth_service/
+      Handler: lambda_handler.handler
+      Description: Servicio de autenticación (OAuth Google/Facebook)
+      Events:
+        AuthApi:
+          Type: Api
+          Properties:
+            RestApiId: !Ref BasmatiApi
+            Path: /auth/{proxy+}
+            Method: ANY
+      # Environment variables will be added after first deployment to avoid circular dependency
 
   # Calendar Service Function
   CalendarServiceFunction:

@@ -1,5 +1,9 @@
 #!/bin/bash
 
+# Script para ver logs de las funciones Lambda
+# Ir al directorio raíz del proyecto
+cd "$(dirname "$0")/../.." || exit 1
+
 # Colores
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'

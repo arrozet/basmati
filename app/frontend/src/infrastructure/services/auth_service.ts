@@ -32,7 +32,7 @@ export interface TokenResponse {
  * @param redirect_to URL a la que redirigir después del login
  */
 export async function get_google_login_url(redirect_to: string = '/dashboard'): Promise<string> {
-    const response = await api_client.get('/v1/auth/google', {
+    const response = await api_client.get('/auth/google', {
         params: { redirect_to }
     });
     return response.data.auth_url;
@@ -43,7 +43,7 @@ export async function get_google_login_url(redirect_to: string = '/dashboard'): 
  * @param id_token Token de Google
  */
 export async function verify_google_token(id_token: string): Promise<TokenResponse> {
-    const response = await api_client.post('/v1/auth/google/verify', {
+    const response = await api_client.post('/auth/google/verify', {
         id_token
     });
     return response.data;
@@ -54,7 +54,7 @@ export async function verify_google_token(id_token: string): Promise<TokenRespon
  * @param auth_code Código de autorización recibido del callback de OAuth
  */
 export async function exchange_auth_code(auth_code: string): Promise<TokenResponse> {
-    const response = await api_client.get('/v1/auth/token', {
+    const response = await api_client.get('/auth/token', {
         params: { code: auth_code }
     });
     return response.data;
@@ -118,7 +118,7 @@ export function is_authenticated(): boolean {
  */
 export async function logout(): Promise<void> {
     try {
-        await api_client.post('/v1/auth/logout');
+        await api_client.post('/auth/logout');
     } catch {
         // Ignorar errores del servidor, limpiar localmente de todos modos
     }

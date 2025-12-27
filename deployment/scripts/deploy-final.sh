@@ -13,17 +13,19 @@ BLUE='\033[0;34m'
 NC='\033[0m'
 
 STACK_NAME="basmati-app"
-S3_BUCKET="basmati-sam-artifacts"
 
 echo -e "${BLUE}╔══════════════════════════════════════════════════════════════════╗${NC}"
 echo -e "${BLUE}║          🚀 BASMATI - DEPLOYMENT FINAL A AWS LAMBDA              ║${NC}"
 echo -e "${BLUE}╚══════════════════════════════════════════════════════════════════╝${NC}"
 echo ""
 
+# Ir al directorio raíz del proyecto
+cd "$(dirname "$0")/../.." || exit 1
+
 # Verificar que estamos en el directorio correcto
-if [ ! -f "template.yaml" ]; then
+if [ ! -f "template.yaml" ] && [ ! -L "template.yaml" ]; then
     echo -e "${RED}❌ Error: template.yaml no encontrado${NC}"
-    echo -e "${YELLOW}Ejecuta este script desde el directorio raíz del proyecto${NC}"
+    echo -e "${YELLOW}Ejecuta este script desde cualquier lugar, se ajustará automáticamente${NC}"
     exit 1
 fi
 
@@ -63,6 +65,7 @@ cd app/backend
 
 SERVICES=(
     "api-gateway"
+    "auth_service"
     "user_service"
     "calendar_service"
     "event_service"
@@ -104,36 +107,45 @@ else
     fi
 fi
 
-# Crear/Verificar bucket de artefactos SAM
+# SAM maneja el bucket automáticamente con --resolve-s3
 echo ""
-echo -e "${BLUE}📋 Paso 5: Verificando bucket S3 para artefactos SAM...${NC}"
-if ! aws s3 ls "s3://${S3_BUCKET}" --region "${AWS_REGION}" 2>&1 > /dev/null; then
-    echo -e "${YELLOW}   Creando bucket ${S3_BUCKET}...${NC}"
-    aws s3 mb "s3://${S3_BUCKET}" --region "${AWS_REGION}"
-else
-    echo -e "${GREEN}✅ Bucket ${S3_BUCKET} existe${NC}"
-fi
+echo -e "${BLUE}📋 Paso 5: Preparando deployment (SAM gestionará buckets automáticamente)...${NC}"
+echo -e "${GREEN}✅ Usando --resolve-s3 para gestión automática de artefactos${NC}"
 
 # Build con SAM
 echo ""
-echo -e "${BLUE}📋 Paso 6: Building con SAM (puede tardar varios minutos)...${NC}"
+echo -e "${BLUE}📋 Paso 6: Building con SAM usando Docker (puede tardar varios minutos)...${NC}"
+echo -e "${YELLOW}   Esto descargará imágenes de Docker e instalará todas las dependencias...${NC}"
 sam build --use-container
 
 if [ $? -ne 0 ]; then
     echo -e "${RED}❌ Error durante el build${NC}"
     exit 1
 fi
-echo -e "${GREEN}✅ Build completado${NC}"
+
+# Verificar que el build generó los artefactos correctamente
+echo -e "${YELLOW}   Verificando artefactos del build...${NC}"
+if [ ! -d ".aws-sam/build" ] || [ -z "$(ls -A .aws-sam/build)" ]; then
+    echo -e "${RED}❌ Error: El build no generó artefactos${NC}"
+    exit 1
+fi
+
+echo -e "${GREEN}✅ Build completado correctamente${NC}"
 
 # Deploy del backend
 echo ""
 echo -e "${BLUE}📋 Paso 7: Desplegando backend a AWS Lambda...${NC}"
+
+# Extraer credenciales de Google desde .env
+GOOGLE_CLIENT_ID=$(grep "^GOOGLE_CLIENT_ID=" app/.env | cut -d '=' -f 2-)
+GOOGLE_CLIENT_SECRET=$(grep "^GOOGLE_CLIENT_SECRET=" app/.env | cut -d '=' -f 2-)
+
 sam deploy \
     --stack-name "${STACK_NAME}" \
-    --s3-bucket "${S3_BUCKET}" \
     --capabilities CAPABILITY_IAM \
     --region "${AWS_REGION}" \
-    --parameter-overrides "MongoURI=${MONGO_URI}" "FrontendBucketName=${FRONTEND_BUCKET}" \
+    --resolve-s3 \
+    --parameter-overrides "MongoDBURI=${MONGO_URI}" "GoogleClientID=${GOOGLE_CLIENT_ID}" "GoogleClientSecret=${GOOGLE_CLIENT_SECRET}" "FrontendBucketName=${FRONTEND_BUCKET}" \
     --no-confirm-changeset \
     --no-fail-on-empty-changeset
 
@@ -181,10 +193,28 @@ fi
 echo -e "${YELLOW}   Instalando dependencias...${NC}"
 npm install
 
-# Crear archivo .env.production con la URL del API
-cat > .env.production << EOF
+# Crear archivo .env.production copiando variables VITE_* desde app/.env
+echo -e "${YELLOW}   Configurando variables de entorno de producción...${NC}"
+
+# Copiar todas las variables VITE_* del .env principal
+if [ -f "../.env" ]; then
+    grep "^VITE_" ../.env > .env.production 2>/dev/null || echo "" > .env.production
+    
+    # Actualizar o agregar VITE_API_GATEWAY_URL con la URL de producción
+    if grep -q "^VITE_API_GATEWAY_URL=" .env.production; then
+        sed -i "s|^VITE_API_GATEWAY_URL=.*|VITE_API_GATEWAY_URL=${API_URL}|" .env.production
+    else
+        echo "VITE_API_GATEWAY_URL=${API_URL}" >> .env.production
+    fi
+else
+    # Si no existe app/.env, crear solo con la URL del API
+    cat > .env.production << EOF
 VITE_API_GATEWAY_URL=${API_URL}
 EOF
+fi
+
+echo -e "${GREEN}✅ Variables de entorno configuradas:${NC}"
+cat .env.production
 
 echo -e "${YELLOW}   Compilando frontend...${NC}"
 npx vite build
@@ -210,9 +240,37 @@ fi
 
 echo -e "${GREEN}✅ Frontend desplegado exitosamente${NC}"
 
+# Configurar S3 para SPA (Single Page Application)
+echo ""
+echo -e "${BLUE}📋 Paso 11: Configurando S3 para rutas SPA...${NC}"
+cat > deployment/config/s3-website-config.json << 'EOF'
+{
+  "IndexDocument": {
+    "Suffix": "index.html"
+  },
+  "ErrorDocument": {
+    "Key": "index.html"
+  }
+}
+EOF
+
+aws s3api put-bucket-website \
+    --bucket "${FRONTEND_BUCKET_NAME}" \
+    --website-configuration file://deployment/config/s3-website-config.json \
+    --region "${AWS_REGION}"
+
+if [ $? -eq 0 ]; then
+    echo -e "${GREEN}✅ S3 configurado para SPA (todas las rutas → index.html)${NC}"
+else
+    echo -e "${YELLOW}⚠️  No se pudo configurar S3 website (puede que ya esté configurado)${NC}"
+fi
+
 # Verificar que el API funciona
 echo ""
-echo -e "${BLUE}📋 Paso 11: Verificando API...${NC}"
+echo -e "${BLUE}📋 Paso 12: Verificando API...${NC}"
+# Verificar que el API funciona
+echo ""
+echo -e "${BLUE}📋 Paso 12: Verificando API...${NC}"
 HEALTH_CHECK=$(curl -s "${API_URL}health" | grep -o "healthy" || echo "")
 
 if [ "$HEALTH_CHECK" = "healthy" ]; then
@@ -230,14 +288,19 @@ echo ""
 echo -e "${BLUE}📱 FRONTEND:${NC}"
 echo -e "   URL:    ${YELLOW}${FRONTEND_URL}${NC}"
 echo -e "   Bucket: ${YELLOW}${FRONTEND_BUCKET_NAME}${NC}"
+echo -e "   ${GREEN}✅ Configurado para SPA (React Router)${NC}"
 echo ""
 echo -e "${BLUE}🔌 BACKEND API:${NC}"
 echo -e "   URL:  ${YELLOW}${API_URL}${NC}"
 echo -e "   Docs: ${YELLOW}${API_URL}docs${NC}"
 echo ""
+echo -e "${BLUE}📝 VARIABLES DE ENTORNO:${NC}"
+echo -e "   ${GREEN}✅ .env.production creado desde app/.env${NC}"
+echo -e "   ${GREEN}✅ VITE_API_GATEWAY_URL inyectado en el build${NC}"
+echo ""
 echo -e "${GREEN}✅ FUNCIONALIDADES OPERATIVAS:${NC}"
 echo -e "   ✅ API Gateway funcionando"
-echo -e "   ✅ 6 Microservicios Lambda desplegados"
+echo -e "   ✅ 7 Microservicios Lambda desplegados"
 echo -e "   ✅ Módulo 'shared' incluido en todas las Lambdas"
 echo -e "   ✅ MongoDB Atlas conectado"
 echo -e "   ✅ Frontend en S3"
@@ -255,7 +318,7 @@ echo -e "${BLUE}🧪 PROBAR EL API:${NC}"
 echo -e "   ${GREEN}curl ${API_URL}health${NC}"
 echo ""
 echo -e "${BLUE}📊 RECURSOS DESPLEGADOS:${NC}"
-echo -e "   • 6 Lambda Functions"
+echo -e "   • 7 Lambda Functions (API Gateway, Auth, User, Calendar, Event, Notification, Integration)"
 echo -e "   • 1 API Gateway REST API"
 echo -e "   • 1 S3 Bucket (frontend)"
 echo -e "   • IAM Roles y Políticas"

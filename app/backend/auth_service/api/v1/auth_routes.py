@@ -33,7 +33,7 @@ from schemas import (
     AuthUrlResponse
 )
 
-router = APIRouter(prefix="/auth", tags=["Authentication"])
+router = APIRouter(tags=["Authentication"])
 
 
 # =============================================================================
