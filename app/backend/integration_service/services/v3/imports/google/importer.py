@@ -197,7 +197,7 @@ class GoogleCalendarImporter(ICalendarImporter):
         try:
             async with httpx.AsyncClient(timeout=30.0) as client:
                 response = await client.post(
-                    f"{self._calendar_service_url}/v2/calendars",
+                    f"{self._calendar_service_url}/v1/calendars",
                     json=payload
                 )
                 
