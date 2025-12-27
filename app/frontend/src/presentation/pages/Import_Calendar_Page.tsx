@@ -337,18 +337,44 @@ export const Import_Calendar_Page = () => {
               <form onSubmit={handle_google_import} className="flex flex-col gap-5">
                 {/* Estado de conexión */}
                 {has_stored_token ? (
-                  <div className="flex items-center gap-3 p-3 bg-green-50 border border-green-200 rounded-lg">
-                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                    <p className="text-sm text-green-800">
-                      <span className="font-medium">Conectado con Google.</span> Tu sesión se usará automáticamente.
-                    </p>
+                  <div className="flex items-center gap-3 p-4 bg-green-50 border border-green-200 rounded-lg">
+                    <div className="flex-shrink-0 w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+                      <CheckCircleIcon />
+                    </div>
+                    <div>
+                      <p className="font-medium text-green-900">Conectado con Google</p>
+                      <p className="text-sm text-green-700">
+                        Tu sesión se usará para importar el calendario
+                      </p>
+                    </div>
                   </div>
                 ) : (
-                  <div className="flex items-center gap-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-                    <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
-                    <p className="text-sm text-yellow-800">
-                      <span className="font-medium">No conectado.</span> Inicia sesión con Google o introduce un token manualmente.
-                    </p>
+                  <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg">
+                    <div className="flex items-start gap-3 mb-3">
+                      <div className="flex-shrink-0 w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
+                        <GoogleIcon />
+                      </div>
+                      <div>
+                        <p className="font-medium text-gray-900">Conecta tu cuenta de Google</p>
+                        <p className="text-sm text-gray-600">
+                          Para importar automáticamente, cierra sesión y vuelve a entrar con Google
+                        </p>
+                      </div>
+                    </div>
+                    <div className="text-xs text-gray-500 border-t border-gray-200 pt-3 mt-3">
+                      <p className="mb-1">¿Ya tienes un token de acceso?</p>
+                      <p>Puedes obtener uno desde el{" "}
+                        <a 
+                          href="https://developers.google.com/oauthplayground/" 
+                          target="_blank" 
+                          rel="noopener noreferrer" 
+                          className="text-blue-600 hover:underline"
+                        >
+                          OAuth Playground de Google
+                        </a>
+                        {" "}seleccionando el scope <code className="bg-gray-200 px-1 rounded">calendar.readonly</code>
+                      </p>
+                    </div>
                   </div>
                 )}
 
