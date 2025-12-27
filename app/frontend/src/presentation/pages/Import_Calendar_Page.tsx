@@ -263,10 +263,6 @@ export const Import_Calendar_Page = () => {
     }
   };
 
-  const get_provider_info = (type: Provider_Type): Provider_Capabilities | undefined => {
-    return providers.find(p => p.provider === type);
-  };
-
   return (
     <MainLayout>
       <div className="flex justify-center">
