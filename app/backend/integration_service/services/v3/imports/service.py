@@ -117,6 +117,8 @@ class ImportServiceV3:
             user_external_id=request.user_external_id,
             provider_type=ProviderType.GOOGLE,
             calendar_name=request.calendar_name,
+            days_past=request.days_past,
+            days_future=request.days_future,
         )
     
     async def import_from_teamup(
@@ -161,6 +163,8 @@ class ImportServiceV3:
             user_external_id=request.user_external_id,
             provider_type=ProviderType.TEAMUP,
             calendar_name=request.calendar_name,
+            days_past=request.days_past,
+            days_future=request.days_future,
         )
     
     async def import_calendars(
@@ -267,6 +271,8 @@ class ImportServiceV3:
         user_external_id: str,
         provider_type: ProviderType,
         calendar_name: Optional[str] = None,
+        days_past: int = 30,
+        days_future: int = 90,
     ) -> ImportResponseV3:
         """
         Ejecuta la importación usando la factoría proporcionada.
@@ -277,6 +283,8 @@ class ImportServiceV3:
             user_external_id: ID del usuario
             provider_type: Tipo de proveedor para el response
             calendar_name: Nombre personalizado para el calendario (opcional)
+            days_past: Días hacia el pasado para importar (default 30)
+            days_future: Días hacia el futuro para importar (default 90)
             
         Returns:
             ImportResponseV3: Resultado agregado de todas las importaciones
@@ -298,6 +306,8 @@ class ImportServiceV3:
                     external_calendar_id=calendar_id,
                     user_external_id=user_external_id,
                     custom_name=calendar_name,
+                    days_past=days_past,
+                    days_future=days_future,
                 )
                 
                 if result.success and result.basmati_calendar_id:

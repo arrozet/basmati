@@ -37,6 +37,8 @@ export interface Google_Import_Request_V3 {
     access_token: string;
     calendar_ids: string[];
     calendar_name?: string;
+    days_past?: number;
+    days_future?: number;
 }
 
 /**
@@ -47,6 +49,8 @@ export interface Teamup_Import_Request_V3 {
     calendar_ids: string[];
     api_key?: string;
     calendar_name?: string;
+    days_past?: number;
+    days_future?: number;
 }
 
 /**

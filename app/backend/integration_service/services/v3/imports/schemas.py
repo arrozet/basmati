@@ -44,6 +44,18 @@ class BaseImportRequest(BaseModel):
         None,
         description="Nombre personalizado para el calendario importado (usa el nombre original si no se especifica)"
     )
+    days_past: int = Field(
+        30,
+        ge=0,
+        le=365,
+        description="Días hacia el pasado para importar eventos (0-365, por defecto 30)"
+    )
+    days_future: int = Field(
+        90,
+        ge=0,
+        le=365,
+        description="Días hacia el futuro para importar eventos (0-365, por defecto 90)"
+    )
     
     model_config = ConfigDict(
         str_strip_whitespace=True,

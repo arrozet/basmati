@@ -62,7 +62,9 @@ class GoogleCalendarImporter(ICalendarImporter):
         self,
         external_calendar_id: str,
         user_external_id: str,
-        custom_name: Optional[str] = None
+        custom_name: Optional[str] = None,
+        days_past: int = 30,
+        days_future: int = 90
     ) -> ImportResult:
         """
         Importa un calendario completo con sus eventos.
@@ -71,13 +73,15 @@ class GoogleCalendarImporter(ICalendarImporter):
             external_calendar_id: ID del calendario en Google (o "primary")
             user_external_id: ID del usuario en Basmati
             custom_name: Nombre personalizado para el calendario (opcional)
+            days_past: Días hacia el pasado para importar (default 30)
+            days_future: Días hacia el futuro para importar (default 90)
             
         Returns:
             ImportResult: Resultado de la importación
         """
         logger.info(
             f"Iniciando importación de Google Calendar: {external_calendar_id} "
-            f"para usuario: {user_external_id}"
+            f"para usuario: {user_external_id} (rango: -{days_past} a +{days_future} días)"
         )
         
         # 1. Obtener información del calendario
@@ -110,7 +114,9 @@ class GoogleCalendarImporter(ICalendarImporter):
             external_calendar_id,
             basmati_calendar_id,
             calendar_info.name,
-            user_external_id
+            user_external_id,
+            days_past=days_past,
+            days_future=days_future
         )
         
         return ImportResult(
@@ -124,7 +130,9 @@ class GoogleCalendarImporter(ICalendarImporter):
         self,
         external_calendar_id: str,
         basmati_calendar_id: str,
-        user_external_id: str
+        user_external_id: str,
+        days_past: int = 30,
+        days_future: int = 90
     ) -> ImportResult:
         """
         Importa solo eventos a un calendario existente.
@@ -133,6 +141,8 @@ class GoogleCalendarImporter(ICalendarImporter):
             external_calendar_id: ID del calendario en Google
             basmati_calendar_id: ID del calendario destino en Basmati
             user_external_id: ID del usuario
+            days_past: Días hacia el pasado para importar (default 30)
+            days_future: Días hacia el futuro para importar (default 90)
             
         Returns:
             ImportResult: Resultado de la importación
@@ -154,7 +164,9 @@ class GoogleCalendarImporter(ICalendarImporter):
             external_calendar_id,
             basmati_calendar_id,
             calendar_title,
-            user_external_id
+            user_external_id,
+            days_past=days_past,
+            days_future=days_future
         )
         
         return ImportResult(
@@ -228,7 +240,9 @@ class GoogleCalendarImporter(ICalendarImporter):
         external_calendar_id: str,
         basmati_calendar_id: str,
         calendar_title: str,
-        user_external_id: str
+        user_external_id: str,
+        days_past: int = 30,
+        days_future: int = 90
     ) -> dict[str, int]:
         """
         Importa eventos desde Google Calendar a Basmati.
@@ -238,12 +252,24 @@ class GoogleCalendarImporter(ICalendarImporter):
             basmati_calendar_id: ID del calendario en Basmati
             calendar_title: Título del calendario
             user_external_id: ID del usuario
+            days_past: Días hacia el pasado
+            days_future: Días hacia el futuro
             
         Returns:
             dict: {"imported": N, "failed": M}
         """
-        # Obtener eventos de Google
-        events_result = await self._connector.fetch_events(external_calendar_id)
+        from datetime import datetime, timedelta
+        
+        # Calcular rango de fechas
+        start_date = datetime.utcnow() - timedelta(days=days_past)
+        end_date = datetime.utcnow() + timedelta(days=days_future)
+        
+        # Obtener eventos de Google con el rango especificado
+        events_result = await self._connector.fetch_events(
+            external_calendar_id,
+            start_date=start_date,
+            end_date=end_date
+        )
         
         if not events_result.success:
             logger.error(f"Error obteniendo eventos: {events_result.error_message}")
@@ -270,7 +296,7 @@ class GoogleCalendarImporter(ICalendarImporter):
                     )
                     
                     response = await client.post(
-                        f"{self._event_service_url}/v2/events",
+                        f"{self._event_service_url}/v1/events",
                         json=payload
                     )
                     

@@ -169,6 +169,10 @@ export const Import_Calendar_Page = () => {
   const [teamup_api_key, set_teamup_api_key] = useState("");
   const [teamup_calendar_name, set_teamup_calendar_name] = useState("");
 
+  // Rango de fechas para importación (compartido entre proveedores)
+  const [days_past, set_days_past] = useState(30);
+  const [days_future, set_days_future] = useState(90);
+
   // Cargar proveedores al montar
   useEffect(() => {
     const load_providers = async () => {
@@ -213,6 +217,8 @@ export const Import_Calendar_Page = () => {
         access_token: token_to_use,
         calendar_ids: calendar_ids,
         calendar_name: google_calendar_name || undefined,
+        days_past: days_past,
+        days_future: days_future,
       });
       
       // Si hay errores en el resultado, mostrarlos
@@ -245,6 +251,8 @@ export const Import_Calendar_Page = () => {
         calendar_ids: [teamup_key],
         api_key: teamup_api_key || undefined,
         calendar_name: teamup_calendar_name || undefined,
+        days_past: days_past,
+        days_future: days_future,
       });
       
       set_import_result(result);
@@ -398,6 +406,47 @@ export const Import_Calendar_Page = () => {
                   
                   {show_advanced && (
                     <div className="mt-4 space-y-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                      {/* Rango de fechas */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Rango de eventos a importar
+                        </label>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <label className="block text-xs text-gray-500 mb-1">Días hacia el pasado</label>
+                            <select
+                              value={days_past}
+                              onChange={(e) => set_days_past(Number(e.target.value))}
+                              className="w-full p-2 border-2 border-gray-300 rounded-md text-sm"
+                            >
+                              <option value={0}>Solo hoy</option>
+                              <option value={7}>1 semana</option>
+                              <option value={30}>1 mes</option>
+                              <option value={90}>3 meses</option>
+                              <option value={180}>6 meses</option>
+                              <option value={365}>1 año</option>
+                            </select>
+                          </div>
+                          <div>
+                            <label className="block text-xs text-gray-500 mb-1">Días hacia el futuro</label>
+                            <select
+                              value={days_future}
+                              onChange={(e) => set_days_future(Number(e.target.value))}
+                              className="w-full p-2 border-2 border-gray-300 rounded-md text-sm"
+                            >
+                              <option value={7}>1 semana</option>
+                              <option value={30}>1 mes</option>
+                              <option value={90}>3 meses</option>
+                              <option value={180}>6 meses</option>
+                              <option value={365}>1 año</option>
+                            </select>
+                          </div>
+                        </div>
+                        <p className="text-xs text-gray-500 mt-1">
+                          Se importarán eventos desde hace {days_past} días hasta {days_future} días en el futuro
+                        </p>
+                      </div>
+
                       <Neo_Input
                         label="IDs de calendario específicos"
                         placeholder="primary, trabajo@gmail.com..."
@@ -469,6 +518,47 @@ export const Import_Calendar_Page = () => {
                   
                   {show_advanced && (
                     <div className="mt-4 space-y-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                      {/* Rango de fechas */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Rango de eventos a importar
+                        </label>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <label className="block text-xs text-gray-500 mb-1">Días hacia el pasado</label>
+                            <select
+                              value={days_past}
+                              onChange={(e) => set_days_past(Number(e.target.value))}
+                              className="w-full p-2 border-2 border-gray-300 rounded-md text-sm"
+                            >
+                              <option value={0}>Solo hoy</option>
+                              <option value={7}>1 semana</option>
+                              <option value={30}>1 mes</option>
+                              <option value={90}>3 meses</option>
+                              <option value={180}>6 meses</option>
+                              <option value={365}>1 año</option>
+                            </select>
+                          </div>
+                          <div>
+                            <label className="block text-xs text-gray-500 mb-1">Días hacia el futuro</label>
+                            <select
+                              value={days_future}
+                              onChange={(e) => set_days_future(Number(e.target.value))}
+                              className="w-full p-2 border-2 border-gray-300 rounded-md text-sm"
+                            >
+                              <option value={7}>1 semana</option>
+                              <option value={30}>1 mes</option>
+                              <option value={90}>3 meses</option>
+                              <option value={180}>6 meses</option>
+                              <option value={365}>1 año</option>
+                            </select>
+                          </div>
+                        </div>
+                        <p className="text-xs text-gray-500 mt-1">
+                          Se importarán eventos desde hace {days_past} días hasta {days_future} días en el futuro
+                        </p>
+                      </div>
+
                       <Neo_Input
                         label="API Key personal"
                         placeholder="Tu API Key de Teamup..."
@@ -506,7 +596,8 @@ export const Import_Calendar_Page = () => {
 
           {/* Información adicional - más sutil */}
           <div className="mt-6 text-center text-sm text-gray-500">
-            <p>Se importarán los eventos de los próximos 90 días</p>
+            <p>Por defecto: eventos de los últimos 30 días y próximos 90 días</p>
+            <p className="text-xs mt-1">Configurable en "Opciones avanzadas"</p>
           </div>
         </div>
       </div>

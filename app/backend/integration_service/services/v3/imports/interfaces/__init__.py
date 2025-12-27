@@ -210,7 +210,9 @@ class ICalendarImporter(ABC):
         self,
         external_calendar_id: str,
         user_external_id: str,
-        custom_name: Optional[str] = None
+        custom_name: Optional[str] = None,
+        days_past: int = 30,
+        days_future: int = 90
     ) -> ImportResult:
         """
         Importa un calendario completo con sus eventos.
@@ -219,6 +221,8 @@ class ICalendarImporter(ABC):
             external_calendar_id: ID del calendario en el proveedor
             user_external_id: ID del usuario en Basmati
             custom_name: Nombre personalizado para el calendario (opcional)
+            days_past: Días hacia el pasado para importar (default 30)
+            days_future: Días hacia el futuro para importar (default 90)
             
         Returns:
             ImportResult: Resultado de la importación
@@ -230,7 +234,9 @@ class ICalendarImporter(ABC):
         self,
         external_calendar_id: str,
         basmati_calendar_id: str,
-        user_external_id: str
+        user_external_id: str,
+        days_past: int = 30,
+        days_future: int = 90
     ) -> ImportResult:
         """
         Importa solo eventos a un calendario existente.
@@ -239,6 +245,8 @@ class ICalendarImporter(ABC):
             external_calendar_id: ID del calendario en el proveedor
             basmati_calendar_id: ID del calendario destino en Basmati
             user_external_id: ID del usuario
+            days_past: Días hacia el pasado para importar (default 30)
+            days_future: Días hacia el futuro para importar (default 90)
             
         Returns:
             ImportResult: Resultado de la importación
