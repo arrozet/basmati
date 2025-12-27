@@ -36,6 +36,8 @@ export const Edit_Calendar_Page = () => {
     icon: "",
     is_public: false,
     parent_id: "",
+    description: "",
+    keywords: "", // Separados por comas
   });
   const [selected_file, set_selected_file] = useState<File | null>(null);
   const [icon_preview, set_icon_preview] = useState<string | null>(null);
@@ -54,6 +56,8 @@ export const Edit_Calendar_Page = () => {
             icon: fetched_calendar.icon || "",
             is_public: fetched_calendar.is_public,
             parent_id: fetched_calendar.parent_id || "",
+            description: fetched_calendar.description || "",
+            keywords: fetched_calendar.keywords?.join(", ") || "",
           });
           // Si el calendario ya tiene un icono, mostrarlo como preview
           if (fetched_calendar.icon) {
@@ -134,6 +138,12 @@ export const Edit_Calendar_Page = () => {
         icon_url = icon_preview;
       }
 
+      // Procesar keywords: separar por comas y limpiar espacios
+      const processed_keywords = form_data.keywords
+        .split(",")
+        .map((k) => k.trim())
+        .filter((k) => k.length > 0);
+
       await update_calendar({
         id: calendar.id,
         title: form_data.title,
@@ -141,7 +151,9 @@ export const Edit_Calendar_Page = () => {
         owner_id: form_data.owner_id,
         icon: icon_url,
         is_public: form_data.is_public,
-        parent_id: form_data.parent_id || null,
+        parent_id: form_data.parent_id || undefined,
+        description: form_data.description || undefined,
+        keywords: processed_keywords,
       });
       navigate("/dashboard");
     } catch (err: any) {
@@ -247,6 +259,38 @@ export const Edit_Calendar_Page = () => {
               id="calendar-title"
               autoComplete="off"
             />
+
+            <div className="flex flex-col gap-1">
+              <label
+                htmlFor="calendar-description"
+                className="font-bold text-sm text-basmati-black"
+              >
+                Descripción (opcional)
+              </label>
+              <textarea
+                id="calendar-description"
+                name="description"
+                value={form_data.description}
+                onChange={handle_change}
+                placeholder="Describe el propósito de este calendario..."
+                rows={3}
+                className="border-3 border-basmati-black px-3 py-2 focus:outline-none focus:ring-4 focus:ring-basmati-yellow ring-offset-2 transition-all resize-none"
+              />
+            </div>
+
+            <Neo_Input
+              label="Palabras clave (opcional)"
+              placeholder="Ej: coches, motor, eventos, madrid"
+              name="keywords"
+              value={form_data.keywords}
+              onChange={handle_change}
+              id="calendar-keywords"
+              autoComplete="off"
+            />
+            <p className="text-xs text-gray-600 -mt-3">
+              Separa las palabras clave con comas. Ayudan a encontrar tu
+              calendario en las búsquedas.
+            </p>
 
             <fieldset className="border-0 p-0 m-0">
               <legend className="font-bold text-sm mb-2 text-basmati-black">
