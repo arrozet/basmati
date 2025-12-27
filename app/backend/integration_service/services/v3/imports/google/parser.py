@@ -5,7 +5,7 @@ Implementa IEventParser para convertir respuestas de Google Calendar API
 a objetos de dominio normalizados.
 """
 
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any, Optional
 import logging
 
@@ -98,6 +98,11 @@ class GoogleEventParser(IEventParser):
         if all_day:
             start_time = self._parse_date(start_info.get("date"))
             end_time = self._parse_date(end_info.get("date"))
+            # Google usa fecha exclusiva para el final de eventos all-day.
+            # Por ejemplo, un evento de un solo día (25 nov) tiene end="26 nov".
+            # Restamos 1 segundo para que termine el día anterior a las 23:59:59.
+            if end_time:
+                end_time = end_time - timedelta(seconds=1)
         else:
             start_time = self._parse_datetime(
                 start_info.get("dateTime"),

@@ -103,14 +103,12 @@ export const use_calendar_events = (
 
             const result = await get_events_use_case.execute(start, end, target_calendar_ids);
             
-            // Enriquecer eventos con colores
-            // Usa color del calendario como base, pero si hay muchos eventos del mismo calendario,
-            // asigna colores distintos basados en el título del evento
+            // Enriquecer eventos con el color de su calendario
             const calendar_color_map = new Map(calendars.map(c => [c.id, c.color]));
             const enriched_events = result.map(event => ({
                 ...event,
-                // Usar color basado en el título del evento para variedad visual
-                color: get_event_color_from_title(event.title)
+                // Usar el color del calendario al que pertenece el evento
+                color: calendar_color_map.get(event.calendar_id) || "#EBBE4D"
             }));
             
             set_events(enriched_events);
