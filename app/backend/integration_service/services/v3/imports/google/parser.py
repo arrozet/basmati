@@ -6,6 +6,7 @@ a objetos de dominio normalizados.
 """
 
 from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
 from typing import Any, Optional
 import logging
 
@@ -28,6 +29,20 @@ class GoogleEventParser(IEventParser):
     
     PROVIDER_NAME = "Google Calendar"
     DEFAULT_COLOR = "#4285F4"  # Azul de Google
+
+    def __init__(self) -> None:
+        self._default_timezone: Optional[str] = None
+
+    def set_default_timezone(self, timezone_name: Optional[str]) -> None:
+        self._default_timezone = timezone_name
+
+    def _get_tzinfo(self, timezone_name: Optional[str]) -> ZoneInfo:
+        tz = timezone_name or self._default_timezone or "UTC"
+        try:
+            return ZoneInfo(tz)
+        except Exception:
+            logger.warning(f"Zona horaria inválida '{tz}', usando UTC")
+            return ZoneInfo("UTC")
     
     def parse_calendar_info(self, raw_data: dict[str, Any]) -> ExternalCalendarInfo:
         """
@@ -96,13 +111,26 @@ class GoogleEventParser(IEventParser):
         all_day = "date" in start_info and "dateTime" not in start_info
         
         if all_day:
-            start_time = self._parse_date(start_info.get("date"))
-            end_time = self._parse_date(end_info.get("date"))
             # Google usa fecha exclusiva para el final de eventos all-day.
-            # Por ejemplo, un evento de un solo día (25 nov) tiene end="26 nov".
-            # Restamos 1 segundo para que termine el día anterior a las 23:59:59.
-            if end_time:
-                end_time = end_time - timedelta(seconds=1)
+            # Para que el frontend no lo desplace a 01:00, mandamos datetimes con
+            # offset (timezone del calendario) en vez de asumir UTC.
+            start_date_str = start_info.get("date")  # "2025-11-15"
+            end_date_str = end_info.get("date")      # "2025-11-16" (exclusivo)
+
+            tzinfo = self._get_tzinfo(start_info.get("timeZone") or end_info.get("timeZone"))
+
+            if start_date_str:
+                start_dt = datetime.strptime(start_date_str, "%Y-%m-%d")
+                start_time = start_dt.replace(hour=0, minute=0, second=0, tzinfo=tzinfo)
+            else:
+                start_time = None
+
+            if end_date_str:
+                end_exclusive = datetime.strptime(end_date_str, "%Y-%m-%d")
+                end_inclusive_day = end_exclusive - timedelta(days=1)
+                end_time = end_inclusive_day.replace(hour=23, minute=59, second=59, tzinfo=tzinfo)
+            else:
+                end_time = None
         else:
             start_time = self._parse_datetime(
                 start_info.get("dateTime"),

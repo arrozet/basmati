@@ -116,7 +116,8 @@ class GoogleCalendarImporter(ICalendarImporter):
             calendar_info.name,
             user_external_id,
             days_past=days_past,
-            days_future=days_future
+            days_future=days_future,
+            calendar_timezone=calendar_info.timezone,
         )
         
         return ImportResult(
@@ -159,6 +160,9 @@ class GoogleCalendarImporter(ICalendarImporter):
         if calendar_result.success:
             calendar_info = self._parser.parse_calendar_info(calendar_result.data)
             calendar_title = calendar_info.name
+            calendar_timezone = calendar_info.timezone
+        else:
+            calendar_timezone = None
         
         events_result = await self._import_events(
             external_calendar_id,
@@ -166,7 +170,8 @@ class GoogleCalendarImporter(ICalendarImporter):
             calendar_title,
             user_external_id,
             days_past=days_past,
-            days_future=days_future
+            days_future=days_future,
+            calendar_timezone=calendar_timezone,
         )
         
         return ImportResult(
@@ -242,7 +247,8 @@ class GoogleCalendarImporter(ICalendarImporter):
         calendar_title: str,
         user_external_id: str,
         days_past: int = 30,
-        days_future: int = 90
+        days_future: int = 90,
+        calendar_timezone: Optional[str] = None,
     ) -> dict[str, int]:
         """
         Importa eventos desde Google Calendar a Basmati.
@@ -275,6 +281,13 @@ class GoogleCalendarImporter(ICalendarImporter):
             logger.error(f"Error obteniendo eventos: {events_result.error_message}")
             return {"imported": 0, "failed": 0}
         
+        # Configurar timezone por defecto en el parser (para all-day)
+        if hasattr(self._parser, "set_default_timezone"):
+            try:
+                self._parser.set_default_timezone(calendar_timezone)
+            except Exception:
+                logger.exception("No se pudo configurar timezone por defecto en parser")
+
         # Parsear eventos
         events = self._parser.parse_events(events_result.data)
         
