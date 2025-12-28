@@ -292,8 +292,86 @@ configure_nginx() {
     # Obtener IP pública
     PUBLIC_IP=$(curl -s ifconfig.me 2>/dev/null || echo "localhost")
     
-    # Crear configuración
-    cat > /etc/nginx/sites-available/basmati <<'NGINX_EOF'
+    # Detectar si hay certificado SSL
+    SSL_CERT="/etc/letsencrypt/live/basmati.app/fullchain.pem"
+    SSL_KEY="/etc/letsencrypt/live/basmati.app/privkey.pem"
+    
+    if [ -f "$SSL_CERT" ] && [ -f "$SSL_KEY" ]; then
+        log INFO "Certificados SSL encontrados, configurando HTTPS"
+        # Configuración con SSL
+        cat > /etc/nginx/sites-available/basmati <<NGINX_EOF
+# Redirigir HTTP a HTTPS
+server {
+    listen 80;
+    listen [::]:80;
+    server_name basmati.app www.basmati.app;
+    return 301 https://\$host\$request_uri;
+}
+
+# HTTPS Server
+server {
+    listen 443 ssl http2;
+    listen [::]:443 ssl http2;
+    server_name basmati.app www.basmati.app;
+    
+    ssl_certificate $SSL_CERT;
+    ssl_certificate_key $SSL_KEY;
+    
+    # SSL configuration
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_prefer_server_ciphers on;
+    ssl_ciphers ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384;
+    
+    client_max_body_size 50M;
+    
+    # Frontend
+    location / {
+        proxy_pass http://localhost:5173;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade \$http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host \$host;
+        proxy_cache_bypass \$http_upgrade;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+    }
+    
+    # API - Rutas de documentación sin rewrite
+    location ~ ^/api/(docs|redoc|openapi\.json) {
+        proxy_pass http://localhost:8000;
+        proxy_http_version 1.1;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+        proxy_set_header X-Forwarded-Prefix /api;
+    }
+    
+    # API - Resto de endpoints
+    location /api/ {
+        rewrite ^/api/(.*)\$ /\$1 break;
+        proxy_pass http://localhost:8000;
+        proxy_http_version 1.1;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+        add_header 'Access-Control-Allow-Origin' '*' always;
+        add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, DELETE, OPTIONS' always;
+        add_header 'Access-Control-Allow-Headers' 'Authorization, Content-Type' always;
+    }
+    
+    location /health {
+        proxy_pass http://localhost:8000/health;
+        access_log off;
+    }
+}
+NGINX_EOF
+    else
+        log INFO "Sin certificados SSL, configurando solo HTTP"
+        # Configuración sin SSL
+        cat > /etc/nginx/sites-available/basmati <<'NGINX_EOF'
 server {
     listen 80 default_server;
     listen [::]:80 default_server;
@@ -310,6 +388,7 @@ server {
         proxy_cache_bypass $http_upgrade;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
     }
     
     # API - Rutas de documentación sin rewrite
@@ -331,6 +410,7 @@ server {
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
         add_header 'Access-Control-Allow-Origin' '*' always;
         add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, DELETE, OPTIONS' always;
         add_header 'Access-Control-Allow-Headers' 'Authorization, Content-Type' always;
@@ -342,6 +422,7 @@ server {
     }
 }
 NGINX_EOF
+    fi
     
     # Habilitar configuración
     rm -f /etc/nginx/sites-enabled/default
@@ -359,10 +440,10 @@ NGINX_EOF
         fi
         
         # Detectar si hay un dominio configurado o usar IP
-        DOMAIN=$(grep -E "^[^#]*server_name" /etc/nginx/sites-available/basmati | grep -oP '(basmati\.app|www\.basmati\.app)' | head -1)
+        DOMAIN=$(grep -E "server_name" /etc/nginx/sites-available/basmati | grep -oP 'basmati\.app' | head -1)
         
         # Determinar protocolo (https si SSL está configurado)
-        if [ -f "/etc/letsencrypt/live/$DOMAIN/fullchain.pem" ] 2>/dev/null; then
+        if grep -q "listen 443 ssl" /etc/nginx/sites-available/basmati 2>/dev/null; then
             PROTOCOL="https"
         else
             PROTOCOL="http"
