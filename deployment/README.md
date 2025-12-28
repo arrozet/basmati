@@ -47,7 +47,9 @@ El script automáticamente:
 **URLs finales:**
 - Frontend: `http://TU_IP`
 - API: `http://TU_IP/api`
-- Docs: `http://TU_IP/api/docs`
+- Docs (Swagger): `http://TU_IP/api/docs`
+- ReDoc: `http://TU_IP/api/redoc`
+- OpenAPI JSON: `http://TU_IP/api/openapi.json`
 
 ## 📦 Estructura Simplificada
 

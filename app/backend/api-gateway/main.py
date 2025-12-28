@@ -54,7 +54,8 @@ app = FastAPI(
     title="Basmati API Gateway",
     description="Punto de entrada centralizado para todos los servicios de Basmati",
     version="1.0.0",
-    lifespan=lifespan
+    lifespan=lifespan,
+    root_path="/api"  # Prefix para proxy Nginx
 )
 
 # Configuración de CORS
@@ -83,8 +84,21 @@ def custom_openapi():
     if _custom_openapi_schema is not None:
         return _custom_openapi_schema
 
-    # Fallback al schema por defecto si aún no se ha cargado
-    return app.openapi_schema or {}
+    # Fallback: generar schema básico de FastAPI si aún no se ha cargado
+    if app.openapi_schema:
+        return app.openapi_schema
+    
+    # Generar schema por defecto con la estructura mínima válida
+    from fastapi.openapi.utils import get_openapi
+    schema = get_openapi(
+        title=app.title,
+        version=app.version,
+        openapi_version=app.openapi_version,
+        description=app.description,
+        routes=app.routes,
+    )
+    app.openapi_schema = schema
+    return schema
 
 # Sobrescribir el método openapi de FastAPI
 app.openapi = custom_openapi

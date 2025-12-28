@@ -312,7 +312,18 @@ server {
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
     }
     
-    # API
+    # API - Rutas de documentación sin rewrite
+    location ~ ^/api/(docs|redoc|openapi\.json) {
+        proxy_pass http://localhost:8000;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Prefix /api;
+    }
+    
+    # API - Resto de endpoints
     location /api/ {
         rewrite ^/api/(.*)$ /$1 break;
         proxy_pass http://localhost:8000;
