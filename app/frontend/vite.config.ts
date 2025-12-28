@@ -14,6 +14,13 @@ export default defineConfig({
     host: true, // needed for docker
     strictPort: true,
     port: 5173,
+    allowedHosts: [
+      'localhost',
+      '127.0.0.1',
+      'basmati.app',
+      'www.basmati.app',
+      '.basmati.app' // wildcard for subdomains
+    ],
     watch: {
       usePolling: true // needed for some docker environments
     }

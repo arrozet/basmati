@@ -297,7 +297,7 @@ configure_nginx() {
 server {
     listen 80 default_server;
     listen [::]:80 default_server;
-    server_name _;
+    server_name basmati.app www.basmati.app _;
     client_max_body_size 50M;
     
     # Frontend
@@ -355,12 +355,30 @@ NGINX_EOF
         # Actualizar firewall
         if command -v ufw &> /dev/null && ufw status | grep -q "Status: active"; then
             ufw allow 80/tcp &> /dev/null || true
+            ufw allow 443/tcp &> /dev/null || true
+        fi
+        
+        # Detectar si hay un dominio configurado o usar IP
+        DOMAIN=$(grep -E "^[^#]*server_name" /etc/nginx/sites-available/basmati | grep -oP '(basmati\.app|www\.basmati\.app)' | head -1)
+        
+        # Determinar protocolo (https si SSL está configurado)
+        if [ -f "/etc/letsencrypt/live/$DOMAIN/fullchain.pem" ] 2>/dev/null; then
+            PROTOCOL="https"
+        else
+            PROTOCOL="http"
+        fi
+        
+        # Determinar URL base
+        if [ -n "$DOMAIN" ] && [ "$DOMAIN" != "_" ]; then
+            BASE_URL="${PROTOCOL}://${DOMAIN}"
+        else
+            BASE_URL="${PROTOCOL}://${PUBLIC_IP}"
         fi
         
         # Actualizar .env
         if [ -f "$DEPLOY_DIR/app/.env" ]; then
-            sed -i "s|VITE_API_GATEWAY_URL=.*|VITE_API_GATEWAY_URL=http://${PUBLIC_IP}/api|g" "$DEPLOY_DIR/app/.env"
-            sed -i "s|FRONTEND_URL=.*|FRONTEND_URL=http://${PUBLIC_IP}|g" "$DEPLOY_DIR/app/.env"
+            sed -i "s|VITE_API_GATEWAY_URL=.*|VITE_API_GATEWAY_URL=${BASE_URL}/api|g" "$DEPLOY_DIR/app/.env"
+            sed -i "s|FRONTEND_URL=.*|FRONTEND_URL=${BASE_URL}|g" "$DEPLOY_DIR/app/.env"
         fi
         
         log SUCCESS "Nginx configurado correctamente"
