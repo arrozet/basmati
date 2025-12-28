@@ -1,0 +1,16 @@
+# Archivos de configuración con secrets
+.env.production
+*.pem
+*.key
+
+# Backups
+backup-*
+*.backup
+
+# Logs
+*.log
+
+# Archivos temporales
+*.tmp
+*.swp
+*~

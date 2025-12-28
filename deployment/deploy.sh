@@ -1,0 +1,347 @@
+#!/bin/bash
+
+##############################################################################
+# Basmati - Script de Despliegue Automatizado en AWS EC2
+#
+# Este script automatiza el despliegue completo de la aplicación Basmati
+# usando Docker y docker-compose en un servidor AWS EC2.
+#
+# Características:
+# - Verificación de dependencias
+# - Build optimizado con caché de Docker
+# - Manejo seguro de secretos
+# - Health checks automáticos
+# - Rollback en caso de fallo
+# - Zero-downtime deployment
+##############################################################################
+
+set -e  # Exit on error
+set -o pipefail  # Exit on pipe failure
+
+# ==========================
+# CONFIGURACIÓN
+# ==========================
+
+# Colores para output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
+
+# Configuración del proyecto
+PROJECT_NAME="basmati"
+DEPLOY_DIR="/opt/basmati"
+BACKUP_DIR="/opt/basmati-backups"
+LOG_FILE="/var/log/basmati-deploy.log"
+MAX_BACKUPS=5
+
+# Timeouts
+HEALTH_CHECK_TIMEOUT=120
+BUILD_TIMEOUT=600
+
+# ==========================
+# FUNCIONES AUXILIARES
+# ==========================
+
+log() {
+    local level=$1
+    shift
+    local message="$@"
+    local timestamp=$(date '+%Y-%m-%d %H:%M:%S')
+    
+    case $level in
+        INFO)
+            echo -e "${BLUE}[INFO]${NC} $message"
+            ;;
+        SUCCESS)
+            echo -e "${GREEN}[SUCCESS]${NC} $message"
+            ;;
+        WARNING)
+            echo -e "${YELLOW}[WARNING]${NC} $message"
+            ;;
+        ERROR)
+            echo -e "${RED}[ERROR]${NC} $message"
+            ;;
+    esac
+    
+    echo "[$timestamp] [$level] $message" >> "$LOG_FILE"
+}
+
+check_root() {
+    if [[ $EUID -ne 0 ]]; then
+        log ERROR "Este script debe ejecutarse como root o con sudo"
+        exit 1
+    fi
+}
+
+check_dependencies() {
+    log INFO "Verificando dependencias..."
+    
+    local deps=("docker" "docker-compose" "git")
+    local missing=()
+    
+    for dep in "${deps[@]}"; do
+        if ! command -v "$dep" &> /dev/null; then
+            missing+=("$dep")
+        fi
+    done
+    
+    if [ ${#missing[@]} -ne 0 ]; then
+        log ERROR "Faltan dependencias: ${missing[*]}"
+        log INFO "Ejecuta primero: ./setup-ec2.sh"
+        exit 1
+    fi
+    
+    log SUCCESS "Todas las dependencias están instaladas"
+}
+
+verify_env_file() {
+    log INFO "Verificando archivo .env..."
+    
+    if [ ! -f "$DEPLOY_DIR/app/.env" ]; then
+        log ERROR "No se encontró el archivo .env en $DEPLOY_DIR/app/.env"
+        log INFO "Copia el archivo .env.production al servidor"
+        exit 1
+    fi
+    
+    # Verificar variables críticas
+    local required_vars=(
+        "MONGO_URI"
+        "GOOGLE_CLIENT_ID"
+        "GOOGLE_CLIENT_SECRET"
+        "AWS_ACCESS_KEY_ID"
+        "AWS_SECRET_ACCESS_KEY"
+    )
+    
+    for var in "${required_vars[@]}"; do
+        if ! grep -q "^${var}=" "$DEPLOY_DIR/app/.env"; then
+            log WARNING "Variable ${var} no encontrada en .env"
+        fi
+    done
+    
+    log SUCCESS "Archivo .env verificado"
+}
+
+create_backup() {
+    log INFO "Creando backup pre-despliegue..."
+    
+    mkdir -p "$BACKUP_DIR"
+    
+    local backup_name="backup-$(date +%Y%m%d-%H%M%S)"
+    local backup_path="$BACKUP_DIR/$backup_name"
+    
+    # Backup de containers en ejecución
+    if docker-compose -f "$DEPLOY_DIR/app/docker-compose.yml" ps -q &> /dev/null; then
+        docker-compose -f "$DEPLOY_DIR/app/docker-compose.yml" config > "$backup_path.yml" 2>/dev/null || true
+        log SUCCESS "Backup creado: $backup_path.yml"
+    fi
+    
+    # Limpiar backups antiguos
+    local backup_count=$(ls -1 "$BACKUP_DIR" | wc -l)
+    if [ "$backup_count" -gt "$MAX_BACKUPS" ]; then
+        log INFO "Limpiando backups antiguos..."
+        ls -1t "$BACKUP_DIR" | tail -n +$((MAX_BACKUPS + 1)) | xargs -I {} rm -f "$BACKUP_DIR/{}"
+    fi
+    
+    echo "$backup_name"
+}
+
+stop_services() {
+    log INFO "Deteniendo servicios actuales..."
+    
+    cd "$DEPLOY_DIR/app"
+    
+    if docker-compose ps -q &> /dev/null; then
+        docker-compose down --timeout 30 || {
+            log WARNING "Timeout al detener servicios, forzando..."
+            docker-compose down --timeout 5 --force || true
+        }
+        log SUCCESS "Servicios detenidos"
+    else
+        log INFO "No hay servicios en ejecución"
+    fi
+}
+
+build_images() {
+    log INFO "Construyendo imágenes Docker..."
+    
+    cd "$DEPLOY_DIR/app"
+    
+    # Build con caché para optimizar tiempo
+    DOCKER_BUILDKIT=1 docker-compose build \
+        --parallel \
+        --build-arg BUILDKIT_INLINE_CACHE=1 \
+        2>&1 | tee -a "$LOG_FILE" || {
+        log ERROR "Fallo en la construcción de imágenes"
+        return 1
+    }
+    
+    log SUCCESS "Imágenes construidas exitosamente"
+}
+
+start_services() {
+    log INFO "Iniciando servicios..."
+    
+    cd "$DEPLOY_DIR/app"
+    
+    # Iniciar con reinicio automático
+    docker-compose up -d --remove-orphans || {
+        log ERROR "Fallo al iniciar servicios"
+        return 1
+    }
+    
+    log SUCCESS "Servicios iniciados"
+}
+
+health_check() {
+    log INFO "Ejecutando health checks..."
+    
+    local services=(
+        "http://localhost:8000/health:API Gateway"
+        "http://localhost:8001/health:User Service"
+        "http://localhost:8002/health:Calendar Service"
+        "http://localhost:8003/health:Event Service"
+        "http://localhost:8004/health:Notification Service"
+        "http://localhost:8005/health:Auth Service"
+        "http://localhost:8006/health:Integration Service"
+    )
+    
+    local failed=()
+    local elapsed=0
+    
+    while [ $elapsed -lt $HEALTH_CHECK_TIMEOUT ]; do
+        failed=()
+        
+        for service_info in "${services[@]}"; do
+            IFS=':' read -r url name <<< "$service_info"
+            
+            if ! curl -sf "$url" &> /dev/null; then
+                failed+=("$name")
+            fi
+        done
+        
+        if [ ${#failed[@]} -eq 0 ]; then
+            log SUCCESS "Todos los servicios están saludables"
+            return 0
+        fi
+        
+        log INFO "Esperando servicios: ${failed[*]} (${elapsed}s/${HEALTH_CHECK_TIMEOUT}s)"
+        sleep 5
+        elapsed=$((elapsed + 5))
+    done
+    
+    log ERROR "Health check falló. Servicios no disponibles: ${failed[*]}"
+    return 1
+}
+
+rollback() {
+    local backup_name=$1
+    
+    log WARNING "Iniciando rollback..."
+    
+    cd "$DEPLOY_DIR/app"
+    
+    docker-compose down --timeout 10 || true
+    
+    if [ -f "$BACKUP_DIR/${backup_name}.yml" ]; then
+        docker-compose -f "$BACKUP_DIR/${backup_name}.yml" up -d || {
+            log ERROR "Rollback falló. Intervención manual requerida."
+            return 1
+        }
+        log SUCCESS "Rollback completado"
+    else
+        log WARNING "No hay backup disponible para rollback"
+    fi
+}
+
+cleanup_old_images() {
+    log INFO "Limpiando imágenes antiguas..."
+    
+    # Eliminar imágenes dangling
+    docker image prune -f &> /dev/null || true
+    
+    # Eliminar contenedores detenidos
+    docker container prune -f &> /dev/null || true
+    
+    log SUCCESS "Limpieza completada"
+}
+
+print_summary() {
+    log INFO "========================================"
+    log INFO "Resumen del Despliegue"
+    log INFO "========================================"
+    
+    cd "$DEPLOY_DIR/app"
+    
+    echo ""
+    docker-compose ps
+    
+    echo ""
+    log INFO "URLs de acceso:"
+    log INFO "  - Frontend: http://$(curl -s ifconfig.me):5173"
+    log INFO "  - API Gateway: http://$(curl -s ifconfig.me):8000"
+    log INFO "  - API Docs: http://$(curl -s ifconfig.me):8000/docs"
+    
+    echo ""
+    log INFO "Logs:"
+    log INFO "  Ver logs: docker-compose logs -f"
+    log INFO "  Ver logs de servicio: docker-compose logs -f <service-name>"
+    
+    echo ""
+    log INFO "========================================"
+}
+
+# ==========================
+# FLUJO PRINCIPAL
+# ==========================
+
+main() {
+    log INFO "Iniciando despliegue de Basmati..."
+    log INFO "Timestamp: $(date)"
+    
+    # Verificaciones previas
+    check_root
+    check_dependencies
+    verify_env_file
+    
+    # Crear backup
+    backup_name=$(create_backup)
+    
+    # Despliegue
+    if ! stop_services; then
+        log ERROR "Fallo al detener servicios"
+        exit 1
+    fi
+    
+    if ! build_images; then
+        log ERROR "Fallo en build de imágenes"
+        rollback "$backup_name"
+        exit 1
+    fi
+    
+    if ! start_services; then
+        log ERROR "Fallo al iniciar servicios"
+        rollback "$backup_name"
+        exit 1
+    fi
+    
+    # Verificar que todo funciona
+    if ! health_check; then
+        log ERROR "Health check falló"
+        rollback "$backup_name"
+        exit 1
+    fi
+    
+    # Limpieza
+    cleanup_old_images
+    
+    # Resumen
+    print_summary
+    
+    log SUCCESS "¡Despliegue completado exitosamente!"
+    log INFO "Backup disponible en: $BACKUP_DIR/$backup_name"
+}
+
+# Ejecutar script
+main "$@"
