@@ -40,6 +40,9 @@ MAX_BACKUPS=5
 HEALTH_CHECK_TIMEOUT=120
 BUILD_TIMEOUT=600
 
+# Nginx
+CONFIGURE_NGINX=${CONFIGURE_NGINX:-true}  # Configurar Nginx automáticamente
+
 # ==========================
 # FUNCIONES AUXILIARES
 # ==========================
@@ -272,6 +275,89 @@ cleanup_old_images() {
     log SUCCESS "Limpieza completada"
 }
 
+configure_nginx() {
+    if [ "$CONFIGURE_NGINX" != "true" ]; then
+        return 0
+    fi
+    
+    log INFO "Configurando Nginx como reverse proxy..."
+    
+    # Verificar si Nginx está instalado
+    if ! command -v nginx &> /dev/null; then
+        log INFO "Instalando Nginx..."
+        apt-get update -qq
+        apt-get install -y nginx &> /dev/null
+    fi
+    
+    # Obtener IP pública
+    PUBLIC_IP=$(curl -s ifconfig.me 2>/dev/null || echo "localhost")
+    
+    # Crear configuración
+    cat > /etc/nginx/sites-available/basmati <<'NGINX_EOF'
+server {
+    listen 80 default_server;
+    listen [::]:80 default_server;
+    server_name _;
+    client_max_body_size 50M;
+    
+    # Frontend
+    location / {
+        proxy_pass http://localhost:5173;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_cache_bypass $http_upgrade;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    }
+    
+    # API
+    location /api/ {
+        rewrite ^/api/(.*)$ /$1 break;
+        proxy_pass http://localhost:8000;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        add_header 'Access-Control-Allow-Origin' '*' always;
+        add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, DELETE, OPTIONS' always;
+        add_header 'Access-Control-Allow-Headers' 'Authorization, Content-Type' always;
+    }
+    
+    location /health {
+        proxy_pass http://localhost:8000/health;
+        access_log off;
+    }
+}
+NGINX_EOF
+    
+    # Habilitar configuración
+    rm -f /etc/nginx/sites-enabled/default
+    ln -sf /etc/nginx/sites-available/basmati /etc/nginx/sites-enabled/
+    
+    # Verificar y recargar
+    if nginx -t &> /dev/null; then
+        systemctl restart nginx
+        systemctl enable nginx &> /dev/null
+        
+        # Actualizar firewall
+        if command -v ufw &> /dev/null && ufw status | grep -q "Status: active"; then
+            ufw allow 80/tcp &> /dev/null || true
+        fi
+        
+        # Actualizar .env
+        if [ -f "$DEPLOY_DIR/app/.env" ]; then
+            sed -i "s|VITE_API_GATEWAY_URL=.*|VITE_API_GATEWAY_URL=http://${PUBLIC_IP}/api|g" "$DEPLOY_DIR/app/.env"
+            sed -i "s|FRONTEND_URL=.*|FRONTEND_URL=http://${PUBLIC_IP}|g" "$DEPLOY_DIR/app/.env"
+        fi
+        
+        log SUCCESS "Nginx configurado correctamente"
+    else
+        log WARNING "Error en configuración de Nginx, continuando sin proxy"
+    fi
+}
+
 print_summary() {
     log INFO "========================================"
     log INFO "Resumen del Despliegue"
@@ -283,10 +369,18 @@ print_summary() {
     docker-compose ps
     
     echo ""
+    PUBLIC_IP=$(curl -s ifconfig.me)
     log INFO "URLs de acceso:"
-    log INFO "  - Frontend: http://$(curl -s ifconfig.me):5173"
-    log INFO "  - API Gateway: http://$(curl -s ifconfig.me):8000"
-    log INFO "  - API Docs: http://$(curl -s ifconfig.me):8000/docs"
+    
+    if systemctl is-active --quiet nginx 2>/dev/null; then
+        log INFO "  - Frontend: http://${PUBLIC_IP}"
+        log INFO "  - API: http://${PUBLIC_IP}/api"
+        log INFO "  - API Docs: http://${PUBLIC_IP}/api/docs"
+    else
+        log INFO "  - Frontend: http://${PUBLIC_IP}:5173"
+        log INFO "  - API Gateway: http://${PUBLIC_IP}:8000"
+        log INFO "  - API Docs: http://${PUBLIC_IP}:8000/docs"
+    fi
     
     echo ""
     log INFO "Logs:"
@@ -340,6 +434,9 @@ main() {
     
     # Limpieza
     cleanup_old_images
+    
+    # Configurar Nginx
+    configure_nginx
     
     # Resumen
     print_summary
