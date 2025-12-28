@@ -198,23 +198,28 @@ health_check() {
     log INFO "Ejecutando health checks..."
     
     local services=(
-        "http://localhost:8000/health:API Gateway"
-        "http://localhost:8001/health:User Service"
-        "http://localhost:8002/health:Calendar Service"
-        "http://localhost:8003/health:Event Service"
-        "http://localhost:8004/health:Notification Service"
-        "http://localhost:8005/health:Auth Service"
-        "http://localhost:8006/health:Integration Service"
+        "8000|API Gateway"
+        "8001|User Service"
+        "8002|Calendar Service"
+        "8003|Event Service"
+        "8004|Notification Service"
+        "8005|Auth Service"
+        "8006|Integration Service"
     )
     
     local failed=()
     local elapsed=0
     
+    # Esperar 10 segundos inicial para que los servicios arranquen
+    log INFO "Esperando inicio de servicios..."
+    sleep 10
+    
     while [ $elapsed -lt $HEALTH_CHECK_TIMEOUT ]; do
         failed=()
         
         for service_info in "${services[@]}"; do
-            IFS=':' read -r url name <<< "$service_info"
+            IFS='|' read -r port name <<< "$service_info"
+            local url="http://localhost:${port}/health"
             
             if ! curl -sf "$url" &> /dev/null; then
                 failed+=("$name")
