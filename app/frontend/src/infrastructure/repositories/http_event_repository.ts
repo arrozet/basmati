@@ -30,7 +30,7 @@ export class Http_Event_Repository implements Event_Repository_Interface {
      */
     async get_all_events(limit: number = 200): Promise<Event_Model[]> {
         try {
-            const response = await api_client.get(`/v2/events`, {
+            const response = await api_client.get(`/v2/events/`, {
                 params: { limit }
             });
             return this.map_response(response.data);
@@ -95,7 +95,7 @@ export class Http_Event_Repository implements Event_Repository_Interface {
         console.log("Sending Create Event Payload:", payload);
 
         // Usar V1 para crear eventos (V2 no tiene endpoint POST)
-        const response = await api_client.post("/v1/events", payload);
+        const response = await api_client.post("/v1/events/", payload);
         
         return this.map_single_response(response.data);
     }

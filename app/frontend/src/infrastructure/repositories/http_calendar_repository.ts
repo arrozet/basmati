@@ -69,7 +69,7 @@ export class Http_Calendar_Repository implements Calendar_Repository_Interface {
       parent_calendar_id: calendar.parent_id,
     };
 
-    const response = await api_client.post("/v1/calendars", backend_payload);
+    const response = await api_client.post("/v1/calendars/", backend_payload);
 
     // Mapear respuesta del backend al modelo de dominio
     const item = response.data;
