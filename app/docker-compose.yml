@@ -9,7 +9,7 @@ services:
       - ./frontend:/app
       - /app/node_modules
     environment:
-      - VITE_API_GATEWAY_URL=http://localhost:8000
+      - VITE_API_GATEWAY_URL=${VITE_API_GATEWAY_URL}
       - VITE_DEV_USER_1_EMAIL=${DEV_USER_1_EMAIL:-amcgil@uma.es}
       - VITE_DEV_USER_2_EMAIL=${DEV_USER_2_EMAIL:-rubenoliva@uma.es}
     depends_on:
