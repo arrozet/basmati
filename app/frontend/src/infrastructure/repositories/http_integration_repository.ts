@@ -4,11 +4,21 @@ import {
     Teamup_Import_Request, 
     Import_Response,
     Geocode_Response,
-    Reverse_Geocode_Response 
+    Reverse_Geocode_Response,
+    // V3 Models
+    Google_Import_Request_V3,
+    Teamup_Import_Request_V3,
+    Generic_Import_Request_V3,
+    Import_Response_V3,
+    Provider_Capabilities
 } from "../../domain/models/integration_models";
 import { api_client } from "../api/axios_client";
 
 export class Http_Integration_Repository implements Integration_Repository_Interface {
+    // ========================================================================
+    // V2 Methods (Legacy)
+    // ========================================================================
+    
     async import_google_calendar(request: Google_Import_Request): Promise<Import_Response> {
         const response = await api_client.post('/v2/integrations/imports/google', request);
         return response.data;
@@ -18,6 +28,54 @@ export class Http_Integration_Repository implements Integration_Repository_Inter
         const response = await api_client.post('/v2/integrations/imports/teamup', request);
         return response.data;
     }
+    
+    // ========================================================================
+    // V3 Methods (Abstract Factory Pattern)
+    // ========================================================================
+    
+    /**
+     * Obtiene la lista de proveedores soportados con sus capacidades.
+     */
+    async get_providers(): Promise<Provider_Capabilities[]> {
+        const response = await api_client.get('/v3/integrations/imports/providers');
+        return response.data;
+    }
+    
+    /**
+     * Obtiene información de un proveedor específico.
+     */
+    async get_provider_info(provider: string): Promise<Provider_Capabilities> {
+        const response = await api_client.get(`/v3/integrations/imports/providers/${provider}`);
+        return response.data;
+    }
+    
+    /**
+     * Importa calendarios desde Google Calendar usando API V3.
+     */
+    async import_google_calendar_v3(request: Google_Import_Request_V3): Promise<Import_Response_V3> {
+        const response = await api_client.post('/v3/integrations/imports/google', request);
+        return response.data;
+    }
+    
+    /**
+     * Importa calendarios desde Teamup usando API V3.
+     */
+    async import_teamup_calendar_v3(request: Teamup_Import_Request_V3): Promise<Import_Response_V3> {
+        const response = await api_client.post('/v3/integrations/imports/teamup', request);
+        return response.data;
+    }
+    
+    /**
+     * Importa calendarios usando el endpoint genérico V3.
+     */
+    async import_calendars_v3(request: Generic_Import_Request_V3): Promise<Import_Response_V3> {
+        const response = await api_client.post('/v3/integrations/imports/', request);
+        return response.data;
+    }
+
+    // ========================================================================
+    // OpenStreetMap Methods
+    // ========================================================================
 
     /**
      * Geocodifica una dirección usando OpenStreetMap (Nominatim).

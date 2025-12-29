@@ -42,7 +42,7 @@ router = APIRouter(prefix="/auth", tags=["Authentication"])
 
 # Diccionario para almacenar códigos de autorización temporales
 # Key: código UUID
-# Value: {"user_data": dict, "access_token": str, "expires_at": datetime, "used": bool, "is_new_user": bool}
+# Value: {"user_data": dict, "access_token": str, "google_access_token": str, "expires_at": datetime, "used": bool, "is_new_user": bool}
 _authorization_codes: dict[str, dict] = {}
 
 # Tiempo de expiración de los códigos (60 segundos)
@@ -52,7 +52,8 @@ AUTH_CODE_EXPIRATION_SECONDS = 60
 def _generate_auth_code(
     user_data: dict,
     access_token: str,
-    is_new_user: bool
+    is_new_user: bool,
+    google_access_token: str | None = None
 ) -> str:
     """
     Genera un código de autorización temporal y lo almacena en memoria.
@@ -61,6 +62,7 @@ def _generate_auth_code(
         user_data: Datos del usuario (external_id, email, display_name, etc.)
         access_token: Token JWT generado para el usuario
         is_new_user: Si es un usuario nuevo
+        google_access_token: Token de acceso de Google (para importar calendarios)
     
     Returns:
         str: Código UUID único
@@ -74,6 +76,7 @@ def _generate_auth_code(
     _authorization_codes[auth_code] = {
         "user_data": user_data,
         "access_token": access_token,
+        "google_access_token": google_access_token,
         "expires_at": expires_at,
         "used": False,
         "is_new_user": is_new_user
@@ -295,13 +298,13 @@ async def google_callback(
     try:
         # Intercambiar código por tokens
         tokens = await exchange_code_for_tokens(code)
-        access_token = tokens.get("access_token")
+        google_access_token = tokens.get("access_token")
         
-        if not access_token:
+        if not google_access_token:
             raise HTTPException(status_code=400, detail="No se recibió access token")
         
         # Obtener información del usuario
-        google_user = await get_google_user_info(access_token)
+        google_user = await get_google_user_info(google_access_token)
         
         # Obtener o crear usuario en nuestra base de datos
         user_data, is_new = await get_or_create_user(google_user)
@@ -315,10 +318,12 @@ async def google_callback(
         )
         
         # Generar código de autorización temporal (expira en 60 segundos, un solo uso)
+        # Incluimos el google_access_token para que el frontend pueda usarlo en importaciones
         auth_code = _generate_auth_code(
             user_data=user_data,
             access_token=session_token,
-            is_new_user=is_new
+            is_new_user=is_new,
+            google_access_token=google_access_token
         )
         
         # Construir URL de redirección con el código temporal
@@ -522,6 +527,7 @@ async def get_token(
         token_type="bearer",
         expires_in=settings.jwt_expire_minutes * 60,
         is_new_user=code_data["is_new_user"],
+        google_access_token=code_data.get("google_access_token"),
         user=UserInfo(
             external_id=user_data["external_id"],
             email=user_data["email"],

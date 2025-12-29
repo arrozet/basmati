@@ -2,6 +2,7 @@
 from fastapi import FastAPI
 from api.v1.router import api_router as api_router_v1
 from api.v2.router import api_router as api_router_v2
+from api.v3.router import api_router as api_router_v3
 from core.config import settings
 from core.database import (
     connect_to_mongo, 
@@ -23,6 +24,18 @@ tags_metadata = [
         "name": "Integration: S3 Images",
         "description": "Gestión de imágenes en AWS S3 con compresión automática.",
     },
+    {
+        "name": "V3: Calendar Imports",
+        "description": "API V3 de importación usando Abstract Factory Pattern (Google Calendar, Teamup).",
+    },
+    {
+        "name": "V3: Info",
+        "description": "Información sobre proveedores soportados en V3.",
+    },
+    {
+        "name": "V3: Import",
+        "description": "Endpoints de importación V3.",
+    },
 ]
 
 app = FastAPI(
@@ -32,6 +45,7 @@ app = FastAPI(
 )
 app.include_router(api_router_v1, prefix="/v1")
 app.include_router(api_router_v2, prefix="/v2")
+app.include_router(api_router_v3, prefix="/v3")
 
 @app.on_event("startup")
 async def startup_event():

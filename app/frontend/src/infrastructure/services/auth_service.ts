@@ -10,6 +10,7 @@ import { api_client } from '../api/axios_client';
 // Clave para almacenar el token en localStorage
 const TOKEN_KEY = 'basmati_auth_token';
 const USER_KEY = 'basmati_user';
+const GOOGLE_TOKEN_KEY = 'basmati_google_token';
 
 export interface AuthUser {
     external_id: string;
@@ -25,6 +26,7 @@ export interface TokenResponse {
     expires_in: number;
     user: AuthUser;
     is_new_user: boolean;
+    google_access_token?: string | null;
 }
 
 /**
@@ -81,6 +83,7 @@ export function get_token(): string | null {
 export function remove_token(): void {
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(USER_KEY);
+    localStorage.removeItem(GOOGLE_TOKEN_KEY);
 }
 
 /**
@@ -89,6 +92,21 @@ export function remove_token(): void {
  */
 export function save_user(user: AuthUser): void {
     localStorage.setItem(USER_KEY, JSON.stringify(user));
+}
+
+/**
+ * Guarda el token de acceso de Google para importar calendarios.
+ * @param token Token de acceso de Google
+ */
+export function save_google_token(token: string): void {
+    localStorage.setItem(GOOGLE_TOKEN_KEY, token);
+}
+
+/**
+ * Obtiene el token de acceso de Google para importar calendarios.
+ */
+export function get_google_token(): string | null {
+    return localStorage.getItem(GOOGLE_TOKEN_KEY);
 }
 
 /**
