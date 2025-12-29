@@ -5,7 +5,7 @@ export interface Notification_Preferences {
     in_app: boolean;
     email: boolean;
     email_address: string | null;
-    frequency?: 'instant' | 'daily';
+    frequency: 'instant' | 'daily';
 }
 
 /**
