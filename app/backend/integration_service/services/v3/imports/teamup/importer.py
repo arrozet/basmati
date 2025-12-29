@@ -314,9 +314,21 @@ class TeamupCalendarImporter(ICalendarImporter):
                         logger.debug(f"✓ Evento importado: {event.title}")
                     else:
                         failed += 1
+                        error_text = response.text or ""
+                        max_len = 500
+                        
+                        if len(error_text) > max_len:
+                            truncated_error = error_text[:max_len] + "..."
+                            logger.debug(
+                                f"Respuesta completa de error creando evento "
+                                f"'{event.title}': {error_text}"
+                            )
+                        else:
+                            truncated_error = error_text
+                        
                         logger.warning(
                             f"✗ Error creando evento '{event.title}': "
-                            f"{response.status_code} - {response.text[:100]}"
+                            f"{response.status_code} - {truncated_error}"
                         )
                         
                 except Exception as e:
