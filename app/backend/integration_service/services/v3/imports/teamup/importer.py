@@ -207,7 +207,7 @@ class TeamupCalendarImporter(ICalendarImporter):
             "title": calendar_name,
             "creator_external_id": user_external_id,
             "creator_display_name": "Universidad de Málaga",
-            "keywords": ["teamup", "imported", "v3", "uma", "universidad"],
+            "keywords": ["teamup", "imported", "v3"],
             "color": calendar_info.color or "#FF6B35",
             "description": description,
             "visibility": "public",
