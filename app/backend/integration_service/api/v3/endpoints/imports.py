@@ -7,6 +7,8 @@ utilizando la implementación con patrón Abstract Factory.
 
 from fastapi import APIRouter, HTTPException, status, Body
 from typing import Annotated
+import logging
+import httpx
 
 from services.v3.imports import ImportServiceV3, ProviderType
 from services.v3.imports.schemas import (
@@ -20,6 +22,7 @@ from services.v3.imports.service import ProviderNotSupportedError
 from core.config import settings
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 
 def get_import_service_v3() -> ImportServiceV3:
@@ -140,10 +143,51 @@ async def import_from_google(
     try:
         service = get_import_service_v3()
         return await service.import_from_google(request)
+    except httpx.HTTPStatusError as e:
+        # Preservar códigos de estado HTTP de APIs externas cuando sea posible
+        status_code = e.response.status_code
+        error_detail = f"Error de API externa al importar desde Google Calendar: {str(e)}"
+        logger.error(f"HTTP error {status_code} en importación de Google: {e}", exc_info=True)
+        
+        # Mapear códigos comunes a códigos HTTP apropiados
+        if status_code == 401:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Token de Google inválido o expirado"
+            )
+        elif status_code == 403:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Sin permisos para acceder al calendario de Google"
+            )
+        elif status_code == 404:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Calendario de Google no encontrado"
+            )
+        elif status_code == 429:
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail="Límite de tasa de Google Calendar excedido. Intenta más tarde"
+            )
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_502_BAD_GATEWAY,
+                detail=error_detail
+            )
+    except httpx.RequestError as e:
+        # Errores de conexión/red
+        logger.error(f"Error de conexión al importar desde Google Calendar: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="No se pudo conectar con Google Calendar. Verifica tu conexión."
+        )
     except Exception as e:
+        # Errores inesperados - log completo para debugging
+        logger.exception(f"Error inesperado al importar desde Google Calendar: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error al importar desde Google Calendar: {str(e)}"
+            detail=f"Error interno al importar desde Google Calendar: {str(e)}"
         )
 
 
@@ -197,10 +241,51 @@ async def import_from_teamup(
     try:
         service = get_import_service_v3()
         return await service.import_from_teamup(request)
+    except httpx.HTTPStatusError as e:
+        # Preservar códigos de estado HTTP de APIs externas cuando sea posible
+        status_code = e.response.status_code
+        error_detail = f"Error de API externa al importar desde Teamup: {str(e)}"
+        logger.error(f"HTTP error {status_code} en importación de Teamup: {e}", exc_info=True)
+        
+        # Mapear códigos comunes a códigos HTTP apropiados
+        if status_code == 401:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="API Key de Teamup inválida"
+            )
+        elif status_code == 403:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Sin permisos para acceder al calendario de Teamup"
+            )
+        elif status_code == 404:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Calendario de Teamup no encontrado"
+            )
+        elif status_code == 429:
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail="Límite de tasa de Teamup excedido. Intenta más tarde"
+            )
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_502_BAD_GATEWAY,
+                detail=error_detail
+            )
+    except httpx.RequestError as e:
+        # Errores de conexión/red
+        logger.error(f"Error de conexión al importar desde Teamup: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="No se pudo conectar con Teamup. Verifica tu conexión."
+        )
     except Exception as e:
+        # Errores inesperados - log completo para debugging
+        logger.exception(f"Error inesperado al importar desde Teamup: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error al importar desde Teamup: {str(e)}"
+            detail=f"Error interno al importar desde Teamup: {str(e)}"
         )
 
 
@@ -274,8 +359,49 @@ async def import_calendars(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e)
         )
+    except httpx.HTTPStatusError as e:
+        # Preservar códigos de estado HTTP de APIs externas cuando sea posible
+        status_code = e.response.status_code
+        error_detail = f"Error de API externa en importación: {str(e)}"
+        logger.error(f"HTTP error {status_code} en importación genérica: {e}", exc_info=True)
+        
+        # Mapear códigos comunes a códigos HTTP apropiados
+        if status_code == 401:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Credenciales inválidas para el proveedor seleccionado"
+            )
+        elif status_code == 403:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Sin permisos para acceder al calendario del proveedor"
+            )
+        elif status_code == 404:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Calendario no encontrado en el proveedor"
+            )
+        elif status_code == 429:
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail="Límite de tasa del proveedor excedido. Intenta más tarde"
+            )
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_502_BAD_GATEWAY,
+                detail=error_detail
+            )
+    except httpx.RequestError as e:
+        # Errores de conexión/red
+        logger.error(f"Error de conexión en importación genérica: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="No se pudo conectar con el proveedor. Verifica tu conexión."
+        )
     except Exception as e:
+        # Errores inesperados - log completo para debugging
+        logger.exception(f"Error inesperado en importación genérica: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error en importación: {str(e)}"
+            detail=f"Error interno en importación: {str(e)}"
         )
