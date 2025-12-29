@@ -175,9 +175,10 @@ export const Import_Calendar_Page = () => {
     set_error(null);
 
     try {
-      const calendar_ids = google_calendar_ids
+      const processed_ids = google_calendar_ids
         ? google_calendar_ids.split(",").map((id) => id.trim()).filter(Boolean)
-        : ["primary"];
+        : [];
+      const calendar_ids = processed_ids.length > 0 ? processed_ids : ["primary"];
 
       // Usar token manual si se proporciona, sino el almacenado
       const token_to_use = google_token || stored_google_token;
