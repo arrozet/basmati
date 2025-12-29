@@ -186,7 +186,6 @@ export const Event_Detail_Page = () => {
                 <Neo_Button
                   onClick={() => navigate(`/events/edit/${event.id}`)}
                   variant="secondary"
-                  size="sm"
                   className="text-xs"
                 >
                   <FontAwesomeIcon icon={faPencil} className="mr-2" /> Editar
