@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { MainLayout } from "../components/layout/MainLayout";
 import { Neo_Card } from "../components/ui/Neo_Card";
@@ -8,11 +8,9 @@ import { Back_Button } from "../components/ui/Back_Button";
 import { Http_Integration_Repository } from "../../infrastructure/repositories/http_integration_repository";
 import { Import_Google_Calendar_Use_Case_V3 } from "../../application/integration/import_google_calendar_use_case_v3";
 import { Import_Teamup_Calendar_Use_Case_V3 } from "../../application/integration/import_teamup_calendar_use_case_v3";
-import { Get_Providers_Use_Case } from "../../application/integration/get_providers_use_case";
 import { 
   Import_Response_V3, 
   Imported_Calendar_V3, 
-  Provider_Capabilities,
   Provider_Type 
 } from "../../domain/models/integration_models";
 import { use_page_title } from "../hooks/use_page_title";
@@ -57,7 +55,6 @@ const CalendarPlusIcon = () => (
 const repository = new Http_Integration_Repository();
 const import_google_use_case = new Import_Google_Calendar_Use_Case_V3(repository);
 const import_teamup_use_case = new Import_Teamup_Calendar_Use_Case_V3(repository);
-const get_providers_use_case = new Get_Providers_Use_Case(repository);
 
 // Componente para mostrar resultado de importación
 const Import_Result_Card: React.FC<{ result: Import_Response_V3; on_close: () => void }> = ({ 
@@ -153,8 +150,6 @@ export const Import_Calendar_Page = () => {
   const [loading, set_loading] = useState(false);
   const [error, set_error] = useState<string | null>(null);
   const [import_result, set_import_result] = useState<Import_Response_V3 | null>(null);
-  const [providers, set_providers] = useState<Provider_Capabilities[]>([]);
-  const [loading_providers, set_loading_providers] = useState(true);
   const [show_advanced, set_show_advanced] = useState(false);
 
   // Google Form State - inicializado con token almacenado
@@ -173,26 +168,6 @@ export const Import_Calendar_Page = () => {
   // Por defecto 1 año hacia atrás y 1 año hacia adelante
   const [days_past, set_days_past] = useState(365);
   const [days_future, set_days_future] = useState(365);
-
-  // Cargar proveedores al montar
-  useEffect(() => {
-    const load_providers = async () => {
-      try {
-        const result = await get_providers_use_case.execute();
-        set_providers(result);
-      } catch (err) {
-        console.error("Error loading providers:", err);
-        // Usar valores por defecto si falla
-        set_providers([
-          { provider: 'google', name: 'Google Calendar', supports_oauth: true, supports_api_key: false, supports_sync: false, requires_calendar_selection: true },
-          { provider: 'teamup', name: 'Teamup', supports_oauth: false, supports_api_key: true, supports_sync: false, requires_calendar_selection: true }
-        ]);
-      } finally {
-        set_loading_providers(false);
-      }
-    };
-    load_providers();
-  }, []);
 
   const handle_google_import = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -305,7 +280,6 @@ export const Import_Calendar_Page = () => {
             <button
               type="button"
               onClick={() => set_active_tab("google")}
-              disabled={loading_providers}
               className={`flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-md font-medium transition-all ${
                 active_tab === "google" 
                   ? 'bg-white shadow-sm border border-gray-200 text-gray-900' 
@@ -318,7 +292,6 @@ export const Import_Calendar_Page = () => {
             <button
               type="button"
               onClick={() => set_active_tab("teamup")}
-              disabled={loading_providers}
               className={`flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-md font-medium transition-all ${
                 active_tab === "teamup" 
                   ? 'bg-white shadow-sm border border-gray-200 text-gray-900' 
