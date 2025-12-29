@@ -8,6 +8,10 @@ class APIGatewaySettings(Settings):
     auth_service_url: str = "http://auth-service:8005"
     enable_auth_middleware: bool = False  # Desactivado por defecto para desarrollo
     
+    # CORS
+    cors_origins: str = "*"  # En desarrollo permite todos. En producción usar lista separada por comas
+    environment: str = "development"
+    
     # Rutas que NO requieren autenticación
     public_routes: list[str] = [
         "/health",

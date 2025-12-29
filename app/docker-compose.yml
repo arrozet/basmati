@@ -3,15 +3,12 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+      args:
+        - VITE_API_GATEWAY_URL=${VITE_API_GATEWAY_URL:-http://localhost:8000}
+        - VITE_DEV_USER_1_EMAIL=${DEV_USER_1_EMAIL:-amcgil@uma.es}
+        - VITE_DEV_USER_2_EMAIL=${DEV_USER_2_EMAIL:-rubenoliva@uma.es}
     ports:
-      - "5173:5173"
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
-    environment:
-      - VITE_API_GATEWAY_URL=${VITE_API_GATEWAY_URL}
-      - VITE_DEV_USER_1_EMAIL=${DEV_USER_1_EMAIL:-amcgil@uma.es}
-      - VITE_DEV_USER_2_EMAIL=${DEV_USER_2_EMAIL:-rubenoliva@uma.es}
+      - "80:80"
     depends_on:
       - api-gateway
     networks:
@@ -33,6 +30,8 @@ services:
       - NOTIFICATION_SERVICE_URL=http://notification-service:8004
       - INTEGRATION_SERVICE_URL=http://integration-service:8006
       - AUTH_SERVICE_URL=http://auth-service:8005
+      - CORS_ORIGINS=${CORS_ORIGINS:-*}
+      - ENVIRONMENT=${ENVIRONMENT:-development}
     depends_on:
       - user-service
       - calendar-service
@@ -175,6 +174,8 @@ services:
       - JWT_EXPIRE_MINUTES=10080
       # JWT_EXPIRE_MINUTES is in minutes; 7 days = 60 * 24 * 7 = 10080
       - FRONTEND_URL=${FRONTEND_URL:-http://localhost:5173}
+      - CORS_ORIGINS=${CORS_ORIGINS:-*}
+      - ENVIRONMENT=${ENVIRONMENT:-development}
     depends_on:
       - user-service
     networks:

@@ -59,9 +59,25 @@ app = FastAPI(
 )
 
 # Configuración de CORS
+# Validar que no se use wildcard en producción
+cors_origins_str = settings.cors_origins
+if cors_origins_str == "*":
+    if settings.environment == "production":
+        raise ValueError(
+            "❌ ERROR DE SEGURIDAD: CORS con wildcard '*' no permitido en producción. "
+            "Configure CORS_ORIGINS con los dominios permitidos separados por comas."
+        )
+    else:
+        print("⚠️  ADVERTENCIA: CORS configurado para permitir todos los orígenes. "
+              "En producción, configure CORS_ORIGINS con dominios específicos.")
+    allowed_origins = ["*"]
+else:
+    # Parsear lista de orígenes separados por comas
+    allowed_origins = [origin.strip() for origin in cors_origins_str.split(",") if origin.strip()]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Permitir todos los orígenes en desarrollo
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
