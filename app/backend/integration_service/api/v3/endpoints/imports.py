@@ -31,7 +31,7 @@ def get_import_service_v3() -> ImportServiceV3:
     return ImportServiceV3(
         calendar_service_url=settings.CALENDAR_SERVICE_URL,
         event_service_url=settings.EVENT_SERVICE_URL,
-        default_teamup_api_key=getattr(settings, 'teamup_api_key', None),
+        default_teamup_api_key=settings.teamup_api_key,
     )
 
 
