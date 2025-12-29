@@ -5,35 +5,60 @@ config:
 flowchart TB
  subgraph UI_Layer["1. UI Layer (React + Vite + Tailwind)"]
     direction TB
-        Pages[("Pages<br>(Dashboard, Calendar, Profile)")]
-        Components[("Components<br>(EventModal, CalendarGrid, MapView)")]
-        Hooks[("Custom Hooks<br>(useCalendar, useEvents, useMap)")]
+        Pages[("Pages<br>(Dashboard, Calendar, Event,<br>Search, Settings, Import)")]
+        Components[("Components<br>(EventModal, CalendarGrid,<br>LocationPicker, Comments)")]
+        Hooks[("Custom Hooks<br>(useCalendar, useEvents,<br>useNotifications, useUser)")]
   end
  subgraph EventCases["Event Use Cases"]
         GetEvents["GetEventsUseCase"]
         CreateEvent["CreateEventUseCase"]
+        UpdateEvent["UpdateEventUseCase"]
+        DeleteEvent["DeleteEventUseCase"]
+        SearchEvents["SearchEventsUseCase"]
+        AddComment["AddCommentUseCase"]
   end
  subgraph CalCases["Calendar Use Cases"]
         GetCalendars["GetCalendarsUseCase"]
+        CreateCalendar["CreateCalendarUseCase"]
+        UpdateCalendar["UpdateCalendarUseCase"]
+        DeleteCalendar["DeleteCalendarUseCase"]
+        SearchCalendars["SearchCalendarsUseCase"]
+        AddCalendarComment["AddCalendarCommentUseCase"]
   end
- subgraph MapCases["Map Use Cases"]
-        GetLocationCoords["GetLocationCoordsUseCase"]
+ subgraph UserCases["User Use Cases"]
+        GetUserProfile["GetUserProfileUseCase"]
+        UpdateUserProfile["UpdateUserProfileUseCase"]
+        UpdateNotifications["UpdateNotificationPreferencesUseCase"]
+  end
+ subgraph IntegrationCases["Integration Use Cases"]
+        ImportGoogle["ImportGoogleCalendarUseCase"]
+        ImportTeamup["ImportTeamupCalendarUseCase"]
+  end
+ subgraph S3Cases["S3 Use Cases"]
+        UploadImage["UploadImageUseCase"]
   end
  subgraph App_Layer["2. Application Layer (Use Cases)"]
     direction TB
         EventCases
         CalCases
-        MapCases
+        UserCases
+        IntegrationCases
+        S3Cases
   end
  subgraph Entities["Entities / Models"]
         ModelEvent["Event Model"]
         ModelCalendar["Calendar Model"]
         ModelUser["User Model"]
+        ModelNotification["Notification Model"]
+        ModelIntegration["Integration Models"]
   end
  subgraph Interfaces["Repository Interfaces"]
         IEventRepo["IEventRepository<br>(Interface)"]
         ICalRepo["ICalendarRepository<br>(Interface)"]
-        IMapRepo["IMapServiceRepository<br>(Interface)"]
+        IUserRepo["IUserRepository<br>(Interface)"]
+        INotifRepo["INotificationRepository<br>(Interface)"]
+        IIntegrationRepo["IIntegrationRepository<br>(Interface)"]
+        IS3Repo["IS3Repository<br>(Interface)"]
   end
  subgraph Domain_Layer["3. Domain Layer (Core)"]
     direction TB
@@ -44,7 +69,10 @@ flowchart TB
     direction TB
         HttpEventRepo["HttpEventRepository<br>(Axios implementation)"]
         HttpCalRepo["HttpCalendarRepository<br>(Axios implementation)"]
-        HttpMapRepo["HttpMapRepository<br>(Axios implementation)"]
+        HttpUserRepo["HttpUserRepository<br>(Axios implementation)"]
+        HttpNotifRepo["HttpNotificationRepository<br>(Axios implementation)"]
+        HttpIntegrationRepo["HttpIntegrationRepository<br>(Axios implementation)"]
+        HttpS3Repo["HttpS3Repository<br>(Axios implementation)"]
         ApiClient["API Client / Axios Instance<br>(Base URL config)"]
   end
  subgraph subGraph9["Capas de Clean Architecture"]
@@ -59,19 +87,49 @@ flowchart TB
   end
     Pages --> Components
     Components --> Hooks
-    Hooks --> GetEvents & CreateEvent & GetCalendars & GetLocationCoords
+    Hooks --> GetEvents & CreateEvent & UpdateEvent & DeleteEvent & SearchEvents & AddComment
+    Hooks --> GetCalendars & CreateCalendar & UpdateCalendar & DeleteCalendar & SearchCalendars & AddCalendarComment
+    Hooks --> GetUserProfile & UpdateUserProfile & UpdateNotifications
+    Hooks --> ImportGoogle & ImportTeamup
+    Hooks --> UploadImage
     GetEvents --> IEventRepo
     CreateEvent --> IEventRepo
+    UpdateEvent --> IEventRepo
+    DeleteEvent --> IEventRepo
+    SearchEvents --> IEventRepo
+    AddComment --> IEventRepo
     GetCalendars --> ICalRepo
-    GetLocationCoords --> IMapRepo
+    CreateCalendar --> ICalRepo
+    UpdateCalendar --> ICalRepo
+    DeleteCalendar --> ICalRepo
+    SearchCalendars --> ICalRepo
+    AddCalendarComment --> ICalRepo
+    GetUserProfile --> IUserRepo
+    UpdateUserProfile --> IUserRepo
+    UpdateNotifications --> IUserRepo
+    ImportGoogle --> IIntegrationRepo
+    ImportTeamup --> IIntegrationRepo
+    UploadImage --> IS3Repo
     GetEvents -.-> ModelEvent
+    GetCalendars -.-> ModelCalendar
+    GetUserProfile -.-> ModelUser
     IEventRepo -.-> ModelEvent
+    ICalRepo -.-> ModelCalendar
+    IUserRepo -.-> ModelUser
+    INotifRepo -.-> ModelNotification
+    IIntegrationRepo -.-> ModelIntegration
     HttpEventRepo -- implements --> IEventRepo
     HttpCalRepo -- implements --> ICalRepo
-    HttpMapRepo -- implements --> IMapRepo
+    HttpUserRepo -- implements --> IUserRepo
+    HttpNotifRepo -- implements --> INotifRepo
+    HttpIntegrationRepo -- implements --> IIntegrationRepo
+    HttpS3Repo -- implements --> IS3Repo
     HttpEventRepo --> ApiClient
     HttpCalRepo --> ApiClient
-    HttpMapRepo --> ApiClient
+    HttpUserRepo --> ApiClient
+    HttpNotifRepo --> ApiClient
+    HttpIntegrationRepo --> ApiClient
+    HttpS3Repo --> ApiClient
     ApiClient -- JSON / HTTP --> Gateway
 
      Pages:::ui
@@ -79,17 +137,39 @@ flowchart TB
      Hooks:::ui
      GetEvents:::app
      CreateEvent:::app
+     UpdateEvent:::app
+     DeleteEvent:::app
+     SearchEvents:::app
+     AddComment:::app
      GetCalendars:::app
-     GetLocationCoords:::app
+     CreateCalendar:::app
+     UpdateCalendar:::app
+     DeleteCalendar:::app
+     SearchCalendars:::app
+     AddCalendarComment:::app
+     GetUserProfile:::app
+     UpdateUserProfile:::app
+     UpdateNotifications:::app
+     ImportGoogle:::app
+     ImportTeamup:::app
+     UploadImage:::app
      ModelEvent:::dom
      ModelCalendar:::dom
      ModelUser:::dom
+     ModelNotification:::dom
+     ModelIntegration:::dom
      IEventRepo:::dom
      ICalRepo:::dom
-     IMapRepo:::dom
+     IUserRepo:::dom
+     INotifRepo:::dom
+     IIntegrationRepo:::dom
+     IS3Repo:::dom
      HttpEventRepo:::infra
      HttpCalRepo:::infra
-     HttpMapRepo:::infra
+     HttpUserRepo:::infra
+     HttpNotifRepo:::infra
+     HttpIntegrationRepo:::infra
+     HttpS3Repo:::infra
      ApiClient:::infra
      Gateway:::ext
     classDef ui fill:#e1f5fe,stroke:#01579b,stroke-width:2px
