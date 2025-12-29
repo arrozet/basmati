@@ -1,0 +1,56 @@
+---
+config:
+  layout: elk
+---
+flowchart LR
+ subgraph Users["<b>COLLECTION: users</b>"]
+        direction TB
+        UsersColl["👤 users"]
+        U1["<b>Document Structure</b><br>────────────────<br>• _id: ObjectId<br>• external_id: string<br>• provider: string<br>• email: string<br>• display_name: string<br>• avatar_url: string<br>• notification_preferences ⊕<br>• followed_calendar_ids: [ObjectId]<br>• created_at: datetime<br>• last_login: datetime"]
+        U2["<b>notification_preferences</b><br>────────────────<br>• in_app: boolean<br>• email: boolean<br>• email_address: string"]
+        U1 -. embeds .- U2
+  end
+  
+ subgraph Calendars["<b>COLLECTION: calendars</b>"]
+        direction TB
+        CalendarsColl["📅 calendars"]
+        C1["<b>Document Structure</b><br>────────────────<br>• _id: ObjectId<br>• title: string<br>• creator_external_id: string →<br>• creator_display_name: string<br>• keywords: [string]<br>• color: string<br>• icon: string<br>• parent_calendar_id: ObjectId →<br>• path: [ObjectId]<br>• description: string<br>• visibility: string<br>• created_at: datetime<br>• updated_at: datetime<br>• subscriber_count: number"]
+  end
+  
+ subgraph Events["<b>COLLECTION: events</b>"]
+        direction TB
+        EventsColl["📌 events"]
+        E1["<b>Document Structure</b><br>────────────────<br>• _id: ObjectId<br>• calendar_id: ObjectId →<br>• calendar_title: string<br>• creator_external_id: string →<br>• title: string<br>• description: string<br>• start_time: datetime<br>• end_time: datetime<br>• location ⊕<br>• attachments ⊕⊕<br>• comments ⊕⊕<br>• visibility: string<br>• recurrence ⊕<br>• created_at: datetime<br>• updated_at: datetime"]
+        E2["<b>location</b><br>────────────────<br>• address: string<br>• latitude: number<br>• longitude: number<br>• place_name: string<br>• map_provider: string"]
+        E3["<b>attachments[]</b><br>────────────────<br>• _id: ObjectId<br>• filename: string<br>• url: string (GCS)<br>• size: number<br>• mime_type: string<br>• uploaded_at: datetime<br>• uploaded_by: string<br>• is_image: boolean<br>• thumbnail_url: string"]
+        E4["<b>comments[]</b><br>────────────────<br>• _id: ObjectId<br>• author_external_id: string →<br>• author_display_name: string<br>• text: string<br>• created_at: datetime"]
+        E5["<b>recurrence</b><br>────────────────<br>• pattern: string<br>• interval: number<br>• days_of_week: [number]<br>• end_date: datetime<br>• exceptions: [datetime]"]
+        E1 -. embeds .- E2
+        E1 -. embeds .- E5
+        E1 -. embeds array .- E3 & E4
+  end
+  
+ subgraph Notifications["<b>COLLECTION: notifications</b>"]
+        direction TB
+        NotificationsColl["🔔 notifications"]
+        N1["<b>Document Structure</b><br>────────────────<br>• _id: ObjectId<br>• recipient_external_id: string →<br>• type: string<br>• title: string<br>• message: string<br>• is_read: boolean<br>• related_event_id: ObjectId →<br>• related_calendar_id: ObjectId →<br>• created_at: datetime<br>• expires_at: datetime"]
+  end
+  
+    UsersColl == creates ==> CalendarsColl
+    UsersColl == creates ==> EventsColl
+    UsersColl == receives ==> NotificationsColl
+    UsersColl == follows ==> CalendarsColl
+    CalendarsColl == contains ==> EventsColl
+    CalendarsColl == parent_of ==> CalendarsColl
+    EventsColl == generates ==> NotificationsColl
+    EventsColl == relates_to ==> EventsColl
+    
+    style Users fill:#e1f5ff,stroke:#0066cc,stroke-width:3px
+    style Calendars fill:#fff4e1,stroke:#cc8800,stroke-width:3px
+    style Events fill:#e8f5e8,stroke:#00aa00,stroke-width:3px
+    style Notifications fill:#ffe8f0,stroke:#cc0066,stroke-width:3px
+    
+    style UsersColl fill:#b3d9ff,stroke:#0066cc,stroke-width:2px
+    style CalendarsColl fill:#ffe4b3,stroke:#cc8800,stroke-width:2px
+    style EventsColl fill:#c2e0c2,stroke:#00aa00,stroke-width:2px
+    style NotificationsColl fill:#ffcce0,stroke:#cc0066,stroke-width:2px
