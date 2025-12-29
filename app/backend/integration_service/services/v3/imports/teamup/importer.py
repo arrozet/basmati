@@ -210,7 +210,7 @@ class TeamupCalendarImporter(ICalendarImporter):
             "keywords": ["teamup", "imported", "v3"],
             "color": calendar_info.color or "#FF6B35",
             "description": description,
-            "visibility": "public",
+            "visibility": "private",
         }
         
         try:
