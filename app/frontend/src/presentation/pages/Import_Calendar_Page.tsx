@@ -265,7 +265,12 @@ export const Import_Calendar_Page = () => {
   };
 
   const handle_result_close = () => {
-    if (import_result?.success) {
+    if (!import_result) {
+      set_import_result(null);
+      return;
+    }
+    
+    if (import_result.success) {
       navigate("/dashboard");
     } else {
       set_import_result(null);
