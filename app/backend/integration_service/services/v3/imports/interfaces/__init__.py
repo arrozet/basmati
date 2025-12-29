@@ -60,9 +60,11 @@ class ExternalEvent:
         if self.description:
             payload["description"] = self.description
         
-        # Nota: No incluimos location porque el schema de Basmati requiere 
-        # latitude/longitude que no tenemos de los proveedores externos.
-        # La dirección de texto se puede agregar en description si es necesario.
+        # Nota sobre location: El schema de Basmati requiere latitude/longitude
+        # para el campo location, pero los proveedores externos solo proporcionan
+        # direcciones de texto. Como workaround, incluimos la dirección de texto
+        # en el campo description con un emoji de ubicación para que sea visible
+        # pero no se puede usar para geocodificación automática.
         if self.location and self.description:
             payload["description"] = f"{self.description}\n\n📍 {self.location}"
         elif self.location:
