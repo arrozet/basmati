@@ -10,35 +10,6 @@ const calendar_repository = new Http_Calendar_Repository();
 const repository = new Http_Event_Repository(calendar_repository);
 const get_events_use_case = new Get_Events_By_Date_Range_Use_Case(repository);
 
-// Paleta de colores neobrutalist para eventos
-const EVENT_COLORS = [
-    "#EBBE4D", // Amarillo (basmati-yellow)
-    "#FF6B6B", // Rojo coral
-    "#4ECDC4", // Turquesa
-    "#45B7D1", // Azul cielo
-    "#96CEB4", // Verde menta
-    "#FFEAA7", // Amarillo pastel
-    "#DDA0DD", // Plum
-    "#98D8C8", // Aqua
-    "#F7DC6F", // Oro
-    "#BB8FCE", // Lavanda
-    "#85C1E9", // Azul claro
-    "#F8B500", // Amber
-    "#00CEC9", // Cyan
-    "#E17055", // Terracota
-    "#74B9FF", // Azul pastel
-    "#A29BFE", // Púrpura pastel
-];
-
-// Genera un hash simple del título para obtener un color consistente
-const get_event_color_from_title = (title: string): string => {
-    let hash = 0;
-    for (let i = 0; i < title.length; i++) {
-        hash = title.charCodeAt(i) + ((hash << 5) - hash);
-    }
-    return EVENT_COLORS[Math.abs(hash) % EVENT_COLORS.length];
-};
-
 // Helper to recursively find all descendant IDs
 const get_all_descendant_ids = (rootId: string, allCalendars: Calendar_Model[]): string[] => {
     const children = allCalendars.filter(c => c.parent_id === rootId);
