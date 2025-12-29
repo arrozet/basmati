@@ -249,23 +249,41 @@ class TeamupConnector(ICalendarConnector):
         """
         Prueba la validez de la API Key.
         
-        Returns:
-            bool: True si la API Key es válida
-        """
-        # Teamup no tiene un endpoint de verificación directo,
-        # así que intentamos obtener la configuración de un calendario conocido
-        # o simplemente verificamos que la API responde
+        Nota: Teamup no tiene un endpoint de verificación directo que no requiera
+        un calendar_id. Este método intenta verificar la API Key haciendo un request
+        a un endpoint que requiere autenticación. Si la API Key es inválida, Teamup
+        devolverá 401. Sin embargo, este método no puede garantizar completamente la
+        validez de la key sin un calendar_id válido.
         
-        # Usamos un endpoint que requiere autenticación
-        url = f"{self.BASE_URL}/check"
+        Para una verificación más confiable, use fetch_calendar_info() con un
+        calendar_id conocido.
+        
+        Returns:
+            bool: True si la API Key parece válida (no devuelve 401)
+        """
+        # Teamup no tiene un endpoint de verificación directo sin calendar_id.
+        # Intentamos hacer un request a un endpoint que requiere autenticación.
+        # Usamos un calendar_id de prueba que probablemente no existe, pero
+        # el objetivo es verificar que la API Key es válida (no 401).
+        # Si obtenemos 404, significa que la key es válida pero el calendario no existe.
+        # Si obtenemos 401, la key es inválida.
+        
+        # Usamos un calendar_id de prueba (formato válido pero probablemente inexistente)
+        test_calendar_id = "test_connection_verification"
+        url = f"{self.BASE_URL}/{test_calendar_id}/configuration"
         
         try:
             async with httpx.AsyncClient(timeout=self._timeout) as client:
-                # Intentar un request simple con la API Key
                 response = await client.get(url, headers=self._headers)
-                # Teamup debería devolver 200 si la key es válida
-                # o 401 si no lo es
-                return response.status_code != 401
+                
+                # 401 = API Key inválida
+                if response.status_code == 401:
+                    return False
+                
+                # 404 = API Key válida pero calendario no existe (esto es lo esperado)
+                # 200 = API Key válida y calendario existe (caso improbable pero válido)
+                # Cualquier otro código también indica que la key es válida
+                return True
                 
         except Exception as e:
             logger.error(f"Error probando conexión con Teamup: {e}")
