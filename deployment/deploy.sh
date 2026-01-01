@@ -115,6 +115,8 @@ verify_env_file() {
         "GOOGLE_CLIENT_SECRET"
         "VITE_API_GATEWAY_URL"
         "FRONTEND_URL"
+        "SENDGRID_API_KEY"
+        "SENDER_EMAIL"
     )
     
     for var in "${required_vars[@]}"; do
@@ -279,6 +281,25 @@ cleanup_old_images() {
     docker container prune -f &> /dev/null || true
     
     log SUCCESS "Limpieza completada"
+}
+
+cleanup_files() {
+    log INFO "Eliminando archivos no esenciales para ahorrar espacio..."
+    
+    local targets=(
+        "docs"
+        "LICENSE"
+        "README.md"
+    )
+    
+    for target in "${targets[@]}"; do
+        if [ -e "$DEPLOY_DIR/$target" ]; then
+            rm -rf "$DEPLOY_DIR/$target"
+            log INFO "Eliminado: $target"
+        fi
+    done
+    
+    log SUCCESS "Archivos no esenciales eliminados"
 }
 
 configure_nginx() {
@@ -527,6 +548,7 @@ main() {
     
     # Limpieza
     cleanup_old_images
+    cleanup_files
     
     # Configurar Nginx
     configure_nginx
