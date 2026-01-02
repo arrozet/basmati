@@ -21,7 +21,6 @@ import { Logout_Button } from "../components/ui/Logout_Button";
 import { use_page_title } from "../hooks/use_page_title";
 
 type SettingsTab = "profile" | "notifications";
-type NotificationFrequency = "instant" | "daily";
 
 /**
  * Página de configuración del usuario con secciones de perfil y notificaciones.
@@ -46,29 +45,22 @@ export const Settings_Page: React.FC = () => {
 
   // Estados del formulario de perfil
   const [display_name, set_display_name] = useState<string>("");
-  const [email, set_email] = useState<string>("");
 
   // Estados del formulario de notificaciones
   const [notification_email_enabled, set_notification_email_enabled] =
     useState<boolean>(true);
   const [notification_in_app_enabled, set_notification_in_app_enabled] =
     useState<boolean>(true);
-  const [notification_frequency, set_notification_frequency] =
-    useState<NotificationFrequency>("instant");
 
   // Cargar datos del usuario cuando esté disponible
   useEffect(() => {
     if (user) {
       set_display_name(user.display_name || "");
-      set_email(user.email || "");
       set_notification_email_enabled(
         user.notification_preferences?.email ?? true
       );
       set_notification_in_app_enabled(
         user.notification_preferences?.in_app ?? true
-      );
-      set_notification_frequency(
-        user.notification_preferences?.frequency || "instant"
       );
     }
   }, [user]);
@@ -85,7 +77,6 @@ export const Settings_Page: React.FC = () => {
     try {
       await update_user({
         display_name,
-        email,
       });
       set_success_message("✅ Perfil actualizado correctamente");
       setTimeout(() => set_success_message(null), 3000);
@@ -112,7 +103,6 @@ export const Settings_Page: React.FC = () => {
         email: notification_email_enabled,
         in_app: notification_in_app_enabled,
         email_address: user?.notification_preferences?.email_address || null,
-        frequency: notification_frequency,
       };
       await update_preferences(preferences);
       set_success_message("✅ Preferencias actualizadas correctamente");
@@ -186,11 +176,10 @@ export const Settings_Page: React.FC = () => {
               label="Correo electrónico"
               type="email"
               id="email"
-              value={email}
-              onChange={(e) => set_email(e.target.value)}
+              value={user?.email || ""}
               placeholder="ejemplo@correo.com"
-              required
-              helper_text="Usado para recuperación de cuenta y notificaciones"
+              helper_text="Correo asociado a tu cuenta (no editable)"
+              disabled
             />
 
             <div className="flex gap-4 pt-4">
@@ -281,74 +270,6 @@ export const Settings_Page: React.FC = () => {
                       className="text-sm text-gray-600 mt-1"
                     >
                       Verás notificaciones mientras usas Basmati
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </fieldset>
-
-            <fieldset className="border-3 border-basmati-black p-6 bg-white shadow-hard">
-              <legend className="font-black text-lg px-2 bg-basmati-bg">
-                Frecuencia
-              </legend>
-
-              <div
-                className="space-y-3 mt-4"
-                role="radiogroup"
-                aria-labelledby="notifications-heading"
-              >
-                <div className="flex items-start gap-3">
-                  <input
-                    type="radio"
-                    id="frequency-instant"
-                    name="notification-frequency"
-                    value="instant"
-                    checked={notification_frequency === "instant"}
-                    onChange={() => set_notification_frequency("instant")}
-                    className="mt-1 w-5 h-5 border-3 border-basmati-black focus:ring-4 focus:ring-basmati-yellow focus:ring-offset-2 cursor-pointer accent-basmati-yellow"
-                    aria-describedby="frequency-instant-description"
-                  />
-                  <div className="flex-1">
-                    <label
-                      htmlFor="frequency-instant"
-                      className="font-bold cursor-pointer hover:text-basmati-yellow transition-colors"
-                    >
-                      Instantánea
-                    </label>
-                    <p
-                      id="frequency-instant-description"
-                      className="text-sm text-gray-600 mt-1"
-                    >
-                      Te notificaremos inmediatamente cuando ocurra algo
-                      importante
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-3">
-                  <input
-                    type="radio"
-                    id="frequency-daily"
-                    name="notification-frequency"
-                    value="daily"
-                    checked={notification_frequency === "daily"}
-                    onChange={() => set_notification_frequency("daily")}
-                    className="mt-1 w-5 h-5 border-3 border-basmati-black focus:ring-4 focus:ring-basmati-yellow focus:ring-offset-2 cursor-pointer accent-basmati-yellow"
-                    aria-describedby="frequency-daily-description"
-                  />
-                  <div className="flex-1">
-                    <label
-                      htmlFor="frequency-daily"
-                      className="font-bold cursor-pointer hover:text-basmati-yellow transition-colors"
-                    >
-                      Diaria - Resumen
-                    </label>
-                    <p
-                      id="frequency-daily-description"
-                      className="text-sm text-gray-600 mt-1"
-                    >
-                      Recibirás un resumen diario con todas las novedades a las
-                      00:00
                     </p>
                   </div>
                 </div>
