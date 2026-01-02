@@ -242,7 +242,7 @@ class ImportServiceV2:
             str: ID del calendario creado en Basmati o None si falla
         """
         try:
-            async with httpx.AsyncClient(timeout=30.0) as client:
+            async with httpx.AsyncClient(timeout=120.0) as client:
                 # 1. Obtener información del calendario desde Teamup API
                 # NOTA: Teamup requiere el header Teamup-Token para TODOS los calendarios
                 teamup_headers = {
@@ -337,6 +337,8 @@ class ImportServiceV2:
         """
         Importa eventos desde Teamup hacia Basmati.
         
+        Utiliza procesamiento por lotes para evitar timeouts con muchos eventos.
+        
         Args:
             teamup_calendar_key: Key del calendario en Teamup
             basmati_calendar_id: ID del calendario en Basmati
@@ -344,8 +346,12 @@ class ImportServiceV2:
             user_external_id: ID del usuario propietario
             calendar_title: Título del calendario
         """
+        import asyncio
+        
+        BATCH_SIZE = 10  # Procesar eventos en lotes de 10
+        
         try:
-            async with httpx.AsyncClient(timeout=30.0) as client:
+            async with httpx.AsyncClient(timeout=120.0) as client:
                 # Obtener eventos desde Teamup API
                 teamup_headers = {
                     "Teamup-Token": api_key,
@@ -374,8 +380,8 @@ class ImportServiceV2:
                 
                 print(f"Se encontraron {len(events)} eventos en Teamup")
                 
-                # Crear cada evento en Basmati
-                for teamup_event in events:
+                # Función auxiliar para crear un evento
+                async def create_event(teamup_event: dict) -> bool:
                     try:
                         event_payload = {
                             "calendar_id": basmati_calendar_id,
@@ -403,14 +409,35 @@ class ImportServiceV2:
                         
                         if event_response.status_code == 201:
                             print(f"✓ Evento importado: {event_payload['title']}")
+                            return True
                         else:
                             print(f"✗ Error al crear evento: {event_response.status_code}")
+                            return False
                     
                     except Exception as e:
                         print(f"Error al importar evento: {str(e)}")
-                        continue
+                        return False
                 
-                print("Importación de eventos completada")
+                # Procesar eventos en lotes concurrentes para mayor velocidad
+                imported_count = 0
+                failed_count = 0
+                
+                for i in range(0, len(events), BATCH_SIZE):
+                    batch = events[i:i + BATCH_SIZE]
+                    batch_num = (i // BATCH_SIZE) + 1
+                    total_batches = (len(events) + BATCH_SIZE - 1) // BATCH_SIZE
+                    print(f"Procesando lote {batch_num}/{total_batches} ({len(batch)} eventos)...")
+                    
+                    # Ejecutar lote en paralelo
+                    results = await asyncio.gather(*[create_event(e) for e in batch], return_exceptions=True)
+                    
+                    for result in results:
+                        if result is True:
+                            imported_count += 1
+                        else:
+                            failed_count += 1
+                
+                print(f"Importación completada: {imported_count} eventos importados, {failed_count} fallidos")
         
         except Exception as e:
             print(f"Error al importar eventos desde Teamup: {str(e)}")

@@ -240,7 +240,7 @@ class ImportService:
             str: ID del calendario creado en Basmati o None si falla
         """
         try:
-            async with httpx.AsyncClient(timeout=30.0) as client:
+            async with httpx.AsyncClient(timeout=120.0) as client:
                 # 1. Obtener información del calendario desde Teamup API
                 # NOTA: Teamup requiere el header Teamup-Token para TODOS los calendarios
                 teamup_headers = {
@@ -337,7 +337,7 @@ class ImportService:
             api_key: API Key de Teamup (SIEMPRE REQUERIDA)
         """
         try:
-            async with httpx.AsyncClient(timeout=30.0) as client:
+            async with httpx.AsyncClient(timeout=120.0) as client:
                 # Obtener eventos desde Teamup API
                 teamup_headers = {
                     "Teamup-Token": api_key,

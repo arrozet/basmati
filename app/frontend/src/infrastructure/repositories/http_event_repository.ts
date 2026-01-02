@@ -28,7 +28,7 @@ export class Http_Event_Repository implements Event_Repository_Interface {
      * Una sola petición en lugar de múltiples.
      * @param limit Número máximo de eventos a devolver.
      */
-    async get_all_events(limit: number = 200): Promise<Event_Model[]> {
+    async get_all_events(limit: number = 1000): Promise<Event_Model[]> {
         try {
             const response = await api_client.get(`/v2/events/`, {
                 params: { limit }
@@ -101,23 +101,18 @@ export class Http_Event_Repository implements Event_Repository_Interface {
     }
 
     async get_events_by_date_range(start: Date, end: Date, calendar_ids?: string[]): Promise<Event_Model[]> {
-        const base_params = {
+        const params: Record<string, string> = {
             start: start.toISOString(),
             end: end.toISOString()
         };
 
-        // Una sola petición para obtener todos los eventos en el rango de fechas
-        const response = await api_client.get("/v2/events/search/by-date-range", { params: base_params });
-        const all_events = this.map_response(response.data);
-
-        // Si no hay filtro de calendarios, devolver todos
-        if (!calendar_ids || calendar_ids.length === 0) {
-            return all_events;
+        // Enviar calendar_ids al backend para filtrar en la base de datos (mucho más eficiente)
+        if (calendar_ids && calendar_ids.length > 0) {
+            params.calendar_ids = calendar_ids.join(",");
         }
 
-        // Filtrar en el cliente por los calendar_ids especificados
-        const calendar_id_set = new Set(calendar_ids);
-        return all_events.filter(event => calendar_id_set.has(event.calendar_id));
+        const response = await api_client.get("/v2/events/search/by-date-range", { params });
+        return this.map_response(response.data);
     }
 
     private map_response(data: any[]): Event_Model[] {

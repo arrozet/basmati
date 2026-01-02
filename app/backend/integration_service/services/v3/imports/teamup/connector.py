@@ -39,14 +39,14 @@ class TeamupConnector(ICalendarConnector):
     def __init__(
         self,
         api_key: str,
-        timeout: float = 30.0
+        timeout: float = 120.0
     ):
         """
         Inicializa el conector con credenciales de Teamup.
         
         Args:
             api_key: API Key de Teamup (obtenida desde dashboard de Teamup)
-            timeout: Timeout en segundos para requests HTTP
+            timeout: Timeout en segundos para requests HTTP (120s por defecto para calendarios grandes)
         """
         self._api_key = api_key
         self._timeout = timeout

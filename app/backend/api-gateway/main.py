@@ -169,7 +169,7 @@ async def proxy_request(service_name: str, path: str, request: Request):
         full_url = f"{full_url}?{request.url.query}"
     
     try:
-        async with httpx.AsyncClient(timeout=30.0, follow_redirects=False) as client:
+        async with httpx.AsyncClient(timeout=180.0, follow_redirects=False) as client:
             response = await client.request(
                 method=request.method,
                 url=full_url,
@@ -373,7 +373,7 @@ async def proxy_request_multipart(service_name: str, path: str, request: Request
             if key.lower() not in ['host', 'content-length']:
                 headers[key] = value
         
-        async with httpx.AsyncClient(timeout=60.0) as client:
+        async with httpx.AsyncClient(timeout=180.0) as client:
             response = await client.request(
                 method=request.method,
                 url=full_url,

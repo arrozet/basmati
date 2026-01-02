@@ -214,7 +214,7 @@ class TeamupCalendarImporter(ICalendarImporter):
         }
         
         try:
-            async with httpx.AsyncClient(timeout=30.0) as client:
+            async with httpx.AsyncClient(timeout=120.0) as client:
                 response = await client.post(
                     f"{self._calendar_service_url}/v1/calendars",
                     json=payload
@@ -291,12 +291,18 @@ class TeamupCalendarImporter(ICalendarImporter):
         
         logger.info(f"Importando {len(events)} eventos desde Teamup...")
         
+        import asyncio
+        
+        BATCH_SIZE = 10  # Procesar eventos en lotes de 10
+        
         # Crear eventos en Basmati
         imported = 0
         failed = 0
         
-        async with httpx.AsyncClient(timeout=30.0) as client:
-            for event in events:
+        async with httpx.AsyncClient(timeout=120.0) as client:
+            
+            async def create_single_event(event) -> bool:
+                """Crea un evento individual y retorna True si tuvo éxito."""
                 try:
                     payload = event.to_basmati_payload(
                         calendar_id=basmati_calendar_id,
@@ -310,10 +316,9 @@ class TeamupCalendarImporter(ICalendarImporter):
                     )
                     
                     if response.status_code == 201:
-                        imported += 1
                         logger.debug(f"✓ Evento importado: {event.title}")
+                        return True
                     else:
-                        failed += 1
                         error_text = response.text or ""
                         max_len = 500
                         
@@ -330,10 +335,30 @@ class TeamupCalendarImporter(ICalendarImporter):
                             f"✗ Error creando evento '{event.title}': "
                             f"{response.status_code} - {truncated_error}"
                         )
+                        return False
                         
                 except Exception as e:
-                    failed += 1
                     logger.error(f"Error importando evento '{event.title}': {e}")
+                    return False
+            
+            # Procesar eventos en lotes concurrentes para mayor velocidad
+            for i in range(0, len(events), BATCH_SIZE):
+                batch = events[i:i + BATCH_SIZE]
+                batch_num = (i // BATCH_SIZE) + 1
+                total_batches = (len(events) + BATCH_SIZE - 1) // BATCH_SIZE
+                logger.info(f"Procesando lote {batch_num}/{total_batches} ({len(batch)} eventos)...")
+                
+                # Ejecutar lote en paralelo
+                results = await asyncio.gather(
+                    *[create_single_event(e) for e in batch], 
+                    return_exceptions=True
+                )
+                
+                for result in results:
+                    if result is True:
+                        imported += 1
+                    else:
+                        failed += 1
         
         logger.info(f"Importación completada: {imported} eventos, {failed} fallos")
         return {"imported": imported, "failed": failed}

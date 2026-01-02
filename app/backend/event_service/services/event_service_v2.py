@@ -44,7 +44,7 @@ class EventServiceV2(EventService):
         self.user_service_url = settings.user_service_url
         self.integration_service_url = settings.integration_service_url
 
-    async def get_all_events(self, limit: int = 200) -> list[EventResponse]:
+    async def get_all_events(self, limit: int = 1000) -> list[EventResponse]:
         """Obtiene todos los eventos del sistema.
         
         Args:
@@ -60,15 +60,15 @@ class EventServiceV2(EventService):
         self, 
         start: datetime, 
         end: datetime, 
-        calendar_id: str | None = None
+        calendar_ids: list[str] | None = None
     ) -> list[EventResponse]:
         """Busca eventos dentro de un rango de fechas (parametrized query 2).
         
-        V2 permite filtrar opcionalmente por calendar_id.
+        V2 permite filtrar opcionalmente por lista de calendar_ids.
         """
         if end <= start:
             raise ValueError("El rango de fechas es inválido: 'end' debe ser posterior a 'start'")
-        events = await self.event_repository.find_by_date_range(start, end, calendar_id)
+        events = await self.event_repository.find_by_date_range(start, end, calendar_ids)
         return [self._document_to_response(event) for event in events]
 
     async def delete_events_by_calendar(self, calendar_id: str) -> int:

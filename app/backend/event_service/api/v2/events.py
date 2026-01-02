@@ -51,7 +51,7 @@ Ejemplo de uso:
         }
     )
     async def get_all_events(
-        limit: int = Query(200, ge=1, le=1000, description="Número máximo de eventos a devolver"),
+        limit: int = Query(1000, ge=1, le=1000, description="Número máximo de eventos a devolver"),
         service: IEventService = Depends(get_service_dependency),
     ):
         """Obtiene todos los eventos del sistema."""
@@ -65,11 +65,12 @@ Ejemplo de uso:
         description="""
 Busca eventos dentro de un rango de fechas.
 
-**Mejora en V2**: Permite filtrar opcionalmente por `calendar_id`.
+**Mejora en V2**: Permite filtrar opcionalmente por `calendar_id` o `calendar_ids`.
 
 Ejemplo de uso:
 - `/v2/events/search/by-date-range?start=2024-01-01T00:00:00&end=2024-12-31T23:59:59`
 - `/v2/events/search/by-date-range?start=2024-01-01T00:00:00&end=2024-12-31T23:59:59&calendar_id=507f1f77bcf86cd799439011`
+- `/v2/events/search/by-date-range?start=2024-01-01T00:00:00&end=2024-12-31T23:59:59&calendar_ids=id1,id2,id3`
         """,
         responses={
             200: {"description": "Lista de eventos en el rango de fechas."},
@@ -82,13 +83,24 @@ Ejemplo de uso:
         end: datetime = Query(..., description="Fecha fin ISO 8601"),
         calendar_id: str | None = Query(
             None, 
-            description="ID del calendario para filtrar (nuevo en V2)"
+            description="ID del calendario para filtrar (un solo calendario)"
+        ),
+        calendar_ids: str | None = Query(
+            None,
+            description="IDs de calendarios separados por coma para filtrar (múltiples calendarios)"
         ),
         service: IEventService = Depends(get_service_dependency),
     ):
-        """Busca eventos dentro de un rango de fechas con filtro opcional por calendario."""
+        """Busca eventos dentro de un rango de fechas con filtro opcional por calendario(s)."""
         try:
-            return await service.search_by_date_range(start, end, calendar_id)
+            # Combinar calendar_id y calendar_ids en una lista
+            ids_list: list[str] | None = None
+            if calendar_ids:
+                ids_list = [id.strip() for id in calendar_ids.split(",") if id.strip()]
+            elif calendar_id:
+                ids_list = [calendar_id]
+            
+            return await service.search_by_date_range(start, end, ids_list)
         except ValueError as exc:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,

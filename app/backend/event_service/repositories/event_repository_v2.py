@@ -45,8 +45,14 @@ class EventRepositoryV2(EventRepository):
         except Exception as exc:
             raise ValueError(f"Error al insertar evento en BD: {str(exc)}")
 
-    async def find_by_date_range(self, start: datetime, end: datetime, calendar_id: str | None = None) -> list[dict]:
-        """Busca eventos que ocurren dentro de un rango de fechas (parametrized query 2)."""
+    async def find_by_date_range(self, start: datetime, end: datetime, calendar_ids: list[str] | None = None) -> list[dict]:
+        """Busca eventos que ocurren dentro de un rango de fechas (parametrized query 2).
+        
+        Args:
+            start: Fecha de inicio del rango
+            end: Fecha de fin del rango
+            calendar_ids: Lista opcional de IDs de calendarios para filtrar
+        """
         try:
             query = {
                 "$and": [
@@ -55,17 +61,17 @@ class EventRepositoryV2(EventRepository):
                 ]
             }
             
-            if calendar_id:
-                if ObjectId.is_valid(calendar_id):
-                    # Buscar tanto por ObjectId como por String para compatibilidad con datos legacy
-                    query["$and"].append({
-                        "$or": [
-                            {"calendar_id": ObjectId(calendar_id)},
-                            {"calendar_id": calendar_id}
-                        ]
-                    })
-                else:
-                    query["$and"].append({"calendar_id": calendar_id})
+            if calendar_ids and len(calendar_ids) > 0:
+                # Construir condiciones OR para cada calendar_id (soportando ObjectId y String)
+                calendar_conditions = []
+                for cal_id in calendar_ids:
+                    if ObjectId.is_valid(cal_id):
+                        calendar_conditions.append({"calendar_id": ObjectId(cal_id)})
+                        calendar_conditions.append({"calendar_id": cal_id})
+                    else:
+                        calendar_conditions.append({"calendar_id": cal_id})
+                
+                query["$and"].append({"$or": calendar_conditions})
 
             # DEBUG LOG
             print(f"DEBUG SEARCH: Querying events with filter: {query}")
@@ -73,7 +79,7 @@ class EventRepositoryV2(EventRepository):
             print(f"DEBUG SEARCH: Found {count} documents")
 
             cursor = self.collection.find(query)
-            return await cursor.to_list(length=200)
+            return await cursor.to_list(length=1000)
         except Exception as e:
             print(f"DEBUG SEARCH ERROR: {e}")
             return []
@@ -94,11 +100,11 @@ class EventRepositoryV2(EventRepository):
                 query = {"calendar_id": calendar_id}
 
             cursor = self.collection.find(query)
-            return await cursor.to_list(length=200)
+            return await cursor.to_list(length=1000)
         except Exception:
             return []
 
-    async def find_all(self, limit: int = 200) -> list[dict]:
+    async def find_all(self, limit: int = 1000) -> list[dict]:
         """Obtiene todos los eventos de la base de datos.
         
         Args:
