@@ -373,6 +373,19 @@ export const Import_Calendar_Page = () => {
                   />
                 )}
 
+                {/* Nombre personalizado del calendario */}
+                <div>
+                  <Neo_Input
+                    label="Nombre personalizado"
+                    placeholder="Mi calendario de Google"
+                    value={google_calendar_name}
+                    onChange={(e) => set_google_calendar_name(e.target.value)}
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Opcional: nombre con el que aparecerá en Basmati
+                  </p>
+                </div>
+
                 {/* Rango de fechas para importar */}
                 <div className="mb-4">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -431,16 +444,6 @@ export const Import_Calendar_Page = () => {
                       <p className="text-xs text-gray-500 -mt-2">
                         Deja vacío para importar tu calendario principal
                       </p>
-
-                      <Neo_Input
-                        label="Nombre personalizado"
-                        placeholder="Mi calendario de Google"
-                        value={google_calendar_name}
-                        onChange={(e) => set_google_calendar_name(e.target.value)}
-                      />
-                      <p className="text-xs text-gray-500 -mt-2">
-                        Opcional: nombre con el que aparecerá en Basmati
-                      </p>
                     </div>
                   )}
                 </div>
@@ -479,6 +482,19 @@ export const Import_Calendar_Page = () => {
                 <p className="text-xs text-gray-500 -mt-3">
                   La encuentras en la URL de tu calendario: teamup.com/<strong>ks123456abc</strong>
                 </p>
+
+                {/* Nombre personalizado del calendario */}
+                <div>
+                  <Neo_Input
+                    label="Nombre personalizado"
+                    placeholder="Mi calendario de Teamup"
+                    value={teamup_calendar_name}
+                    onChange={(e) => set_teamup_calendar_name(e.target.value)}
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Opcional: nombre con el que aparecerá en Basmati
+                  </p>
+                </div>
 
                 {/* Rango de fechas para importar */}
                 <div className="mb-4">
@@ -537,16 +553,6 @@ export const Import_Calendar_Page = () => {
                       />
                       <p className="text-xs text-gray-500 -mt-2">
                         Opcional: si no la tienes, se usará la del servidor
-                      </p>
-
-                      <Neo_Input
-                        label="Nombre personalizado"
-                        placeholder="Mi calendario de Teamup"
-                        value={teamup_calendar_name}
-                        onChange={(e) => set_teamup_calendar_name(e.target.value)}
-                      />
-                      <p className="text-xs text-gray-500 -mt-2">
-                        Opcional: nombre con el que aparecerá en Basmati
                       </p>
                     </div>
                   )}
