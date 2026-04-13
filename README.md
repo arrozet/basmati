@@ -28,7 +28,7 @@ Basmati is a full-stack calendar platform for teams and communities that need on
 
 ## Preview
 
-![Basmati interface preview](./docs/mockups/ui/0-main_view.png)
+![Basmati interface preview](./docs/ui/0-main_view.png)
 
 <!-- Live demo: add URL when publicly available -->
 
